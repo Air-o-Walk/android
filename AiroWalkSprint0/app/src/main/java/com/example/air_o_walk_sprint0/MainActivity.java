@@ -16,8 +16,11 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -48,6 +51,10 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView textMajor;
     private TextView textMinor;
+
+    //Variables vinculacion
+    private VinculadorBLE vinculador;
+    private ImageView iconoVincular;
 
     // ------------------------------------------------------------------
     // Escanea todos los dispositivos BLE cercanos y muestra su información
@@ -380,6 +387,39 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
         inicializarBlueTooth();
+// ==============================================================================================================
+        // VINCULAR: referencia al ImageView del estado (debe existir en tu XML con este id)
+        iconoVincular = findViewById(R.id.iconoVincular);         // VINCULAR
+        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo); // VINCULAR (estado inicial rojo)
+
+        // VINCULAR: crear el vinculador usando el escáner BLE ya inicializado
+        vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() { // VINCULAR
+            @Override public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {   // VINCULAR
+                Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);                   // VINCULAR
+                switch (nuevoEstado) {                                                 // VINCULAR
+                    case VINCULADO:
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde); // VINCULAR
+                        break;
+                    case TIMEOUT:
+                    case ERROR:
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);  // VINCULAR
+                        break;
+                    case ESCANEANDO:
+                    case IDLE:
+                        // opcional: mostrar progreso, etc.                               // VINCULAR
+                        break;
+                }
+            }
+            @Override public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
+                Log.d(">>>>", "Encontrado: " + device.getName() + " addr=" + device.getAddress()
+                        + " rssi=" + result.getRssi());                                // VINCULAR
+                // opcional: parsear iBeacon aquí con TramaIBeacon para más logs         // VINCULAR
+            }
+            @Override public void onError(int errorCode) {
+                Log.d(">>>>", "Listener onError: code=" + errorCode);                  // VINCULAR
+            }
+        }); // VINCULAR
+// ==============================================================================================================
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
 
@@ -415,6 +455,30 @@ public class MainActivity extends AppCompatActivity {
         }
         // Otros casos de permisos pueden añadirse aquí si la app lo requiere
     } // ()
+
+// Llama este método desde el onClick de tu icono/botón de vincular
+    public void botonVincularPulsado(View v) {                           // VINCULAR
+        EditText input = new EditText(this);                             // VINCULAR
+        input.setHint("Ej: GTI-Mery");                                   // VINCULAR
+
+        new AlertDialog.Builder(this)                                    // VINCULAR
+                .setTitle("Vincular Beacon")                             // VINCULAR
+                .setMessage("Introduce el código (nombre del beacon):")  // VINCULAR
+                .setView(input)                                          // VINCULAR
+                .setPositiveButton("Vincular", (dlg, which) -> {         // VINCULAR
+                    String codigo = input.getText().toString().trim();   // VINCULAR
+                    if (codigo.isEmpty()) {                              // VINCULAR
+                        Log.d(">>>>", "Código vacío");                   // VINCULAR
+                        return;                                          // VINCULAR
+                    }
+                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo); // reset visual // VINCULAR
+                    vinculador.vincularPorNombre(codigo, 10_000);        // timeout 10 s         // VINCULAR
+                })
+                .setNegativeButton("Cancelar", (d, w) -> {})             // VINCULAR
+                .show();                                                 // VINCULAR
+    }                                                                     // VINCULAR
+// ========================================================================
+
 
 } // class
 // --------------------------------------------------------------

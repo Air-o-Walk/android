@@ -21,6 +21,11 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
+        <!-- ========================================================== -->
+        <!-- VINCULAR: icono que muestra el estado de conexión (rojo/verde) -->
+        <!-- ========================================================== -->
+
+
         <TextView
             android:id="@+id/textMajor"
             android:layout_width="wrap_content"
@@ -78,5 +83,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"/>
+
+    <ImageView
+        android:id="@+id/iconoVincular"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="16dp"
+        android:contentDescription="Estado de vinculación"
+        android:onClick="botonVincularPulsado"
+        android:src="@drawable/ic_vincular_rojo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.481"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutMajorMinor" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
