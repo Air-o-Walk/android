@@ -22,4 +22,10 @@
         android:name="com.example.air_o_walk.ui.notifications.NotificationsFragment"
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_notifications" />
+
+    <fragment
+        android:id="@+id/navigation_extra"
+        android:name="com.example.air_o_walk.ui.extra.ExtraFragment"
+        android:label="@string/title_extra"
+        tools:layout="@layout/fragment_extra" />
 </navigation>
