@@ -242,10 +242,7 @@ public class MainActivity extends AppCompatActivity {
             int contadorArduino = major[1] & 0xFF;
             int valorMedicion = Utilidades.bytesToInt(tib.getMinor());
 
-            // Llamamos a la notificación desde el hilo principal (UI thread)
-            runOnUiThread(() -> {
-                AdminNotificaciones.revisarYNotificar(this, valorMedicion);
-            });
+
 
             // Si es un nuevo contador, reinicia banderas
             if (contadorArduino != this.contadorAndroid) {
@@ -309,6 +306,11 @@ public class MainActivity extends AppCompatActivity {
         // Actualizamos nuestro contador local para futuras comparaciones
         this.contadorAndroid = contadorArduino;
 
+
+        // Llamamos a la notificación desde el hilo principal (UI thread)
+        runOnUiThread(() -> {
+            AdminNotificaciones.revisarYNotificar(this, medicionGas);
+        });
         textMajor.setText("03(ppm): " + medicionGas);
         textMinor.setText("Temperatura(ºC): " + medicionTemperatura);
     }
@@ -500,6 +502,18 @@ public class MainActivity extends AppCompatActivity {
             idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
             token = intent.getStringExtra("TOKEN");
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        1001
+                );
+            }
+        }
+
 // ==============================================================================================================
 // VINCULAR
 // Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
