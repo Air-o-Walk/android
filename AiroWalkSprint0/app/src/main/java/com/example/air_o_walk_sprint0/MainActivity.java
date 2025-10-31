@@ -13,9 +13,11 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -46,8 +48,19 @@ public class MainActivity extends AppCompatActivity {
     private boolean recibioGas = false;
     private boolean recibioTemperatura = false;
 
+    // Referencias a las vistas
     private TextView textMajor;
     private TextView textMinor;
+    private TextView distanciaTotal;
+    private TextView tiempoTotal;
+    private Button trackButton;
+
+    // Trackers para distancia y tiempo
+    private StepCounterTracker stepTracker;
+    private WalkingTimeTracker timeTracker;
+
+    // Estado del tracking
+    private boolean isTracking = false;
 
     // ------------------------------------------------------------------
     // Escanea todos los dispositivos BLE cercanos y muestra su información
@@ -100,14 +113,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " ****************************************************");
         Log.d(ETIQUETA_LOG, " nombre = " + bluetoothDevice.getName());
         Log.d(ETIQUETA_LOG, " toString = " + bluetoothDevice.toString());
-
-        // Se puede mostrar el UUID si está disponible
-        /*
-        ParcelUuid[] puuids = bluetoothDevice.getUuids();
-        if ( puuids.length >= 1 ) {
-            //Log.d(ETIQUETA_LOG, " uuid = " + puuids[0].getUuid());
-           // Log.d(ETIQUETA_LOG, " uuid = " + puuids[0].toString());
-        }*/
 
         Log.d(ETIQUETA_LOG, " dirección = " + bluetoothDevice.getAddress());
         Log.d(ETIQUETA_LOG, " rssi = " + rssi );
@@ -289,13 +294,11 @@ public class MainActivity extends AppCompatActivity {
         // Actualizamos nuestro contador local para futuras comparaciones
         this.contadorAndroid = contadorArduino;
 
-        textMajor.setText("Major: " + medicionGas);
-        textMinor.setText("Minor: " + medicionTemperatura);
+        runOnUiThread(() -> {
+            textMajor.setText("Major: " + medicionGas);
+            textMinor.setText("Minor: " + medicionTemperatura);
+        });
     }
-
-    // ------
-
-
 
     // ------------------------------------------------------------------
     // Métodos que se vinculan a los botones de la interfaz
@@ -314,6 +317,74 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " boton detener busqueda dispositivos BTLE Pulsado" );
         this.detenerBusquedaDispositivosBTLE();
     } // ()
+
+    // ------------------------------------------------------------------
+    // NUEVO: Método para controlar el tracking de distancia y tiempo
+    // ------------------------------------------------------------------
+    public void botonDistanceTrackerPulsado(View v) {
+        if (!isTracking) {
+            // Iniciar tracking
+            startTracking();
+        } else {
+            // Detener tracking
+            stopTracking();
+        }
+    }
+
+    private void startTracking() {
+        Log.d(ETIQUETA_LOG, " startTracking(): iniciando tracking de distancia y tiempo");
+
+        isTracking = true;
+        trackButton.setText("Detener Recorrida");
+
+        // Reiniciar trackers
+        stepTracker.resetSession();
+        timeTracker.reset();
+
+        // Iniciar step counter
+        stepTracker.startTracking();
+
+        // Iniciar time tracker
+        timeTracker.startTracking();
+
+        Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado");
+    }
+
+    private void stopTracking() {
+        Log.d(ETIQUETA_LOG, " stopTracking(): deteniendo tracking");
+
+        isTracking = false;
+        trackButton.setText("Activar Recorrida");
+
+        // Detener trackers (pero mantener los valores actuales)
+        stepTracker.stopTracking();
+        timeTracker.stopTracking();
+
+        Log.d(ETIQUETA_LOG, " stopTracking(): tracking detenido - valores congelados");
+    }
+
+    // ------------------------------------------------------------------
+    // Actualiza la UI con los valores de distancia y tiempo
+    // ------------------------------------------------------------------
+    private void updateTrackingUI(double distanceMeters, int steps,
+                                  long hours, long minutes, long seconds) {
+        runOnUiThread(() -> {
+            // Actualizar distancia en metros
+            if (distanceMeters >= 1000) {
+                // Si es más de 1 km, mostrar en kilómetros
+                distanciaTotal.setText(String.format("%.2f km", distanceMeters / 1000.0));
+            } else {
+                // Mostrar en metros
+                distanciaTotal.setText(String.format("%.0f m", distanceMeters));
+            }
+
+            // Actualizar tiempo
+            tiempoTotal.setText(String.format("%02d:%02d:%02d", hours, minutes, seconds));
+
+            Log.d(ETIQUETA_LOG, String.format(" UI actualizada: %.2f m, %d pasos, %02d:%02d:%02d",
+                    distanceMeters, steps, hours, minutes, seconds));
+        });
+    }
 
     // ------------------------------------------------------------------
     // Inicializa el adaptador Bluetooth y solicita permisos si es necesario
@@ -370,6 +441,22 @@ public class MainActivity extends AppCompatActivity {
     } // ()
 
     // ------------------------------------------------------------------
+    // Solicita permisos adicionales para step counter
+    // ------------------------------------------------------------------
+    private void solicitarPermisosTracking() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
+                        CODIGO_PETICION_PERMISOS + 1
+                );
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Método principal de ciclo de vida: inicializa la actividad y Bluetooth
     // ------------------------------------------------------------------
     @Override
@@ -379,14 +466,45 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
-        inicializarBlueTooth();
-
-        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
-
-
+        // Inicializar vistas
         textMajor = findViewById(R.id.textMajor);
         textMinor = findViewById(R.id.textMinor);
+        distanciaTotal = findViewById(R.id.distanciaTotal);
+        tiempoTotal = findViewById(R.id.tiempoTotal);
+        trackButton = findViewById(R.id.track);
 
+        // Inicializar Bluetooth
+        inicializarBlueTooth();
+
+        // Solicitar permisos para step counter
+        solicitarPermisosTracking();
+
+        // Inicializar trackers
+        stepTracker = new StepCounterTracker(this);
+        timeTracker = new WalkingTimeTracker();
+
+        // Configurar listener para step counter
+        stepTracker.setDistanceListener((distanceMeters, steps) -> {
+            if (isTracking) {
+                WalkingTimeTracker.TimeComponents time = timeTracker.getTimeComponents();
+                updateTrackingUI(distanceMeters, steps, time.hours, time.minutes, time.seconds);
+            }
+        });
+
+        // Configurar listener para time tracker
+        timeTracker.setTimeUpdateListener((hours, minutes, seconds, totalSeconds) -> {
+            if (isTracking) {
+                double distance = stepTracker.getDistanceMeters();
+                int steps = stepTracker.getSteps();
+                updateTrackingUI(distance, steps, hours, minutes, seconds);
+            }
+        });
+
+        // Valores iniciales
+        distanciaTotal.setText("---");
+        tiempoTotal.setText("---");
+
+        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
 
     } // onCreate()
 
@@ -404,22 +522,36 @@ public class MainActivity extends AppCompatActivity {
                         grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos concedidos  !!!!");
-                    // Permission is granted. Continue the action or workflow
-                    // in your app.
                 }  else {
-
                     Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos NO concedidos  !!!!");
-
+                }
+                return;
+            case CODIGO_PETICION_PERMISOS + 1:
+                // Permisos para ACTIVITY_RECOGNITION
+                if (grantResults.length > 0 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION concedido");
+                } else {
+                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION denegado");
                 }
                 return;
         }
-        // Otros casos de permisos pueden añadirse aquí si la app lo requiere
     } // ()
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Limpiar recursos
+        if (timeTracker != null) {
+            timeTracker.destroy();
+        }
+        if (stepTracker != null) {
+            stepTracker.stopTracking();
+        }
+    }
 
 } // class
 // --------------------------------------------------------------
 // --------------------------------------------------------------
 // --------------------------------------------------------------
 // --------------------------------------------------------------
-
-
