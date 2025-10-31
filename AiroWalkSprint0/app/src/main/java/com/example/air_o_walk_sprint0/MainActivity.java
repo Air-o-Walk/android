@@ -66,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
     private StepCounterTracker stepTracker;
     private WalkingTimeTracker timeTracker;
 
+    private int idUsuario;
+    private String token;
+
     // Estado del tracking
     private boolean isTracking = false;
 
@@ -466,6 +469,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    //Funcion para activar boton de inicio de recorrido
+    private void estadoBotonRecorrido(boolean estadoDispotivoVinculado){
+        trackButton.setEnabled(estadoDispotivoVinculado);
+    }
     // ------------------------------------------------------------------
     // Método principal de ciclo de vida: inicializa la actividad y Bluetooth
     // ------------------------------------------------------------------
@@ -485,6 +493,13 @@ public class MainActivity extends AppCompatActivity {
 
         // Inicializar Bluetooth
         inicializarBlueTooth();
+
+        // Recuperar datos del Intent
+        Intent intent = getIntent();
+        if (intent != null) {
+            idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
+            token = intent.getStringExtra("TOKEN");
+        }
 // ==============================================================================================================
 // VINCULAR
 // Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
@@ -492,23 +507,26 @@ public class MainActivity extends AppCompatActivity {
 // ==============================================================================================================
         iconoVincular = findViewById(R.id.iconoVincular);
         iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+        estadoBotonRecorrido(false);
         vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() {
             @Override public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {
                 Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
                 switch (nuevoEstado) {
                     case VINCULADO:
                         //REGISTRO NODO: enviar userId + nombre del beacon al backend
-                        String userId = "67";  // !!! temporal REPLACE WITH REAL USERID
+                        String userId = Integer.toString((idUsuario));  // !!! temporal REPLACE WITH REAL USERID
                         String nombreNodo = vinculador.getNombreNodoActual();
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
                         buscarEsteDispositivoBTLE(nombreNodo);
+                        estadoBotonRecorrido(true);
                         // ===================================================================
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         break;
                     case TIMEOUT:
                     case ERROR:
                         iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                        estadoBotonRecorrido(false);
                         break;
                     case ESCANEANDO:
                     case IDLE:
