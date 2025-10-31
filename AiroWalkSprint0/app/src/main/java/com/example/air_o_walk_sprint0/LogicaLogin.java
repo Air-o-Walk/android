@@ -31,18 +31,17 @@ public class LogicaLogin {
 
         // Construir la URL con los parámetros de usuario y contraseña
         String urlConParametros = construirURL();
+        String cuerpo = construirCuerpo();
 
-        Log.d("LOGIN_DEBUG", "URL de login: " + urlConParametros);
-
-        elPeticionario.hacerPeticionREST("GET", urlConParametros,
-                null, // GET no necesita cuerpo
+        elPeticionario.hacerPeticionREST("POST", "http://api.sagucre.upv.edu.es/login",
+                cuerpo, // GET no necesita cuerpo
                 new PeticionarioREST.RespuestaREST() {
                     @Override
-                    public void callback(int codigo, String cuerpo) {
-                        Log.d("LOGIN_RESPUESTA", "Código: " + codigo + ", Cuerpo: " + cuerpo);
+                    public void callback(int codigo, String cuerpoRes) {
+                        Log.d("LOGIN_RESPUESTA", "Código: " + codigo + ", Cuerpo: " + cuerpoRes);
 
                         // Procesar la respuesta
-                        procesarRespuestaLogin(codigo, cuerpo, callback);
+                        procesarRespuestaLogin(codigo, cuerpoRes, callback);
                     }
                 }
         );
@@ -61,6 +60,15 @@ public class LogicaLogin {
 
         return urlBase + "?" + parametros;
     }
+
+    private String construirCuerpo() {
+        // formato JSON esperado por el backend
+        return "{"
+                + "\"username\": \"" + this.usuario + "\", "
+                + "\"password\": \"" + this.contrasena + "\""
+                +"}";
+
+}
 
     /**
      * Procesa la respuesta del servidor de login
