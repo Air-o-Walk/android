@@ -234,6 +234,11 @@ public class MainActivity extends AppCompatActivity {
             int contadorArduino = major[1] & 0xFF;
             int valorMedicion = Utilidades.bytesToInt(tib.getMinor());
 
+            // Llamamos a la notificación desde el hilo principal (UI thread)
+            runOnUiThread(() -> {
+                AdminNotificaciones.revisarYNotificar(this, valorMedicion);
+            });
+
             // Si es un nuevo contador, reinicia banderas
             if (contadorArduino != this.contadorAndroid) {
                 Log.d("ETIQUETA_LOG", "Nuevo contador, se reinician banderas");
