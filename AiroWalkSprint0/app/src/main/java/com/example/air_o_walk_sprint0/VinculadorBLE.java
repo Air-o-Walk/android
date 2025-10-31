@@ -12,50 +12,59 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * VinculadorBLE
- * --------------
- * Clase responsable de:
- *  - Escanear en modo filtrado por NOMBRE del beacon (el “código” que introduce el usuario).
- *  - Notificar estados a la UI (inicio, encontrado, timeout, error).
- *  - Exponer métodos start/stop para controlar el ciclo de escaneo.
- *
- * “Vinculado” == hemos detectado un frame iBeacon cuyo device.getName() coincide.
- * Para iBeacon no es necesario conectar por GATT.
- */
+// --------------------------------------------------------------
+ //VinculadorBLE.java
+ // Autor : Meryame Ait Boumlik
+ //Descripción: Gestiona la “vinculación” por nombre (iBeacon por advertising, sin GATT).
+ //Escanea con filtro por nombre, notifica estados a la UI y aplica timeout.
+ // --------------------------------------------------------------
 public class VinculadorBLE {
 
     public static final String ETIQUETA_LOG = ">>>>VINCULAR";
 
-    /** Estados posibles del proceso de vinculación */
+    // Estados posibles del proceso de vinculación
     public enum Estado { IDLE, ESCANEANDO, VINCULADO, TIMEOUT, ERROR }
 
-    /** Interfaz de callbacks para informar a la Activity/Fragment */
+    //Interfaz de callbacks para informar a la Activity/Fragment
     public interface Listener {
         void onEstadoCambio(Estado nuevoEstado);
         void onDispositivoEncontrado(BluetoothDevice device, ScanResult result);
         void onError(int errorCode);
     }
-
+     // ------------------------------------------------------------------
+     // Dependencias y estado interno
+     // ------------------------------------------------------------------
     private final BluetoothLeScanner scanner;
     private final Listener listener;
     private final Handler handler = new Handler(Looper.getMainLooper());
-
     private ScanCallback callback;
-    private String objetivoNombre;            // “código” escrito por el usuario (p.ej. GTI-Mery)
+    private String objetivoNombre;            // “código” escrito por el usuario (p.ej. GTI)
     private long timeoutMs = 10000;           // por defecto 10 s
     private Estado estado = Estado.IDLE;
     private boolean activo = false;
+    private String nombreNodoActual;
 
+    // --------------------------------------------------------------
+    // Constructor
+    // Descripción: Inyecta el escáner BLE y el listener de la UI.
+    // Diseño: scanner + listener -> asignar campos -> listo para vincularPorNombre()
+    // Parámetros:
+    //   - scanner : BluetoothLeScanner ya inicializado
+    //   - listener: callbacks de estado y hallazgo de dispositivo
+    // --------------------------------------------------------------
     public VinculadorBLE(BluetoothLeScanner scanner, Listener listener) {
         this.scanner = scanner;
         this.listener = listener;
     }
+     public Estado getEstado() { return estado; }
 
-    public Estado getEstado() { return estado; }
-
-    /** Arranca la vinculación buscando por nombre exacto. */
+     // --------------------------------------------------------------
+     // vincularPorNombre()
+     // Descripción: inicia escaneo filtrado por nombre; finaliza en VINCULADO/ERROR/TIMEOUT.
+     // Diseno: nombre + timeout -> vincularPorNombre() -> VINCULADO | TIMEOUT | ERROR
+     // --------------------------------------------------------------
     public void vincularPorNombre(String nombre, long timeoutMs) {
+        this.nombreNodoActual = nombre; // guardar nombre actual
         if (scanner == null) {
             Log.e(ETIQUETA_LOG, "No hay scanner BLE disponible");
             cambiarEstado(Estado.ERROR);
@@ -142,8 +151,13 @@ public class VinculadorBLE {
             }
         }, this.timeoutMs);
     }
+    //()
 
-    /** Detiene el escaneo si está activo y vuelve a IDLE. */
+     // --------------------------------------------------------------
+     // detener()
+     // Descripción: para el escaneo si está activo y limpia recursos.
+     // Diseno : -> detener ->
+     // --------------------------------------------------------------
     public void detener() {
         if (!activo) return;
         try {
@@ -158,10 +172,22 @@ public class VinculadorBLE {
             cambiarEstado(Estado.IDLE);
         }
     }
-
+//()
+// --------------------------------------------------------------
+// cambiarEstado()
+// Descripción: actualiza el estado interno y notifica al listener.
+// Disneo : Estado nuevo ->
+// --------------------------------------------------------------
     private void cambiarEstado(Estado nuevo) {
         this.estado = nuevo;
         Log.d(ETIQUETA_LOG, "Estado -> " + nuevo);
         if (listener != null) listener.onEstadoCambio(nuevo);
     }
+// --------------------------------------------------------------
+// Getter: nombre del nodo introducido por el usuario para esta vinculación
+// --------------------------------------------------------------
+    public String getNombreNodoActual() {
+        return nombreNodoActual;
+    }
+
 }

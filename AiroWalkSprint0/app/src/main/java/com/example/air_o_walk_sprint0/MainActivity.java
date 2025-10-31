@@ -388,37 +388,42 @@ public class MainActivity extends AppCompatActivity {
 
         inicializarBlueTooth();
 // ==============================================================================================================
-        // VINCULAR: referencia al ImageView del estado (debe existir en tu XML con este id)
-        iconoVincular = findViewById(R.id.iconoVincular);         // VINCULAR
-        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo); // VINCULAR (estado inicial rojo)
-
-        // VINCULAR: crear el vinculador usando el escáner BLE ya inicializado
-        vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() { // VINCULAR
-            @Override public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {   // VINCULAR
-                Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);                   // VINCULAR
-                switch (nuevoEstado) {                                                 // VINCULAR
+// VINCULAR
+// Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
+// con el beacon. Si se vincula correctamente, registra el nodo en el backend.
+// ==============================================================================================================
+        iconoVincular = findViewById(R.id.iconoVincular);
+        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+        vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() {
+            @Override public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {
+                Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
+                switch (nuevoEstado) {
                     case VINCULADO:
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde); // VINCULAR
+                        //REGISTRO NODO: enviar userId + nombre del beacon al backend
+                        String userId = "67";  // !!! temporal REPLACE WITH REAL USERID
+                        String nombreNodo = vinculador.getNombreNodoActual();
+                        RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
+                        registro.registrarNodo();
+                        // ===================================================================
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         break;
                     case TIMEOUT:
                     case ERROR:
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);  // VINCULAR
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
                         break;
                     case ESCANEANDO:
                     case IDLE:
-                        // opcional: mostrar progreso, etc.                               // VINCULAR
                         break;
                 }
             }
             @Override public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
                 Log.d(">>>>", "Encontrado: " + device.getName() + " addr=" + device.getAddress()
-                        + " rssi=" + result.getRssi());                                // VINCULAR
-                // opcional: parsear iBeacon aquí con TramaIBeacon para más logs         // VINCULAR
+                        + " rssi=" + result.getRssi());
             }
             @Override public void onError(int errorCode) {
-                Log.d(">>>>", "Listener onError: code=" + errorCode);                  // VINCULAR
+                Log.d(">>>>", "Listener onError: code=" + errorCode);
             }
-        }); // VINCULAR
+        });
 // ==============================================================================================================
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
@@ -456,27 +461,38 @@ public class MainActivity extends AppCompatActivity {
         // Otros casos de permisos pueden añadirse aquí si la app lo requiere
     } // ()
 
-// Llama este método desde el onClick de tu icono/botón de vincular
-    public void botonVincularPulsado(View v) {                           // VINCULAR
-        EditText input = new EditText(this);                             // VINCULAR
-        input.setHint("Ej: GTI-Mery");                                   // VINCULAR
+// ==============================================================================================================
+// botonVincularPulsado()
+// Descripción: Muestra un diálogo para introducir el nombre del beacon (ej: "GTI") y
+// llama al VinculadorBLE para iniciar la vinculación. Si el código es válido, registra el nodo
+// en el backend y actualiza el icono de estado.
+//
+// Diseño: vista:View -> botonVincularPulsado() -> muestra diálogo / vincula / registra nodo
+// ==============================================================================================================
+    public void botonVincularPulsado(View v) {
+        EditText input = new EditText(this);
+        input.setHint("Ej: GTI");
 
-        new AlertDialog.Builder(this)                                    // VINCULAR
-                .setTitle("Vincular Beacon")                             // VINCULAR
-                .setMessage("Introduce el código (nombre del beacon):")  // VINCULAR
-                .setView(input)                                          // VINCULAR
-                .setPositiveButton("Vincular", (dlg, which) -> {         // VINCULAR
-                    String codigo = input.getText().toString().trim();   // VINCULAR
-                    if (codigo.isEmpty()) {                              // VINCULAR
-                        Log.d(">>>>", "Código vacío");                   // VINCULAR
-                        return;                                          // VINCULAR
+        new AlertDialog.Builder(this)
+                .setTitle("Vincular Beacon")
+                .setMessage("Introduce el código (nombre del beacon):")
+                .setView(input)
+                .setPositiveButton("Vincular", (dlg, which) -> {
+                    String codigo = input.getText().toString().trim();
+                    vinculador.vincularPorNombre(codigo, 10_000);
+                    // registra el nodo inmediatamente
+                    RegistroNodo registro = new RegistroNodo("12345", codigo);
+                    registro.registrarNodo();
+                    if (codigo.isEmpty()) {
+                        Log.d(">>>>", "Código vacío");
+                        return;
                     }
-                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo); // reset visual // VINCULAR
-                    vinculador.vincularPorNombre(codigo, 10_000);        // timeout 10 s         // VINCULAR
+                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                    vinculador.vincularPorNombre(codigo, 10_000);// timeout 10 s
                 })
-                .setNegativeButton("Cancelar", (d, w) -> {})             // VINCULAR
-                .show();                                                 // VINCULAR
-    }                                                                     // VINCULAR
+                .setNegativeButton("Cancelar", (d, w) -> {})
+                .show();
+    } //()
 // ========================================================================
 
 
