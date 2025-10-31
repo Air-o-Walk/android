@@ -13,6 +13,8 @@ import android.Manifest;
 /**
  * Clase encargada de mostrar notificaciones locales
  * cuando se detecta un valor alto (>= 670) proveniente del sensor.
+ * El valor es solo de prueba a futuro se utilizara un umbral de valores para
+ * cada tipo de medicion.
  *
  * No requiere modificar otras partes del proyecto.
  * Solo hay que llamarla desde cualquier sitio con:
@@ -36,35 +38,35 @@ public class AdminNotificaciones {
      */
     public static void revisarYNotificar(Context context, int valorMedicion) {
 
-        // 1️⃣ Umbral fijo (no se calcula dinámicamente)
+        // 1 Umbral fijo de prueba (no se calcula dinámicamente por ahora)
         final int UMBRAL_ALERTA = 670;
 
-        // 2️⃣ Si el valor del sensor es igual o superior al umbral, mostramos notificación
+        // 2 Si el valor del sensor es igual o superior al umbral, mostramos notificación
         if (valorMedicion >= UMBRAL_ALERTA) {
 
-            // 🔒 Android 13+ (API 33): hay que comprobar el permiso POST_NOTIFICATIONS
+            // Android 13+ (API 33): hay que comprobar el permiso POST_NOTIFICATIONS
             if (Build.VERSION.SDK_INT >= 33) {
                 int permiso = ContextCompat.checkSelfPermission(
                         context, Manifest.permission.POST_NOTIFICATIONS
                 );
                 if (permiso != PackageManager.PERMISSION_GRANTED) {
-                    // Si el permiso no está concedido, salimos sin notificar (evita error rojo)
+                    // Si el permiso no está concedido, salimos sin notificar
                     return;
                 }
             }
 
-            // 3️⃣ Creamos el canal si no existe (obligatorio desde Android 8)
+            // 3 Creamos el canal si no existe (obligatorio desde Android 8)
             crearCanal(context);
 
-            // 4️⃣ Construimos la notificación
+            // 4 Construimos la notificación
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CANAL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                    .setContentTitle("⚠️ Alerta de calidad del aire")
-                    .setContentText("¡Valor alto detectado: " + valorMedicion + "!")
+                    .setContentTitle("⚠️ Alerta de calidad del aire (CO2)")
+                    .setContentText("¡Valor alto detectado en tu zona: " + valorMedicion + "!")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setAutoCancel(true); // Se borra al pulsar la notificación
 
-            // 5️⃣ Enviamos la notificación al sistema
+            // 5️ Enviamos la notificación al sistema
             NotificationManagerCompat.from(context).notify(NOTIFICACION_ID, builder.build());
         }
     }
