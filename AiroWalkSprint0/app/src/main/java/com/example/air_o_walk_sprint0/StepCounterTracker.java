@@ -18,8 +18,8 @@ public class StepCounterTracker implements SensorEventListener {
     private int sessionSteps = 0;
 
     // Average step length in meters (adjustable per user)
-    private double stepLengthMeters = 0.762; // ~30 inches average
-    //private double stepLengthMeters = 0.45;
+    //private double stepLengthMeters = 0.762; // ~30 inches average
+    private double stepLengthMeters = 0.45;
     private DistanceListener listener;
 
     public interface DistanceListener {
