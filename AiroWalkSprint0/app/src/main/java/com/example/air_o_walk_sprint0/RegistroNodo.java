@@ -63,4 +63,5 @@ public class RegistroNodo {
                 + "\"nodeName\": \"" + nombreNodo + "\""
                 + "}";
     }
+    
 }
