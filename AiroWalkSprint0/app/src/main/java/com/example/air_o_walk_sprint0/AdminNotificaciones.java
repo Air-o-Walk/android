@@ -29,17 +29,17 @@ public class AdminNotificaciones {
     private static final int NOTIFICACION_ID = 1001;
 
     /**
-     * Revisa si el valor supera el umbral fijo (670)
+     * Revisa si el valor supera el umbral fijo (5)
      * y, si es así, muestra una notificación en pantalla.
      * Incluye comprobación de permiso POST_NOTIFICATIONS para Android 13+.
      *
      * @param context        Contexto de la app (por ejemplo: "this" desde MainActivity)
      * @param valorMedicion  Valor numérico recibido del sensor
      */
-    public static void revisarYNotificar(Context context, int valorMedicion) {
+    public static void revisarYNotificar(Context context, float valorMedicion) {
 
         // 1 Umbral fijo de prueba (no se calcula dinámicamente por ahora)
-        final int UMBRAL_ALERTA = 670;
+        final int UMBRAL_ALERTA = 5;
 
         // 2 Si el valor del sensor es igual o superior al umbral, mostramos notificación
         if (valorMedicion >= UMBRAL_ALERTA) {
@@ -61,7 +61,7 @@ public class AdminNotificaciones {
             // 4 Construimos la notificación
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CANAL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                    .setContentTitle("⚠️ Alerta de calidad del aire (CO2)")
+                    .setContentTitle("⚠️ Alerta de calidad del aire (03)")
                     .setContentText("¡Valor alto detectado en tu zona: " + valorMedicion + "!")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setAutoCancel(true); // Se borra al pulsar la notificación
