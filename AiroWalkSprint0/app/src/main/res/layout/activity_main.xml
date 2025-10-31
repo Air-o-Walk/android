@@ -9,6 +9,30 @@
 
     <!-- Contenedor horizontal para los textos Major y Minor -->
 
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="71dp"
+        android:layout_height="21dp"
+        android:text="Tiempo: "
+        android:textAlignment="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/tiempoTotal"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <TextView
+        android:id="@+id/tiempoTotal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="---"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView3"
+        app:layout_constraintTop_toBottomOf="@+id/distanciaTotal" />
+
     <LinearLayout
         android:id="@+id/layoutMajorMinor"
         android:layout_width="wrap_content"
@@ -50,14 +74,14 @@
         android:id="@+id/botonBuscarDispositivosBTLE"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
         android:onClick="botonBuscarDispositivosBTLEPulsado"
         android:text="Buscar Dispositivos BTLE"
-        app:layout_constraintTop_toBottomOf="@id/layoutMajorMinor"
         app:layout_constraintBottom_toTopOf="@+id/botonDetenerBusquedaDispositivosBTLE"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="16dp"/>
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/layoutMajorMinor" />
 
     <Button
         android:id="@+id/botonDetenerBusquedaDispositivosBTLE"
@@ -65,12 +89,11 @@
         android:layout_height="wrap_content"
         android:onClick="botonDetenerBusquedaDispositivosBTLEPulsado"
         android:text="Detener búsqueda Dispositivos BTLE"
-        app:layout_constraintTop_toBottomOf="@id/botonBuscarDispositivosBTLE"
         app:layout_constraintBottom_toTopOf="@+id/botonBuscarNuestroDispositivoBTLE"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"/>
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/botonBuscarDispositivosBTLE" />
 
     <Button
         android:id="@+id/botonBuscarNuestroDispositivoBTLE"
@@ -78,11 +101,49 @@
         android:layout_height="wrap_content"
         android:onClick="botonBuscarNuestroDispositivoBTLEPulsado"
         android:text="Buscar nuestro dispositivo BTLE"
-        app:layout_constraintTop_toBottomOf="@id/botonDetenerBusquedaDispositivosBTLE"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/track"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/botonDetenerBusquedaDispositivosBTLE" />
+
+    <Button
+        android:id="@+id/track"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="botonDistanceTrackerPulsado"
+        android:text="Activar Recorrido"
+        app:layout_constraintBottom_toTopOf="@+id/textView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/botonBuscarNuestroDispositivoBTLE"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="69dp"
+        android:layout_height="20dp"
+        android:text="Recorrido: "
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/textView3"
+        app:layout_constraintEnd_toStartOf="@+id/distanciaTotal"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/track" />
+
+    <TextView
+        android:id="@+id/distanciaTotal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="---"
+        app:layout_constraintBottom_toTopOf="@+id/tiempoTotal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textView"
+        app:layout_constraintTop_toBottomOf="@+id/track" />
+
+
 
     <ImageView
         android:id="@+id/iconoVincular"
