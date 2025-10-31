@@ -31,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="32dp"
-            android:text="Major: ---"
+            android:text="O3(ppm): ---"
             android:textColor="@android:color/black"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -40,7 +40,7 @@
             android:id="@+id/textMinor"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Minor: ---"
+            android:text="Temperatura(ºC): ---"
             android:textColor="@android:color/black"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -76,13 +76,13 @@
         android:id="@+id/botonBuscarNuestroDispositivoBTLE"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="botonBuscarNuestroDispositivoBTLEPulsado"
-        android:text="Buscar nuestro dispositivo BTLE"
-        app:layout_constraintTop_toBottomOf="@id/botonDetenerBusquedaDispositivosBTLE"
+        android:layout_marginTop="16dp"
+        android:onClick="botonVincularPulsado"
+        android:text="Vincular Dispositivo"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/botonDetenerBusquedaDispositivosBTLE" />
 
     <ImageView
         android:id="@+id/iconoVincular"

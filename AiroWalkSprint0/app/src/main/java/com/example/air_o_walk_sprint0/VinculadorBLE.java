@@ -99,6 +99,8 @@ public class VinculadorBLE {
                 BluetoothDevice device = result.getDevice();
                 String name = device != null ? device.getName() : null;
 
+
+
                 Log.d(ETIQUETA_LOG, "onScanResult(): visto=" + name + " rssi=" + result.getRssi());
 
                 // Seguridad: algunos dispositivos devuelven null; comprobamos igualdad con el objetivo

@@ -301,8 +301,8 @@ public class MainActivity extends AppCompatActivity {
         // Actualizamos nuestro contador local para futuras comparaciones
         this.contadorAndroid = contadorArduino;
 
-        textMajor.setText("Major: " + medicionGas);
-        textMinor.setText("Minor: " + medicionTemperatura);
+        textMajor.setText("03(ppm): " + medicionGas);
+        textMinor.setText("Temperatura(ºC): " + medicionTemperatura);
     }
 
     // ------
@@ -409,6 +409,7 @@ public class MainActivity extends AppCompatActivity {
                         String nombreNodo = vinculador.getNombreNodoActual();
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
+                        buscarEsteDispositivoBTLE(nombreNodo);
                         // ===================================================================
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         break;
