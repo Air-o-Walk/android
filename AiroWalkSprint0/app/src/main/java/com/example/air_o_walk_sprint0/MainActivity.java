@@ -27,6 +27,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import org.json.JSONObject;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
     //Variables vinculacion
     private VinculadorBLE vinculador;
     private ImageView iconoVincular;
+    private boolean yaVinculado = false;
+    private String nombreNodoVinculado = null;
+
 
     // Trackers para distancia y tiempo
     private StepCounterTracker stepTracker;
@@ -502,6 +507,10 @@ public class MainActivity extends AppCompatActivity {
             idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
             token = intent.getStringExtra("TOKEN");
         }
+        // ==============================
+        // VERIFICAR SI EL USUARIO YA TIENE NODO VINCULADO
+        // ==============================
+        verificarNodoVinculado();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -628,6 +637,25 @@ public class MainActivity extends AppCompatActivity {
 // Diseño: vista:View -> botonVincularPulsado() -> muestra diálogo / vincula / registra nodo
 // ==============================================================================================================
     public void botonVincularPulsado(View v) {
+        // Si ya está vinculado → mostrar otro diálogo
+        if (yaVinculado) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Nodo ya vinculado")
+                    .setMessage(
+                            "Actualmente estás vinculado al beacon:\n\n" +
+                                    "📡 " + nombreNodoVinculado +
+                                    "\n\nPuedes conservarlo o desvincularlo."
+                    )
+                    .setPositiveButton("Aceptar", null)
+                    .setNegativeButton("Desvincular nodo", (dialog, which) -> {
+                        // Llamamos a la función de desvincular
+                        desvincularNodo();
+                    })
+                    .show();
+            return;
+        }
+
+        // Si NO está vinculado → mostrar el diálogo normal
         EditText input = new EditText(this);
         input.setHint("Ej: GTI");
 
@@ -651,6 +679,98 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Cancelar", (d, w) -> {})
                 .show();
     } //()
+// ========================================================================
+
+// ============================================================================
+// verificarNodoVinculado()
+// Descripción: consulta al backend si este usuario ya tiene un nodo vinculado.
+// Si existe, actualiza icono, habilita recorrido y comienza a escanear.
+// Diseño: userId -> GET /node/ofUser/:id -> actualizar UI
+// ============================================================================
+private void verificarNodoVinculado() {
+    String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
+
+    PeticionarioREST peticion = new PeticionarioREST();
+    peticion.hacerPeticionREST("GET", url, null, new PeticionarioREST.RespuestaREST() {
+        @Override
+        public void callback(int codigo, String cuerpo) {
+            Log.d(">>>>", "Verificar nodo, código=" + codigo + " cuerpo=" + cuerpo);
+
+            try {
+                JSONObject json = new JSONObject(cuerpo);
+
+                if (json.getBoolean("success")) {
+                    // Ya tiene nodo
+                    String nombreNodo = json.getJSONObject("node").getString("name");
+                    yaVinculado = true;
+                    nombreNodoVinculado = nombreNodo;
+
+                    runOnUiThread(() -> {
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
+                        estadoBotonRecorrido(true);
+
+                        // Empieza a leer del beacon automáticamente
+                        buscarEsteDispositivoBTLE(nombreNodo);
+                    });
+
+
+
+                } else {
+                    // No tiene nodo
+                    runOnUiThread(() -> {
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                        estadoBotonRecorrido(false);
+                    });
+                }
+
+            } catch (Exception e) {
+                Log.e(">>>>", "Error procesando verificación nodo: " + e.getMessage());
+            }
+        }
+    });
+}
+// ========================================================================
+
+// ========================================================================
+// desvincularNodo()
+// Descripción: Borra del backend el nodo vinculado al usuario y reinicia el estado.
+// Diseño: DELETE /node/ofUser/:id -> limpiar flags -> parar BLE/tracking -> actualizar UI.
+// ========================================================================
+    private void desvincularNodo() {
+        String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
+
+        PeticionarioREST peticion = new PeticionarioREST();
+
+        peticion.hacerPeticionREST("DELETE", url, null, new PeticionarioREST.RespuestaREST() {
+            @Override
+            public void callback(int codigo, String cuerpo) {
+
+                Log.d(">>>>", "Desvincular nodo, código=" + codigo + " cuerpo=" + cuerpo);
+
+                runOnUiThread(() -> {
+
+                    yaVinculado = false;
+                    nombreNodoVinculado = null;
+
+                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                    estadoBotonRecorrido(false);
+
+                    detenerBusquedaDispositivosBTLE();
+                    stopTracking();
+
+                    distanciaTotal.setText("---");
+                    tiempoTotal.setText("---");
+
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Nodo desvinculado")
+                            .setMessage("El beacon ha sido desvinculado correctamente.")
+                            .setPositiveButton("Aceptar", null)
+                            .show();
+                });
+
+            }
+        });
+    }
 // ========================================================================
 
 
