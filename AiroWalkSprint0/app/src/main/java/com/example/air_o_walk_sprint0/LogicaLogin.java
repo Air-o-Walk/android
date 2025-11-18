@@ -3,6 +3,7 @@ package com.example.air_o_walk_sprint0;
 import android.util.Log;
 
 /**
+ * María Algora
  * Clase que encapsula la lógica de negocio para el login de usuarios.
  * Recibe usuario y contraseña y realiza la petición HTTP GET para validar.
  */
