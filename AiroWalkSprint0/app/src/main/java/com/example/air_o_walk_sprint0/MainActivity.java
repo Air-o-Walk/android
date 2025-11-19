@@ -539,19 +539,21 @@ public class MainActivity extends AppCompatActivity {
                         String userId = Integer.toString(idUsuario);
                         String nombreNodo = vinculador.getNombreNodoActual();
 
-                        //
+                        // Registrar el nodo en el backend
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
 
-                        //
+                        // Actualizar estado local
                         yaVinculado = true;
                         nombreNodoVinculado = nombreNodo;
 
-                        //
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
-                        estadoBotonRecorrido(true);
+                        vinculador.detener();
+                        detenerBusquedaDispositivosBTLE();
+
+                        runOnUiThread(() -> refrescarActividad());
 
                         break;
+
 
                 }
             }
@@ -769,6 +771,13 @@ private void verificarNodoVinculado() {
         });
     }
 // ========================================================================
+private void refrescarActividad() {
+    Intent intent = getIntent();
+    contadorAndroid = -1;
+    finish();
+    startActivity(intent);
+}
+
 
 
     @Override
