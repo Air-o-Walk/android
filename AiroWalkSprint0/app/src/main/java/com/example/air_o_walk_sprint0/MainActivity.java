@@ -536,24 +536,23 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
                 switch (nuevoEstado) {
                     case VINCULADO:
-                        //REGISTRO NODO: enviar userId + nombre del beacon al backend
-                        String userId = Integer.toString((idUsuario));  // !!! temporal REPLACE WITH REAL USERID
+                        String userId = Integer.toString(idUsuario);
                         String nombreNodo = vinculador.getNombreNodoActual();
+
+                        //
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
-                        buscarEsteDispositivoBTLE(nombreNodo);
-                        estadoBotonRecorrido(true);
-                        // ===================================================================
+
+                        //
+                        yaVinculado = true;
+                        nombreNodoVinculado = nombreNodo;
+
+                        //
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
+                        estadoBotonRecorrido(true);
+
                         break;
-                    case TIMEOUT:
-                    case ERROR:
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                        estadoBotonRecorrido(false);
-                        break;
-                    case ESCANEANDO:
-                    case IDLE:
-                        break;
+
                 }
             }
             @Override public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
@@ -665,10 +664,6 @@ public class MainActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("Vincular", (dlg, which) -> {
                     String codigo = input.getText().toString().trim();
-                    vinculador.vincularPorNombre(codigo, 10_000);
-                    // registra el nodo inmediatamente
-                    RegistroNodo registro = new RegistroNodo("12345", codigo);
-                    registro.registrarNodo();
                     if (codigo.isEmpty()) {
                         Log.d(">>>>", "Código vacío");
                         return;
@@ -702,6 +697,8 @@ private void verificarNodoVinculado() {
                 if (json.getBoolean("success")) {
                     // Ya tiene nodo
                     String nombreNodo = json.getJSONObject("node").getString("name");
+
+
                     yaVinculado = true;
                     nombreNodoVinculado = nombreNodo;
 
