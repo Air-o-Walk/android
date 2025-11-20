@@ -6,15 +6,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 // -----------------------------------------------------------------------------
-// AirQualityResumen.java
-// Descripción:
-//   Llama al backend para obtener el resumen de calidad del aire del usuario.
-//   Sigue mismo diseño que RegistroNodo, usando PeticionarioREST.
-// Diseño general:
-//   new AirQualityResumen(userId)
-//          -> obtenerResumen( listener )
-//                -> GET REST
-//                -> callback con objeto AirQualityData
+// AirQualityResumen.java  (ACTUALIZADO)
 // -----------------------------------------------------------------------------
 public class AirQualityResumen {
 
@@ -36,6 +28,9 @@ public class AirQualityResumen {
     public static class AirQualityData {
         public String status;
         public String summaryText;
+
+        public double timeHours;
+        public double distanceKm;
         public int points;
 
         public JSONArray timestamps;
@@ -53,9 +48,6 @@ public class AirQualityResumen {
 
     // -----------------------------------------------------------------
     // obtenerResumen()
-    // Descripción:
-    //   Llama al backend y devuelve los datos procesados via listener.
-    //   Similar a registrarNodo() pero usando GET.
     // -----------------------------------------------------------------
     public void obtenerResumen(Listener listener) {
 
@@ -68,7 +60,7 @@ public class AirQualityResumen {
         pet.hacerPeticionREST(
                 "GET",
                 url,
-                null,    // GET → no tiene cuerpo
+                null,
                 new PeticionarioREST.RespuestaREST() {
                     @Override
                     public void callback(int codigo, String cuerpo) {
@@ -86,7 +78,7 @@ public class AirQualityResumen {
                             listener.onResultado(data);
 
                         } catch (Exception e) {
-                            Log.e(TAG, "Error parsing JSON", e);
+                            Log.e(TAG, "Error parseando JSON", e);
                             listener.onError("Error parseando JSON: " + e.getMessage());
                         }
                     }
@@ -96,7 +88,6 @@ public class AirQualityResumen {
 
     // -----------------------------------------------------------------
     // parsearRespuesta()
-    // Descripción: Convierte JSON → objeto AirQualityData
     // -----------------------------------------------------------------
     private AirQualityData parsearRespuesta(String cuerpoJson) throws Exception {
 
@@ -106,6 +97,9 @@ public class AirQualityResumen {
 
         data.status = root.getString("status");
         data.summaryText = root.getString("summaryText");
+
+        data.timeHours = root.getDouble("timeHours");
+        data.distanceKm = root.getDouble("distanceKm");
         data.points = root.getInt("points");
 
         JSONObject graph = root.getJSONObject("graph");

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EFEAD6">
+    android:background="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -10,11 +14,6 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- ========= HEADER PLACEHOLDER (Simple Bar) ========= -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:background="#4C4360" />
 
         <!-- ========= TITLE: Calidad del Aire ========= -->
         <TextView
@@ -28,6 +27,20 @@
             android:textColor="#4C4360"
             android:paddingTop="25dp"
             android:paddingBottom="10dp"/>
+        <!-- ========= RESUMEN DEL AIRE ========= -->
+        <TextView
+            android:id="@+id/textResumen"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="--"
+            android:textSize="16sp"
+            android:textColor="#4C4360"
+            android:gravity="center"
+            android:paddingTop="5dp"
+            android:paddingBottom="15dp"
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp" />
+
 
         <!-- ========= EMOJI AIR QUALITY ICON ========= -->
         <LinearLayout
@@ -46,38 +59,47 @@
                 android:padding="20dp"/>
         </LinearLayout>
 
-        <!-- ========= TIEMPO + DISTANCIA ========= -->
+
+        <!-- ========= TIEMPO + DISTANCIA (Styled Like Puntos) ========= -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="space-around"
+            android:gravity="center"
             android:orientation="horizontal"
-            android:paddingTop="10dp">
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
 
-            <!-- Tiempo -->
+            <!-- TIEMPO -->
             <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:layout_marginEnd="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Tiempo"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:textColor="#4C4360"/>
 
                 <TextView
                     android:id="@+id/textTiempo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
                     android:text="10:25"
                     android:textSize="20sp"
                     android:textColor="@android:color/black"
-                    android:background="@drawable/rounded_bg_blue"/>
+                    android:padding="12dp"
+                    android:background="@drawable/rounded_bg_blue"
+                    android:layout_marginTop="5dp"/>
             </LinearLayout>
 
-            <!-- Distancia -->
+            <!-- DISTANCIA -->
             <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center">
 
@@ -85,19 +107,23 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Distancia"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:textColor="#4C4360"/>
 
                 <TextView
                     android:id="@+id/textDistancia"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="10dp"
                     android:text="0.75 Km"
                     android:textSize="20sp"
                     android:textColor="@android:color/black"
-                    android:background="@drawable/rounded_bg_blue"/>
+                    android:padding="12dp"
+                    android:background="@drawable/rounded_bg_blue"
+                    android:layout_marginTop="5dp"/>
             </LinearLayout>
+
         </LinearLayout>
+
 
         <!-- ========= GRÁFICO ========= -->
         <TextView
@@ -109,32 +135,43 @@
             android:paddingTop="20dp"
             android:paddingBottom="10dp"/>
 
-        <FrameLayout
-            android:id="@+id/graficoContainer"
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/airQualityChart"
             android:layout_width="match_parent"
             android:layout_height="250dp"
             android:background="@drawable/rounded_bg_gray"
-            android:padding="10dp" />
+            android:padding="10dp"
+            tools:ignore="MissingClass" />
+
+
 
         <!-- ========= PUNTOS ========= -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Puntos"
-            android:textSize="18sp"
+            android:orientation="vertical"
             android:gravity="center"
-            android:paddingTop="15dp"/>
+            android:paddingTop="20dp">
 
-        <TextView
-            android:id="@+id/textPuntos"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1234"
-            android:textSize="22sp"
-            android:background="@drawable/rounded_bg_blue"
-            android:padding="12dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="5dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Puntos"
+                android:textSize="16sp"
+                android:textColor="#4C4360"
+                android:layout_marginBottom="5dp"/>
+
+            <TextView
+                android:id="@+id/textPuntos"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:text="0"
+                android:textSize="20sp"
+                android:textColor="@android:color/black"
+                android:background="@drawable/rounded_bg_blue"/>
+        </LinearLayout>
+
 
         <!-- ========= BOTÓN RECOMPENSAS ========= -->
         <Button

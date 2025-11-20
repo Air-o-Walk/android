@@ -1,11 +1,20 @@
 package com.example.air_o_walk_sprint0;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AirQualitySummaryActivity extends AppCompatActivity {
 
@@ -15,7 +24,7 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
     private TextView textTiempo;
     private TextView textDistancia;
     private TextView textPuntos;
-    private TextView textResumen;  // Optional, only if you add this in XML
+    private TextView textResumen;
 
     private int idUsuario;
 
@@ -27,28 +36,22 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate(): Iniciando pantalla.");
 
         // ---------------------------
-        // RECOVER USER ID FROM INTENT
+        // RECUPERAR USER ID
         // ---------------------------
         idUsuario = getIntent().getIntExtra("USER_ID", -1);
         Log.d(TAG, "USER_ID = " + idUsuario);
 
         // ---------------------------
-        // UI REFERENCES
+        // REFERENCIAS UI
         // ---------------------------
         emojiQuality  = findViewById(R.id.emojiQuality);
         textTiempo    = findViewById(R.id.textTiempo);
         textDistancia = findViewById(R.id.textDistancia);
         textPuntos    = findViewById(R.id.textPuntos);
-
-        // If you add summary text under emoji add this in XML:
-        // textResumen   = findViewById(R.id.textResumen);
-
-        // PLACEHOLDER: In future replace these with real trackers
-        textTiempo.setText("10:25");
-        textDistancia.setText("0.75 Km");
+        textResumen = findViewById(R.id.textResumen);
 
         // ---------------------------
-        // CALL BACKEND SERVICE
+        // LLAMADA AL BACKEND
         // ---------------------------
         AirQualityResumen resumen = new AirQualityResumen(idUsuario);
 
@@ -59,7 +62,7 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
 
                 runOnUiThread(() -> {
 
-                    // Emoji
+                    // ------ EMOJI ------
                     switch (data.status) {
                         case "buena":
                             emojiQuality.setImageResource(R.drawable.ic_air_good);
@@ -74,11 +77,24 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
                             emojiQuality.setImageResource(R.drawable.ic_air_bad);
                     }
 
-                    // Points
+                    // ------ TIEMPO ------
+                    String tiempoStr = String.format("%.2f h", data.timeHours);
+                    textTiempo.setText(tiempoStr);
+
+                    // ------ DISTANCIA ------
+                    String distStr = String.format("%.2f Km", data.distanceKm);
+                    textDistancia.setText(distStr);
+
+                    // ------ PUNTOS ------
                     textPuntos.setText(String.valueOf(data.points));
 
-                    // OPTIONAL text summary
-                    // textResumen.setText(data.summaryText);
+                    // ------ GRAFICA ------
+                    LineChart chart = findViewById(R.id.airQualityChart);
+                    dibujarGrafica(chart, data);
+
+
+                    // ------ RESUMEN (opcional) ------
+                     if (textResumen != null) textResumen.setText(data.summaryText);
                 });
             }
 
@@ -89,4 +105,42 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
         });
 
     }
+    private void dibujarGrafica(LineChart chart, AirQualityResumen.AirQualityData data) {
+
+        try {
+            List<Entry> o3Entries = new ArrayList<>();
+            List<Entry> no2Entries = new ArrayList<>();
+            List<Entry> co2Entries = new ArrayList<>();
+
+            for (int i = 0; i < data.timestamps.length(); i++) {
+                float x = i; // simple index
+
+                o3Entries.add(new Entry(x, (float)data.o3.getDouble(i)));
+                no2Entries.add(new Entry(x, (float)data.no2.getDouble(i)));
+                co2Entries.add(new Entry(x, (float)data.co2.getDouble(i)));
+            }
+
+            LineDataSet setO3 = new LineDataSet(o3Entries, "O₃");
+            LineDataSet setNO2 = new LineDataSet(no2Entries, "NO₂");
+            LineDataSet setCO2 = new LineDataSet(co2Entries, "CO₂");
+
+            setO3.setCircleRadius(3f);
+            setNO2.setCircleRadius(3f);
+            setCO2.setCircleRadius(3f);
+
+            // colors (auto)
+            setO3.setColor(Color.BLUE);
+            setNO2.setColor(Color.RED);
+            setCO2.setColor(Color.GREEN);
+
+            LineData lineData = new LineData(setO3, setNO2, setCO2);
+
+            chart.setData(lineData);
+            chart.invalidate(); // refresh
+
+        } catch (Exception e) {
+            Log.e("AirQualitySummary", "Error dibujando gráfica", e);
+        }
+    }
+
 }
