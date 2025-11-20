@@ -13,15 +13,19 @@ package com.example.air_o_walk_sprint0;
 
 import android.util.Log;
 
+import org.json.JSONObject;
+
 public class Gamificacion {
 
-    private int puntos;
+    private int puntosTotales;  /*PUNTOS TOTALES DEL USURIO*/
+    private int ultimosPuntosObtenidos;  /*PUNTOS OBTENIDOS DURANTE LA ULTIMA SESION*/
     private int id_user;
     private float multiplicador = 10;
 
     public Gamificacion(int id_user) {
         this.id_user = id_user;
-
+        this.ultimosPuntosObtenidos = 0;
+        actualizarPuntosTotales();
     }
 
     public void setMultiplicador(float multiplicador) {
@@ -32,19 +36,19 @@ public class Gamificacion {
         return Math.round(distancia * multiplicador);
     }
 
-    public void sumarPuntosLocal(int puntosGandos) {
-        this.puntos = this.puntos + puntosGandos;
+    public void setUltimosPuntosObtenidos(int ultimosPuntosObtenidos) {
+        this.ultimosPuntosObtenidos = ultimosPuntosObtenidos;
     }
 
-    public void sumarPuntosActualesBBDD() {
+    public void sumarPuntosDelaUltimaSesionBBDD() {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
         String cuerpo = "{"
-                + "\"username\": \"" + this.id_user + "\", "
-                + "\"puntos\": \"" + this.puntos + "\""
+                + "\"user_id\": \"" + this.id_user + "\", "
+                + "\"puntos\": \"" + this.ultimosPuntosObtenidos + "\""
                 +"}";;
 
-        elPeticionario.hacerPeticionREST("PUT", "http://api.sagucre.upv.edu.es/puntos",
+        elPeticionario.hacerPeticionREST("PUT", "http://api.sagucre.upv.edu.es/points",
                 cuerpo, // GET no necesita cuerpo
                 new PeticionarioREST.RespuestaREST() {
                     @Override
@@ -55,15 +59,30 @@ public class Gamificacion {
         );
     }
 
-    private void recibirPuntos() {
+    private void actualizarPuntosTotales() {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
-        elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/puntos",
-                null, //
+        elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/points",
+                null,
                 new PeticionarioREST.RespuestaREST() {
                     @Override
                     public void callback(int codigo, String cuerpoRes) {
                         Log.d("PUNTOS_RESPUESTA", "TENGO RESPUESTA:\nCodigo: " + codigo + "\nCuerpo: \n" + cuerpoRes);
+
+                        try {
+                            JSONObject json = new JSONObject(cuerpoRes);
+
+                            // Extraer "puntos"
+                            int puntos = json.getInt("puntos");
+
+                            // Guardarlo en tu variable de clase
+                            puntosTotales = puntos;
+
+                            Log.d("PUNTOS_RESPUESTA", "puntosTotales = " + puntosTotales);
+
+                        } catch (Exception e) {
+                            Log.e("PUNTOS_ERROR", "Error parseando JSON: " + e.getMessage());
+                        }
                     }
                 }
         );
