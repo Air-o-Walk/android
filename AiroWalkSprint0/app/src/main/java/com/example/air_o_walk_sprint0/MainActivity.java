@@ -510,7 +510,8 @@ public class MainActivity extends AppCompatActivity {
         // ==============================
         // VERIFICAR SI EL USUARIO YA TIENE NODO VINCULADO
         // ==============================
-        verificarNodoVinculado();
+            verificarNodoVinculado();
+        // ==============================
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -524,9 +525,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
 // ==============================================================================================================
-// VINCULAR
-// Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
-// con el beacon. Si se vincula correctamente, registra el nodo en el backend.
+// CONFIGURACIÓN DEL SISTEMA DE VINCULACIÓN
+// - Se inicializa el icono (rojo = no vinculado)
+// - Se crea el VinculadorBLE que gestiona el escaneo por nombre del beacon
+// - Cuando el beacon se encuentra => estado VINCULADO => registramos en backend => refrescamos MainActivity
 // ==============================================================================================================
         iconoVincular = findViewById(R.id.iconoVincular);
         iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
@@ -536,27 +538,25 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
                 switch (nuevoEstado) {
                     case VINCULADO:
+                        // Se detectó el beacon por nombre (ej: "GTI")
+                        // Registramos el nodo en el backend
                         String userId = Integer.toString(idUsuario);
                         String nombreNodo = vinculador.getNombreNodoActual();
-
-                        // Registrar el nodo en el backend
+                        // Enviar vinculación al backend
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
-
                         // Actualizar estado local
                         yaVinculado = true;
                         nombreNodoVinculado = nombreNodo;
-
+                        // Detener escaneos activos
                         vinculador.detener();
                         detenerBusquedaDispositivosBTLE();
-
+                        // Recargamos MainActivity para que empiece lectura BLE automática
                         runOnUiThread(() -> refrescarActividad());
-
                         break;
-
-
                 }
             }
+
             @Override public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
                 Log.d(">>>>", "Encontrado: " + device.getName() + " addr=" + device.getAddress()
                         + " rssi=" + result.getRssi());
@@ -631,14 +631,12 @@ public class MainActivity extends AppCompatActivity {
 
 // ==============================================================================================================
 // botonVincularPulsado()
-// Descripción: Muestra un diálogo para introducir el nombre del beacon (ej: "GTI") y
-// llama al VinculadorBLE para iniciar la vinculación. Si el código es válido, registra el nodo
-// en el backend y actualiza el icono de estado.
-//
-// Diseño: vista:View -> botonVincularPulsado() -> muestra diálogo / vincula / registra nodo
+// Mostrar diálogo para introducir el nombre del beacon (ej: "GTI")
+// Si ya está vinculado → mostrar opciones ( aceptar/desvincular )
+// Si no → iniciar VinculadorBLE.vincularPorNombre()
 // ==============================================================================================================
     public void botonVincularPulsado(View v) {
-        // Si ya está vinculado → mostrar otro diálogo
+        // Si YA hay beacon vinculado => mostrar opciones ( aceptar/desvincular )
         if (yaVinculado) {
             new AlertDialog.Builder(this)
                     .setTitle("Nodo ya vinculado")
@@ -655,8 +653,7 @@ public class MainActivity extends AppCompatActivity {
                     .show();
             return;
         }
-
-        // Si NO está vinculado → mostrar el diálogo normal
+        // Si NO hay beacon vinculado => pedir el nombre para vincular
         EditText input = new EditText(this);
         input.setHint("Ej: GTI");
 
@@ -770,6 +767,12 @@ private void verificarNodoVinculado() {
             }
         });
     }
+// ========================================================================
+
+// ========================================================================
+// refrescarActividad()
+// Se llama DESPUÉS de vincular un nodo para que MainActivity
+// se reinicie y comience a leer el beacon automáticamente.
 // ========================================================================
 private void refrescarActividad() {
     Intent intent = getIntent();
