@@ -49,7 +49,7 @@ public class GamificacionActivity extends AppCompatActivity {
         configurarListeners();
 
         // Cargar puntos iniciales
-        cargarPuntos();
+        cargarPuntosTotales();
     }
 
     private void inicializarVistas() {
@@ -91,7 +91,7 @@ public class GamificacionActivity extends AppCompatActivity {
         btnActualizarPuntos.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                cargarPuntos();
+                cargarPuntosTotales();
                 Toast.makeText(GamificacionActivity.this, "Actualizando puntos...", Toast.LENGTH_SHORT).show();
             }
         });
@@ -105,11 +105,14 @@ public class GamificacionActivity extends AppCompatActivity {
         });
     }
 
-    private void cargarPuntos() {
-        // Llamar a la API para obtener puntos actualizados
+    /**
+     * Carga los puntos totales desde la BBDD y actualiza la UI
+     */
+    private void cargarPuntosTotales() {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
-        elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/puntos",
+        // Usar el método público de Gamificacion
+        elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/points/" + userId,
                 null,
                 new PeticionarioREST.RespuestaREST() {
                     @Override
@@ -119,7 +122,7 @@ public class GamificacionActivity extends AppCompatActivity {
                         if (codigo == 200) {
                             try {
                                 JSONObject json = new JSONObject(cuerpoRes);
-                                int puntosTotales = json.getInt("puntos");
+                                int puntosTotales = json.getInt("points");
 
                                 // Actualizar UI en el hilo principal
                                 runOnUiThread(new Runnable() {
@@ -144,22 +147,9 @@ public class GamificacionActivity extends AppCompatActivity {
         );
     }
 
-    private void mostrarError(final String mensaje) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(GamificacionActivity.this, mensaje, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    // Método público para actualizar los puntos de la última sesión desde otra parte de la app
-    public void actualizarUltimosPuntos(int puntos) {
-        tvUltimosPuntos.setText(String.valueOf(puntos));
-        gamificacion.setUltimosPuntosObtenidos(puntos);
-    }
-
-    // Método para sumar puntos temporalmente (sin guardar en BBDD)
+    /**
+     * Suma puntos temporalmente (sin guardar en BBDD)
+     */
     private void sumarPuntos(int cantidad) {
         puntosTemporales += cantidad;
         tvUltimosPuntos.setText(String.valueOf(puntosTemporales));
@@ -170,7 +160,9 @@ public class GamificacionActivity extends AppCompatActivity {
                 Toast.LENGTH_SHORT).show();
     }
 
-    // Método para guardar los puntos de la sesión actual en la BBDD
+    /**
+     * Guarda los puntos de la sesión actual en la BBDD
+     */
     private void guardarPuntosEnBBDD() {
         if (puntosTemporales > 0) {
             gamificacion.sumarPuntosDelaUltimaSesionBBDD();
@@ -180,8 +172,15 @@ public class GamificacionActivity extends AppCompatActivity {
             new android.os.Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    cargarPuntos();
-                    puntosTemporales = 0; // Reiniciar puntos temporales
+                    // Usar el método público de Gamificacion
+                    gamificacion.actualizarPuntosTotales();
+
+                    // También actualizamos la UI manualmente
+                    cargarPuntosTotales();
+
+                    // Reiniciar puntos temporales
+                    puntosTemporales = 0;
+                    tvUltimosPuntos.setText("0");
                 }
             }, 1500); // Esperar 1.5 segundos antes de actualizar
         } else {
@@ -189,8 +188,12 @@ public class GamificacionActivity extends AppCompatActivity {
         }
     }
 
-    // Método público para guardar los puntos de la última sesión (por compatibilidad)
-    public void guardarPuntosDelaUltimaSesion() {
-        guardarPuntosEnBBDD();
+    private void mostrarError(final String mensaje) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(GamificacionActivity.this, mensaje, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }

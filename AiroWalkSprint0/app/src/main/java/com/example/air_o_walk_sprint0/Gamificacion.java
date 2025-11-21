@@ -25,7 +25,6 @@ public class Gamificacion {
     public Gamificacion(int id_user) {
         this.id_user = id_user;
         this.ultimosPuntosObtenidos = 0;
-        actualizarPuntosTotales();
     }
 
     public void setMultiplicador(float multiplicador) {
@@ -44,9 +43,9 @@ public class Gamificacion {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
         String cuerpo = "{"
-                + "\"user_id\": \"" + this.id_user + "\", "
-                + "\"puntos\": \"" + this.ultimosPuntosObtenidos + "\""
-                +"}";;
+                + "\"userId\": " + this.id_user + ", "
+                + "\"points\": " + this.ultimosPuntosObtenidos
+                + "}";
 
         elPeticionario.hacerPeticionREST("PUT", "http://api.sagucre.upv.edu.es/points",
                 cuerpo, // GET no necesita cuerpo
@@ -59,10 +58,11 @@ public class Gamificacion {
         );
     }
 
-    private void actualizarPuntosTotales() {
+    public void actualizarPuntosTotales() {
+
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
-        elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/points",
+        elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/points/" + this.id_user,
                 null,
                 new PeticionarioREST.RespuestaREST() {
                     @Override
@@ -73,7 +73,7 @@ public class Gamificacion {
                             JSONObject json = new JSONObject(cuerpoRes);
 
                             // Extraer "puntos"
-                            int puntos = json.getInt("puntos");
+                            int puntos = json.getInt("points");
 
                             // Guardarlo en tu variable de clase
                             puntosTotales = puntos;
