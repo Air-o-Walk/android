@@ -13,12 +13,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * María Algora
+ * Clase que implementa la interfaz del login y conecta con la lógica de negocio.
+ * Gestiona los campos del formulario, valida los datos introducidos y llama a la logica.
+ * Recibe los campos del usuario y la contraseña; y el botón de login
+ */
 public class LoginActivity extends AppCompatActivity {
 
     private EditText editTextUsuario, editTextContrasena;
     private Button buttonLogin;
     private SharedPreferences prefs;
 
+    /**
+     * Inicializa los elementos del layout y configura el listener del botón de login.
+     * @param savedInstanceState Estado previo de la actividad, si lo hubiera
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +56,11 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Obtiene los valores introducidos por el usuario, valida los campos
+     * y realiza la autenticación usando la clase LogicaLogin.
+     * Usa hilos secundarios para no bloquear el principal (la interfaz) mientras hace peticiones
+     */
     private void realizarLogin() {
         String usuario = editTextUsuario.getText().toString().trim();
         String contrasena = editTextContrasena.getText().toString().trim();
@@ -64,6 +79,10 @@ public class LoginActivity extends AppCompatActivity {
                     public void run() {
                         Toast.makeText(LoginActivity.this, "Login hecho correctamente", Toast.LENGTH_LONG).show();
 
+                        // Navegar a la siguiente actividad
+                        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+
+                        // Pasar a MainActivity
                         try {
                             JSONObject jsonObject = new JSONObject(respuesta);
                             int userId = jsonObject.getInt("userId");
