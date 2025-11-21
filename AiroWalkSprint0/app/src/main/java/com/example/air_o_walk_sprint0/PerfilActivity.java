@@ -16,56 +16,49 @@ public class PerfilActivity extends AppCompatActivity {
     private int userId;
     private LogicaEditarPerfil logicaEditar;
 
-    // ==================================================
-    // MODO PRUEBA - INICIO (ELIMINAR CUANDO TENGAS API)
-    // ==================================================
-    private static final boolean MODO_PRUEBA = true; // Cambiar a false cuando tengas API
-    private LogicaEditarPerfilMock logicaEditarMock;
-    // ==================================================
-    // MODO PRUEBA - FIN
-    // ==================================================
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.perfil);
 
-        // Obtener token y userId del login anterior
-        token = obtenerTokenDeSharedPreferences();
-        userId = obtenerUserIdDeSharedPreferences();
+        // Obtener token y userId del Intent
+        userId = getIntent().getIntExtra("USER_ID", 0);
+        token = getIntent().getStringExtra("TOKEN");
 
-        // ==================================================
-        // MODO PRUEBA - INICIO (ELIMINAR CUANDO TENGAS API)
-        // ==================================================
-        if (MODO_PRUEBA) {
-            inicializarModoPrueba();
+        if (userId == 0 || token == null) {
+            Toast.makeText(this, "Error: No se recibieron credenciales válidas", Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
-        // ==================================================
-        // MODO PRUEBA - FIN
-        // ==================================================
 
         logicaEditar = new LogicaEditarPerfil(token, userId);
+
+        // Cargar datos del usuario y configurar botones
+        cargarDatosUsuario();
         setupBotonesEdicion();
     }
 
-    // ==================================================
-    // MODO PRUEBA - INICIO (ELIMINAR CUANDO TENGAS API)
-    // ==================================================
-    private void inicializarModoPrueba() {
-        logicaEditarMock = new LogicaEditarPerfilMock(userId);
-        cargarDatosDePrueba();
-        setupBotonesEdicionModoPrueba();
+    private void cargarDatosUsuario() {
+        logicaEditar.obtenerDatosBasicosUsuario(new LogicaEditarPerfil.UsuarioBasicoCallback() {
+            @Override
+            public void onUsuarioObtenido(String username, String email) {
+                runOnUiThread(() -> {
+                    TextView tvUsername = findViewById(R.id.campo_username);
+                    TextView tvEmail = findViewById(R.id.campo_email);
+                    tvUsername.setText(username);
+                    tvEmail.setText(email);
+                });
+            }
+
+            @Override
+            public void onError(String mensajeError) {
+                runOnUiThread(() -> {
+                    Toast.makeText(PerfilActivity.this, "Error: " + mensajeError, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
-    private void cargarDatosDePrueba() {
-        ((TextView) findViewById(R.id.campo_username)).setText("usuario_prueba");
-        ((TextView) findViewById(R.id.campo_email)).setText("prueba@ejemplo.com");
-        ((TextView) findViewById(R.id.campo_password)).setText("********");
-    }
-    // ==================================================
-    // MODO PRUEBA - FIN
-    // ==================================================
 
     private void setupBotonesEdicion() {
         // Botón editar username
@@ -141,79 +134,6 @@ public class PerfilActivity extends AppCompatActivity {
         return email.matches(patron);
     }
 
-    // ==================================================
-    // MODO PRUEBA - INICIO (ELIMINAR CUANDO TENGAS API)
-    // ==================================================
-    private void setupBotonesEdicionModoPrueba() {
-        // Botón editar username - Modo Prueba
-        findViewById(R.id.editar_username).setOnClickListener(v -> {
-            mostrarDialogoEdicion("username", "Nuevo nombre de usuario (MODO PRUEBA)",
-                    nuevoValor -> logicaEditarMock.actualizarUsername(nuevoValor,
-                            new LogicaEditarPerfilMock.EditarCallback() {
-                                @Override
-                                public void onEdicionExitosa(String campo, String mensaje) {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(PerfilActivity.this, mensaje, Toast.LENGTH_SHORT).show();
-                                        ((TextView) findViewById(R.id.campo_username)).setText(nuevoValor);
-                                    });
-                                }
-
-                                @Override
-                                public void onEdicionFallida(String campo, String mensajeError) {
-                                    runOnUiThread(() ->
-                                            Toast.makeText(PerfilActivity.this, mensajeError, Toast.LENGTH_SHORT).show());
-                                }
-                            })
-            );
-        });
-
-        // Botón editar email - Modo Prueba
-        findViewById(R.id.editar_email).setOnClickListener(v -> {
-            mostrarDialogoEdicion("email", "Nuevo email (MODO PRUEBA)",
-                    nuevoValor -> {
-                        // ==================================================
-                        // VALIDACIÓN EMAIL - INICIO
-                        // ==================================================
-                        if (!esEmailValido(nuevoValor)) {
-                            runOnUiThread(() ->
-                                    Toast.makeText(PerfilActivity.this,
-                                            "Formato de email inválido. Debe tener @ y dominio",
-                                            Toast.LENGTH_LONG).show());
-                            return;
-                        }
-                        // ==================================================
-                        // VALIDACIÓN EMAIL - FIN
-                        // ==================================================
-
-                        logicaEditarMock.actualizarEmail(nuevoValor,
-                                new LogicaEditarPerfilMock.EditarCallback() {
-                                    @Override
-                                    public void onEdicionExitosa(String campo, String mensaje) {
-                                        runOnUiThread(() -> {
-                                            Toast.makeText(PerfilActivity.this, mensaje, Toast.LENGTH_SHORT).show();
-                                            ((TextView) findViewById(R.id.campo_email)).setText(nuevoValor);
-                                        });
-                                    }
-
-                                    @Override
-                                    public void onEdicionFallida(String campo, String mensajeError) {
-                                        runOnUiThread(() ->
-                                                Toast.makeText(PerfilActivity.this, mensajeError, Toast.LENGTH_SHORT).show());
-                                    }
-                                });
-                    }
-            );
-        });
-
-        // Botón editar password - Modo Prueba
-        findViewById(R.id.editar_password).setOnClickListener(v -> {
-            mostrarDialogoEdicionPasswordModoPrueba();
-        });
-    }
-    // ==================================================
-    // MODO PRUEBA - FIN
-    // ==================================================
-
     /**
      * Muestra un diálogo para editar la contraseña con verificación de contraseña actual.
      */
@@ -252,46 +172,6 @@ public class PerfilActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
         builder.show();
     }
-
-    // ==================================================
-    // MODO PRUEBA - INICIO (ELIMINAR CUANDO TENGAS API)
-    // ==================================================
-    private void mostrarDialogoEdicionPasswordModoPrueba() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Cambiar contraseña (MODO PRUEBA)");
-
-        LinearLayout layout = crearLayoutDialogoPassword(true);
-        builder.setView(layout);
-
-        builder.setPositiveButton("Guardar", (dialog, which) -> {
-            String currentPassword = ((EditText) layout.getChildAt(0)).getText().toString().trim();
-            String newPassword = ((EditText) layout.getChildAt(1)).getText().toString().trim();
-            String confirmPassword = ((EditText) layout.getChildAt(2)).getText().toString().trim();
-
-            if (validarPassword(currentPassword, newPassword, confirmPassword)) {
-                logicaEditarMock.actualizarPassword(currentPassword, newPassword,
-                        new LogicaEditarPerfilMock.EditarCallback() {
-                            @Override
-                            public void onEdicionExitosa(String campo, String mensaje) {
-                                runOnUiThread(() -> {
-                                    Toast.makeText(PerfilActivity.this, mensaje, Toast.LENGTH_SHORT).show();
-                                    ((TextView) findViewById(R.id.campo_password)).setText("********");
-                                });
-                            }
-
-                            @Override
-                            public void onEdicionFallida(String campo, String mensajeError) {
-                                runOnUiThread(() ->
-                                        Toast.makeText(PerfilActivity.this, mensajeError, Toast.LENGTH_SHORT).show());
-                            }
-                        });
-            }
-        });
-
-        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
-        builder.show();
-    }
-
     private LinearLayout crearLayoutDialogoPassword(boolean modoPrueba) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -318,10 +198,6 @@ public class PerfilActivity extends AppCompatActivity {
 
         return layout;
     }
-    // ==================================================
-    // MODO PRUEBA - FIN
-    // ==================================================
-
     /**
      * Valida los campos de contraseña antes de enviar la solicitud.
      */
@@ -355,14 +231,10 @@ public class PerfilActivity extends AppCompatActivity {
         if (campo.equals("password")) {
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         } else if (campo.equals("email")) {
-            // ==================================================
-            // MEJORA TECLADO EMAIL - INICIO
-            // ==================================================
+
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
             input.setHint("ejemplo@dominio.com");
-            // ==================================================
-            // MEJORA TECLADO EMAIL - FIN
-            // ==================================================
+
         }
         builder.setView(input);
 
@@ -393,49 +265,4 @@ public class PerfilActivity extends AppCompatActivity {
         return prefs.getInt("user_id", 0);
     }
 
-    // ==================================================
-    // CLASE MOCK - INICIO (ELIMINAR CUANDO TENGAS API)
-    // ==================================================
-    public static class LogicaEditarPerfilMock {
-        private int userId;
-
-        public LogicaEditarPerfilMock(int userId) {
-            this.userId = userId;
-        }
-
-        public void actualizarUsername(String nuevoUsername, EditarCallback callback) {
-            simularRespuesta("username", nuevoUsername, callback, true);
-        }
-
-        public void actualizarEmail(String nuevoEmail, EditarCallback callback) {
-            simularRespuesta("email", nuevoEmail, callback, true);
-        }
-
-        public void actualizarPassword(String passwordActual, String nuevaPassword, EditarCallback callback) {
-            // Simular validación de contraseña actual
-            if ("123456".equals(passwordActual)) {
-                simularRespuesta("password", "********", callback, true);
-            } else {
-                simularRespuesta("password", "", callback, false);
-            }
-        }
-
-        private void simularRespuesta(String campo, String valor, EditarCallback callback, boolean exito) {
-            new android.os.Handler().postDelayed(() -> {
-                if (exito) {
-                    callback.onEdicionExitosa(campo, "✓ " + campo + " actualizado correctamente (MODO PRUEBA)");
-                } else {
-                    callback.onEdicionFallida(campo, "✗ Contraseña actual incorrecta (usar '123456')");
-                }
-            }, 1000);
-        }
-
-        public interface EditarCallback {
-            void onEdicionExitosa(String campo, String mensaje);
-            void onEdicionFallida(String campo, String mensajeError);
-        }
-    }
-    // ==================================================
-    // CLASE MOCK - FIN
-    // ==================================================
 }

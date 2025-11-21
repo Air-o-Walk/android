@@ -21,6 +21,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -501,7 +502,15 @@ public class MainActivity extends AppCompatActivity {
         if (intent != null) {
             idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
             token = intent.getStringExtra("TOKEN");
+
+            Log.d(ETIQUETA_LOG, "Datos recibidos - USER_ID: " + idUsuario + ", TOKEN: " + (token != null ? "presente" : "null"));
         }
+
+// Configurar botón para ir al perfil (esto debe estar en un onClickListener, no ejecutarse automáticamente)
+        findViewById(R.id.boton_perfil).setOnClickListener(v -> {
+            abrirPerfilActivity();
+        });
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -618,6 +627,23 @@ public class MainActivity extends AppCompatActivity {
                 return;
         }
     } // ()
+
+    /**
+     * Método para abrir la actividad de perfil
+     */
+    private void abrirPerfilActivity() {
+        if (idUsuario == -1 || token == null) {
+            Toast.makeText(this, "Error: No hay datos de usuario disponibles", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(MainActivity.this, PerfilActivity.class);
+        intent.putExtra("USER_ID", idUsuario);
+        intent.putExtra("TOKEN", token);
+        startActivity(intent);
+
+        Log.d(ETIQUETA_LOG, "Abriendo PerfilActivity con USER_ID: " + idUsuario);
+    }
 
 // ==============================================================================================================
 // botonVincularPulsado()

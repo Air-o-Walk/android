@@ -50,7 +50,7 @@ public class LogicaEditarPerfil {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
         String cuerpo = construirCuerpoPassword(passwordActual, nuevaPassword);
-        String url = "http://api.sagucre.upv.edu.es/users/" + userId;
+        String url = "http://api.sagucre.upv.edu.es/user/" + userId;
 
         elPeticionario.hacerPeticionREST("PUT", url, cuerpo,
                 new PeticionarioREST.RespuestaREST() {
@@ -91,7 +91,7 @@ public class LogicaEditarPerfil {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
         String cuerpo = construirCuerpo(campo, valor);
-        String url = "http://api.sagucre.upv.edu.es/users/" + userId;
+        String url = "http://api.sagucre.upv.edu.es/user/" + userId;
 
         elPeticionario.hacerPeticionREST("PUT", url, cuerpo,
                 new PeticionarioREST.RespuestaREST() {
@@ -147,7 +147,7 @@ public class LogicaEditarPerfil {
             } else if (codigo == 404) {
                 callback.onEdicionFallida(campo, "Usuario no encontrado");
             } else if (codigo >= 500) {
-                callback.onEdicionFallida(campo, "Error del servidor");
+                callback.onEdicionFallida(campo, "Error del servidor o puede que tarde en actualizar");
             } else {
                 callback.onEdicionFallida(campo, "Error desconocido: " + codigo);
             }
@@ -163,5 +163,74 @@ public class LogicaEditarPerfil {
     public interface EditarCallback {
         void onEdicionExitosa(String campo, String mensaje);
         void onEdicionFallida(String campo, String mensajeError);
+    }
+
+    /**
+     * Interfaz callback para manejar la obtención de datos básicos del usuario
+     */
+    public interface UsuarioBasicoCallback {
+        void onUsuarioObtenido(String username, String email);
+        void onError(String mensajeError);
+    }
+
+    /**
+     * Obtiene solo username y email del usuario para mostrar en el perfil
+     * @param callback Callback para manejar la respuesta
+     */
+    public void obtenerDatosBasicosUsuario(UsuarioBasicoCallback callback) {
+        // Verificar que el userId no sea 0
+        if (userId == 0) {
+            callback.onError("ID de usuario no válido");
+            return;
+        }
+
+        PeticionarioREST elPeticionario = new PeticionarioREST();
+        String url = "http://api.sagucre.upv.edu.es/user/" + userId;
+
+        elPeticionario.hacerPeticionREST("GET", url, null,
+                new PeticionarioREST.RespuestaREST() {
+                    @Override
+                    public void callback(int codigo, String cuerpoRes) {
+                        Log.d("OBTENER_USUARIO_RESPUESTA", "Código: " + codigo + ", Cuerpo: " + cuerpoRes);
+                        procesarRespuestaUsuarioBasico(codigo, cuerpoRes, callback);
+                    }
+                }
+        );
+    }
+
+    /**
+     * Procesa la respuesta del servidor para la obtención de datos básicos del usuario
+     */
+    private void procesarRespuestaUsuarioBasico(int codigo, String cuerpo, UsuarioBasicoCallback callback) {
+        try {
+            if (codigo == 200) {
+                JSONObject respuestaJson = new JSONObject(cuerpo);
+
+                if (respuestaJson.has("success") && respuestaJson.getBoolean("success")) {
+                    JSONObject userJson = respuestaJson.getJSONObject("user");
+
+                    // Extraer SOLO username y email
+                    String username = userJson.optString("username", "");
+                    String email = userJson.optString("email", "");
+
+                    callback.onUsuarioObtenido(username, email);
+
+                } else {
+                    String mensajeError = respuestaJson.optString("message", "Error al obtener datos del usuario");
+                    callback.onError(mensajeError);
+                }
+            } else if (codigo == 401) {
+                callback.onError("No autorizado - token inválido");
+            } else if (codigo == 404) {
+                callback.onError("Usuario no encontrado");
+            } else if (codigo >= 500) {
+                callback.onError("Error del servidor");
+            } else {
+                callback.onError("Error desconocido: " + codigo);
+            }
+        } catch (Exception e) {
+            Log.e("OBTENER_USUARIO_ERROR", "Error procesando respuesta: " + e.getMessage());
+            callback.onError("Error procesando la respuesta del servidor");
+        }
     }
 }
