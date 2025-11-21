@@ -29,7 +29,7 @@ public class Logica {
         PeticionarioREST elPeticionario = new PeticionarioREST();
         String cuerpo = constructorDeCuerpo(); // Construye el cuerpo JSON de la petición
 
-        elPeticionario.hacerPeticionREST("POST",  "http://sagucre.upv.edu.es/api/medicion",
+        elPeticionario.hacerPeticionREST("POST",  "http://api.sagucre.upv.edu.es/user/daily-stats",
                 cuerpo, new PeticionarioREST.RespuestaREST () {
                     @Override
                     public void callback(int codigo, String cuerpo) {
