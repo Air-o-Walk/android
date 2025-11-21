@@ -18,6 +18,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // GRAPH AIR QUALITY
         maven(url = "https://jitpack.io")
     }
 }
