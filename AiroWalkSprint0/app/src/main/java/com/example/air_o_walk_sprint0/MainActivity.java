@@ -27,6 +27,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import org.json.JSONObject;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
     //Variables vinculacion
     private VinculadorBLE vinculador;
     private ImageView iconoVincular;
+    private boolean yaVinculado = false;
+    private String nombreNodoVinculado = null;
+
 
     // Trackers para distancia y tiempo
     private StepCounterTracker stepTracker;
@@ -509,6 +514,11 @@ public class MainActivity extends AppCompatActivity {
             idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
             token = intent.getStringExtra("TOKEN");
         }
+        // ==============================
+        // VERIFICAR SI EL USUARIO YA TIENE NODO VINCULADO
+        // ==============================
+            verificarNodoVinculado();
+        // ==============================
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -522,9 +532,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
 // ==============================================================================================================
-// VINCULAR
-// Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
-// con el beacon. Si se vincula correctamente, registra el nodo en el backend.
+// CONFIGURACIÓN DEL SISTEMA DE VINCULACIÓN
+// - Se inicializa el icono (rojo = no vinculado)
+// - Se crea el VinculadorBLE que gestiona el escaneo por nombre del beacon
+// - Cuando el beacon se encuentra => estado VINCULADO => registramos en backend => refrescamos MainActivity
 // ==============================================================================================================
         iconoVincular = findViewById(R.id.iconoVincular);
         iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
@@ -534,26 +545,25 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
                 switch (nuevoEstado) {
                     case VINCULADO:
-                        //REGISTRO NODO: enviar userId + nombre del beacon al backend
-                        String userId = Integer.toString((idUsuario));  // !!! temporal REPLACE WITH REAL USERID
+                        // Se detectó el beacon por nombre (ej: "GTI")
+                        // Registramos el nodo en el backend
+                        String userId = Integer.toString(idUsuario);
                         String nombreNodo = vinculador.getNombreNodoActual();
+                        // Enviar vinculación al backend
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
-                        buscarEsteDispositivoBTLE(nombreNodo);
-                        estadoBotonRecorrido(true);
-                        // ===================================================================
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
-                        break;
-                    case TIMEOUT:
-                    case ERROR:
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                        estadoBotonRecorrido(false);
-                        break;
-                    case ESCANEANDO:
-                    case IDLE:
+                        // Actualizar estado local
+                        yaVinculado = true;
+                        nombreNodoVinculado = nombreNodo;
+                        // Detener escaneos activos
+                        vinculador.detener();
+                        detenerBusquedaDispositivosBTLE();
+                        // Recargamos MainActivity para que empiece lectura BLE automática
+                        runOnUiThread(() -> refrescarActividad());
                         break;
                 }
             }
+
             @Override public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
                 Log.d(">>>>", "Encontrado: " + device.getName() + " addr=" + device.getAddress()
                         + " rssi=" + result.getRssi());
@@ -628,13 +638,29 @@ public class MainActivity extends AppCompatActivity {
 
 // ==============================================================================================================
 // botonVincularPulsado()
-// Descripción: Muestra un diálogo para introducir el nombre del beacon (ej: "GTI") y
-// llama al VinculadorBLE para iniciar la vinculación. Si el código es válido, registra el nodo
-// en el backend y actualiza el icono de estado.
-//
-// Diseño: vista:View -> botonVincularPulsado() -> muestra diálogo / vincula / registra nodo
+// Mostrar diálogo para introducir el nombre del beacon (ej: "GTI")
+// Si ya está vinculado → mostrar opciones ( aceptar/desvincular )
+// Si no → iniciar VinculadorBLE.vincularPorNombre()
 // ==============================================================================================================
     public void botonVincularPulsado(View v) {
+        // Si YA hay beacon vinculado => mostrar opciones ( aceptar/desvincular )
+        if (yaVinculado) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Nodo ya vinculado")
+                    .setMessage(
+                            "Actualmente estás vinculado al beacon:\n\n" +
+                                    "📡 " + nombreNodoVinculado +
+                                    "\n\nPuedes conservarlo o desvincularlo."
+                    )
+                    .setPositiveButton("Aceptar", null)
+                    .setNegativeButton("Desvincular nodo", (dialog, which) -> {
+                        // Llamamos a la función de desvincular
+                        desvincularNodo();
+                    })
+                    .show();
+            return;
+        }
+        // Si NO hay beacon vinculado => pedir el nombre para vincular
         EditText input = new EditText(this);
         input.setHint("Ej: GTI");
 
@@ -644,10 +670,6 @@ public class MainActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("Vincular", (dlg, which) -> {
                     String codigo = input.getText().toString().trim();
-                    vinculador.vincularPorNombre(codigo, 10_000);
-                    // registra el nodo inmediatamente
-                    RegistroNodo registro = new RegistroNodo("12345", codigo);
-                    registro.registrarNodo();
                     if (codigo.isEmpty()) {
                         Log.d(">>>>", "Código vacío");
                         return;
@@ -659,6 +681,113 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     } //()
 // ========================================================================
+
+// ============================================================================
+// verificarNodoVinculado()
+// Descripción: consulta al backend si este usuario ya tiene un nodo vinculado.
+// Si existe, actualiza icono, habilita recorrido y comienza a escanear.
+// Diseño: userId -> GET /node/ofUser/:id -> actualizar UI
+// ============================================================================
+private void verificarNodoVinculado() {
+    String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
+
+    PeticionarioREST peticion = new PeticionarioREST();
+    peticion.hacerPeticionREST("GET", url, null, new PeticionarioREST.RespuestaREST() {
+        @Override
+        public void callback(int codigo, String cuerpo) {
+            Log.d(">>>>", "Verificar nodo, código=" + codigo + " cuerpo=" + cuerpo);
+
+            try {
+                JSONObject json = new JSONObject(cuerpo);
+
+                if (json.getBoolean("success")) {
+                    // Ya tiene nodo
+                    String nombreNodo = json.getJSONObject("node").getString("name");
+
+
+                    yaVinculado = true;
+                    nombreNodoVinculado = nombreNodo;
+
+                    runOnUiThread(() -> {
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
+                        estadoBotonRecorrido(true);
+
+                        // Empieza a leer del beacon automáticamente
+                        buscarEsteDispositivoBTLE(nombreNodo);
+                    });
+
+
+
+                } else {
+                    // No tiene nodo
+                    runOnUiThread(() -> {
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                        estadoBotonRecorrido(false);
+                    });
+                }
+
+            } catch (Exception e) {
+                Log.e(">>>>", "Error procesando verificación nodo: " + e.getMessage());
+            }
+        }
+    });
+}
+// ========================================================================
+
+// ========================================================================
+// desvincularNodo()
+// Descripción: Borra del backend el nodo vinculado al usuario y reinicia el estado.
+// Diseño: DELETE /node/ofUser/:id -> limpiar flags -> parar BLE/tracking -> actualizar UI.
+// ========================================================================
+    private void desvincularNodo() {
+        String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
+
+        PeticionarioREST peticion = new PeticionarioREST();
+
+        peticion.hacerPeticionREST("DELETE", url, null, new PeticionarioREST.RespuestaREST() {
+            @Override
+            public void callback(int codigo, String cuerpo) {
+
+                Log.d(">>>>", "Desvincular nodo, código=" + codigo + " cuerpo=" + cuerpo);
+
+                runOnUiThread(() -> {
+
+                    yaVinculado = false;
+                    nombreNodoVinculado = null;
+
+                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                    estadoBotonRecorrido(false);
+
+                    detenerBusquedaDispositivosBTLE();
+                    stopTracking();
+
+                    distanciaTotal.setText("---");
+                    tiempoTotal.setText("---");
+
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Nodo desvinculado")
+                            .setMessage("El beacon ha sido desvinculado correctamente.")
+                            .setPositiveButton("Aceptar", null)
+                            .show();
+                });
+
+            }
+        });
+    }
+// ========================================================================
+
+// ========================================================================
+// refrescarActividad()
+// Se llama DESPUÉS de vincular un nodo para que MainActivity
+// se reinicie y comience a leer el beacon automáticamente.
+// ========================================================================
+private void refrescarActividad() {
+    Intent intent = getIntent();
+    contadorAndroid = -1;
+    finish();
+    startActivity(intent);
+}
+
 
 
     @Override
