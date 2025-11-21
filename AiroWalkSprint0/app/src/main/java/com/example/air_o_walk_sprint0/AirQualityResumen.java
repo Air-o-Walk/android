@@ -36,6 +36,7 @@ public class AirQualityResumen {
 
         public double timeHours;
         public double distanceKm;
+        public int steps;
         public int points;
 
         public JSONArray timestamps;
@@ -113,6 +114,7 @@ public class AirQualityResumen {
 
         data.timeHours = root.getDouble("timeHours");
         data.distanceKm = root.getDouble("distanceKm");
+        data.steps = root.getInt("steps");
         data.points = root.getInt("points");
 
         JSONObject graph = root.getJSONObject("graph");

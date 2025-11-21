@@ -418,6 +418,8 @@ public class MainActivity extends AppCompatActivity {
         // Iniciar GPS tracker
         gpsTracker.startTracking();
 
+
+
         Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado (steps + time + GPS)");
         Log.d(ETIQUETA_LOG, " startTracking(): " + stepTracker.getSensorInfo());
     }
@@ -439,10 +441,26 @@ public class MainActivity extends AppCompatActivity {
         timeTracker.stopTracking();
         gpsTracker.stopTracking();
 
+        int pasos = stepTracker.getSteps();
+
+        Gamificacion game = new Gamificacion(idUsuario);
+        int puntos = game.calcularPuntosMedianteDistancia(pasos);
+        game.setUltimosPuntosObtenidos(puntos);
+
+        MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
+
+        medidas.guardarDailyStats();
+
+
+
+
+
         // --------------------------------------------------------------
         // ---- Abrir resumen de calidad del aire (se envía USER_ID) ----
         Intent intent = new Intent(MainActivity.this, AirQualitySummaryActivity.class);
         intent.putExtra("USER_ID", idUsuario);
+        intent.putExtra("PASOS", stepTracker.getSteps() );
+        intent.putExtra("TIEMPO", timeTracker.getElapsedTimeMinutes());
         startActivity(intent);
         // --------------------------------------------------------------
 
@@ -969,7 +987,7 @@ private void verificarNodoVinculado() {
                     detenerBusquedaDispositivosBTLE();
                     stopTracking();
 
-                    distanciaTotal.setText("---");
+                    textSteps.setText("---");
                     tiempoTotal.setText("---");
 
                     new AlertDialog.Builder(MainActivity.this)

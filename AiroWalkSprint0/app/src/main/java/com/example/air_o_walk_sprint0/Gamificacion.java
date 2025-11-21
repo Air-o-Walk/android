@@ -36,7 +36,7 @@ public class Gamificacion {
     }
 
     public int calcularPuntosMedianteDistancia(float distancia) {
-        return Math.round(distancia * multiplicador);
+        return Math.round(distancia / multiplicador);
     }
 
     public void setUltimosPuntosObtenidos(int ultimosPuntosObtenidos) {
