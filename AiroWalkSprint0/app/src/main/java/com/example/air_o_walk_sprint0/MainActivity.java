@@ -345,6 +345,17 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void abrirPantallaCanjeos(View v) {
+        // Crear el Intent para abrir GamificacionActivity
+        Intent intent = new Intent(MainActivity.this, CanjeoActivity.class);
+
+        // Pasar el user_id (reemplaza 'user_id' con el nombre de tu variable)
+        intent.putExtra("USER_ID", idUsuario);
+
+        // Iniciar la nueva Activity
+        startActivity(intent);
+    }
+
     // ------------------------------------------------------------------
     // NUEVO: Método para controlar el tracking de distancia y tiempo
     // ------------------------------------------------------------------

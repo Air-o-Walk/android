@@ -27,6 +27,10 @@ public class Gamificacion {
         this.ultimosPuntosObtenidos = 0;
     }
 
+    public int getPuntosTotales() {
+        return puntosTotales;
+    }
+
     public void setMultiplicador(float multiplicador) {
         this.multiplicador = multiplicador;
     }
@@ -58,8 +62,20 @@ public class Gamificacion {
         );
     }
 
-    public void actualizarPuntosTotales() {
 
+    // ========================================================================
+    // VERSIÓN ORIGINAL (sin callback) - mantener compatibilidad
+    // ========================================================================
+
+    public void actualizarPuntosTotales() {
+        actualizarPuntosTotales(null); // Llama a la versión con callback pero sin callback
+    }
+
+    // ========================================================================
+    // VERSIÓN CON CALLBACK - AGREGAR ESTE MÉTODO
+    // ========================================================================
+
+    public void actualizarPuntosTotales(CallbackPuntos callback) {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
         elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/points/" + this.id_user,
@@ -69,23 +85,43 @@ public class Gamificacion {
                     public void callback(int codigo, String cuerpoRes) {
                         Log.d("PUNTOS_RESPUESTA", "TENGO RESPUESTA:\nCodigo: " + codigo + "\nCuerpo: \n" + cuerpoRes);
 
-                        try {
-                            JSONObject json = new JSONObject(cuerpoRes);
+                        if (codigo == 200) {
+                            try {
+                                JSONObject json = new JSONObject(cuerpoRes);
+                                int puntos = json.getInt("points");
 
-                            // Extraer "puntos"
-                            int puntos = json.getInt("points");
+                                // Guardarlo en la variable de clase
+                                puntosTotales = puntos;
 
-                            // Guardarlo en tu variable de clase
-                            puntosTotales = puntos;
+                                Log.d("PUNTOS_RESPUESTA", "puntosTotales = " + puntosTotales);
 
-                            Log.d("PUNTOS_RESPUESTA", "puntosTotales = " + puntosTotales);
+                                // Si hay callback, notificar
+                                if (callback != null) {
+                                    callback.onPuntosObtenidos(puntos);
+                                }
 
-                        } catch (Exception e) {
-                            Log.e("PUNTOS_ERROR", "Error parseando JSON: " + e.getMessage());
+                            } catch (Exception e) {
+                                Log.e("PUNTOS_ERROR", "Error parseando JSON: " + e.getMessage());
+                                if (callback != null) {
+                                    callback.onError("Error al procesar puntos");
+                                }
+                            }
+                        } else {
+                            if (callback != null) {
+                                callback.onError("Error del servidor: " + codigo);
+                            }
                         }
                     }
                 }
         );
+    }
+
+    /**
+     * Interfaz para recibir los puntos de forma asíncrona
+     */
+    public interface CallbackPuntos {
+        void onPuntosObtenidos(int puntos);
+        void onError(String mensaje);
     }
 
 }

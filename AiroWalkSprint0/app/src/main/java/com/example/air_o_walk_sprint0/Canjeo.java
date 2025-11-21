@@ -1,25 +1,26 @@
 package com.example.air_o_walk_sprint0;
+
 public class Canjeo {
     private int id;
-    private String couponCode;
-    private String redemptionDate;
-    private String prizeName;
-    private String description;
-    private int pointsRequired;
+    private String codigoCupon;
+    private String fechaRedencion;
+    private String nombrePremio;
+    private String descripcion;
+    private int puntosRequeridos;
 
     // Constructor vacío
     public Canjeo() {
     }
 
     // Constructor completo
-    public Canjeo(int id, String couponCode, String redemptionDate,
-                      String prizeName, String description, int pointsRequired) {
+    public Canjeo(int id, String codigoCupon, String fechaRedencion,
+                     String nombrePremio, String descripcion, int puntosRequeridos) {
         this.id = id;
-        this.couponCode = couponCode;
-        this.redemptionDate = redemptionDate;
-        this.prizeName = prizeName;
-        this.description = description;
-        this.pointsRequired = pointsRequired;
+        this.codigoCupon = codigoCupon;
+        this.fechaRedencion = fechaRedencion;
+        this.nombrePremio = nombrePremio;
+        this.descripcion = descripcion;
+        this.puntosRequeridos = puntosRequeridos;
     }
 
     // Getters
@@ -27,24 +28,24 @@ public class Canjeo {
         return id;
     }
 
-    public String getCouponCode() {
-        return couponCode;
+    public String getCodigoCupon() {
+        return codigoCupon;
     }
 
-    public String getRedemptionDate() {
-        return redemptionDate;
+    public String getFechaRedencion() {
+        return fechaRedencion;
     }
 
-    public String getPrizeName() {
-        return prizeName;
+    public String getNombrePremio() {
+        return nombrePremio;
     }
 
-    public String getDescription() {
-        return description;
+    public String getDescripcion() {
+        return descripcion;
     }
 
-    public int getPointsRequired() {
-        return pointsRequired;
+    public int getPuntosRequeridos() {
+        return puntosRequeridos;
     }
 
     // Setters
@@ -52,33 +53,33 @@ public class Canjeo {
         this.id = id;
     }
 
-    public void setCouponCode(String couponCode) {
-        this.couponCode = couponCode;
+    public void setCodigoCupon(String codigoCupon) {
+        this.codigoCupon = codigoCupon;
     }
 
-    public void setRedemptionDate(String redemptionDate) {
-        this.redemptionDate = redemptionDate;
+    public void setFechaRedencion(String fechaRedencion) {
+        this.fechaRedencion = fechaRedencion;
     }
 
-    public void setPrizeName(String prizeName) {
-        this.prizeName = prizeName;
+    public void setNombrePremio(String nombrePremio) {
+        this.nombrePremio = nombrePremio;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
 
-    public void setPointsRequired(int pointsRequired) {
-        this.pointsRequired = pointsRequired;
+    public void setPuntosRequeridos(int puntosRequeridos) {
+        this.puntosRequeridos = puntosRequeridos;
     }
 
     @Override
     public String toString() {
-        return "Redemption{" +
+        return "Redencion{" +
                 "id=" + id +
-                ", couponCode='" + couponCode + '\'' +
-                ", prizeName='" + prizeName + '\'' +
-                ", pointsRequired=" + pointsRequired +
+                ", codigoCupon='" + codigoCupon + '\'' +
+                ", nombrePremio='" + nombrePremio + '\'' +
+                ", puntosRequeridos=" + puntosRequeridos +
                 '}';
     }
 }
