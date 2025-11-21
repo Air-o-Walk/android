@@ -13,6 +13,7 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,6 +22,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -54,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     // Referencias a las vistas
     private TextView textMajor;
     private TextView textMinor;
-    private TextView distanciaTotal;
+    private TextView textSteps;
     private TextView tiempoTotal;
     private Button trackButton;
 
@@ -62,9 +64,10 @@ public class MainActivity extends AppCompatActivity {
     private VinculadorBLE vinculador;
     private ImageView iconoVincular;
 
-    // Trackers para distancia y tiempo
+    // Trackers para pasos, tiempo y GPS
     private StepCounterTracker stepTracker;
     private WalkingTimeTracker timeTracker;
+    private GPSFondo gpsTracker;
 
     private int idUsuario;
     private String token;
@@ -242,8 +245,6 @@ public class MainActivity extends AppCompatActivity {
             int contadorArduino = major[1] & 0xFF;
             int valorMedicion = Utilidades.bytesToInt(tib.getMinor());
 
-
-
             // Si es un nuevo contador, reinicia banderas
             if (contadorArduino != this.contadorAndroid) {
                 Log.d("ETIQUETA_LOG", "Nuevo contador, se reinician banderas");
@@ -306,13 +307,12 @@ public class MainActivity extends AppCompatActivity {
         // Actualizamos nuestro contador local para futuras comparaciones
         this.contadorAndroid = contadorArduino;
 
-
         // Llamamos a la notificación desde el hilo principal (UI thread)
         runOnUiThread(() -> {
             AdminNotificaciones.revisarYNotificar(this, medicionGas);
+            textMajor.setText("03(ppm): " + medicionGas);
+            textMinor.setText("Temperatura(ºC): " + medicionTemperatura);
         });
-        textMajor.setText("03(ppm): " + medicionGas);
-        textMinor.setText("Temperatura(ºC): " + medicionTemperatura);
     }
 
     // ------------------------------------------------------------------
@@ -334,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
     } // ()
 
     // ------------------------------------------------------------------
-    // NUEVO: Método para controlar el tracking de distancia y tiempo
+    // NUEVO: Método para controlar el tracking de pasos, tiempo y GPS
     // ------------------------------------------------------------------
     public void botonDistanceTrackerPulsado(View v) {
         if (!isTracking) {
@@ -347,7 +347,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startTracking() {
-        Log.d(ETIQUETA_LOG, " startTracking(): iniciando tracking de distancia y tiempo");
+        Log.d(ETIQUETA_LOG, " startTracking(): iniciando tracking de pasos, tiempo y GPS");
+
+        // Verificar que los trackers estén inicializados
+        if (stepTracker == null || timeTracker == null || gpsTracker == null) {
+            Log.e(ETIQUETA_LOG, " startTracking(): Error - trackers no inicializados");
+            Toast.makeText(this, "Error: trackers no inicializados", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Verificar que el sensor de pasos esté disponible
+        if (!stepTracker.isStepCounterAvailable()) {
+            Log.e(ETIQUETA_LOG, " startTracking(): Error - no hay sensor de pasos disponible");
+            Toast.makeText(this, "Este dispositivo no tiene sensor de pasos", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         isTracking = true;
         trackButton.setText("Detener Recorrida");
@@ -355,6 +369,7 @@ public class MainActivity extends AppCompatActivity {
         // Reiniciar trackers
         stepTracker.resetSession();
         timeTracker.reset();
+        gpsTracker.resetTracking();
 
         // Iniciar step counter
         stepTracker.startTracking();
@@ -362,11 +377,21 @@ public class MainActivity extends AppCompatActivity {
         // Iniciar time tracker
         timeTracker.startTracking();
 
-        Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado");
+        // Iniciar GPS tracker
+        gpsTracker.startTracking();
+
+        Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado (steps + time + GPS)");
+        Log.d(ETIQUETA_LOG, " startTracking(): " + stepTracker.getSensorInfo());
     }
 
     private void stopTracking() {
         Log.d(ETIQUETA_LOG, " stopTracking(): deteniendo tracking");
+
+        // Verificar que los trackers estén inicializados
+        if (stepTracker == null || timeTracker == null || gpsTracker == null) {
+            Log.e(ETIQUETA_LOG, " stopTracking(): Error - trackers no inicializados");
+            return;
+        }
 
         isTracking = false;
         trackButton.setText("Activar Recorrida");
@@ -374,54 +399,36 @@ public class MainActivity extends AppCompatActivity {
         // Detener trackers (pero mantener los valores actuales)
         stepTracker.stopTracking();
         timeTracker.stopTracking();
+        gpsTracker.stopTracking();
 
         Log.d(ETIQUETA_LOG, " stopTracking(): tracking detenido - valores congelados");
     }
 
     // ------------------------------------------------------------------
-    // Actualiza la UI con los valores de distancia y tiempo
+    // Actualiza la UI con los valores de pasos y tiempo
     // ------------------------------------------------------------------
-    private void updateTrackingUI(double distanceMeters, int steps,
-                                  long hours, long minutes, long seconds) {
+    private void updateTrackingUI(int steps, long hours, long minutes, long seconds) {
         runOnUiThread(() -> {
-            // Actualizar distancia en metros
-            if (distanceMeters >= 1000) {
-                // Si es más de 1 km, mostrar en kilómetros
-                distanciaTotal.setText(String.format("%.2f km", distanceMeters / 1000.0));
-            } else {
-                // Mostrar en metros
-                distanciaTotal.setText(String.format("%.0f m", distanceMeters));
-            }
+            // Actualizar pasos
+            textSteps.setText(String.format("%d pasos", steps));
 
             // Actualizar tiempo
             tiempoTotal.setText(String.format("%02d:%02d:%02d", hours, minutes, seconds));
 
-            Log.d(ETIQUETA_LOG, String.format(" UI actualizada: %.2f m, %d pasos, %02d:%02d:%02d",
-                    distanceMeters, steps, hours, minutes, seconds));
+            Log.d(ETIQUETA_LOG, String.format(" UI actualizada: %d pasos, %02d:%02d:%02d",
+                    steps, hours, minutes, seconds));
         });
     }
 
     // ------------------------------------------------------------------
     // Inicializa el adaptador Bluetooth y solicita permisos si es necesario
+    // MODIFICADO: Ahora solicita TODOS los permisos juntos incluyendo ACTIVITY_RECOGNITION
     // ------------------------------------------------------------------
     private void inicializarBlueTooth() {
         Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): obtenemos adaptador BT ");
 
         BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
 
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): habilitamos adaptador BT ");
-
-        if (!bta.isEnabled()) {
-            Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): Bluetooth desactivado, solicitando activación...");
-
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, CODIGO_PETICION_PERMISOS);
-        } else {
-            Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): Bluetooth ya está activado");
-        }
-
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): habilitado =  " + bta.isEnabled() );
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): estado =  " + bta.getState() );
         Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): obtenemos escaner btle ");
 
         this.elEscanner = bta.getBluetoothLeScanner();
@@ -430,111 +437,127 @@ public class MainActivity extends AppCompatActivity {
             Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): Socorro: NO hemos obtenido escaner btle  !!!!");
         }
 
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): voy a perdir permisos (si no los tuviera) !!!!");
+        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): voy a pedir permisos (si no los tuviera) !!!!");
 
-        // Solicita permisos necesarios para Bluetooth y localización
-        if (
-                ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
-                        || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
-                        || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-        )
-        {
+        // Construir lista de permisos necesarios
+        java.util.ArrayList<String> permisosNecesarios = new java.util.ArrayList<>();
+
+        // Permisos de Bluetooth
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            permisosNecesarios.add(Manifest.permission.BLUETOOTH_SCAN);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            permisosNecesarios.add(Manifest.permission.BLUETOOTH_CONNECT);
+        }
+
+        // Permiso de localización
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permisosNecesarios.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+
+        // Permiso de ACTIVITY_RECOGNITION (solo Android Q+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+                permisosNecesarios.add(Manifest.permission.ACTIVITY_RECOGNITION);
+                Log.d(ETIQUETA_LOG, " Agregando ACTIVITY_RECOGNITION a la lista de permisos");
+            }
+        }
+
+        // Permiso de notificaciones (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permisosNecesarios.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        // Si hay permisos por solicitar, pedirlos todos juntos
+        if (!permisosNecesarios.isEmpty()) {
+            Log.d(ETIQUETA_LOG, " Solicitando " + permisosNecesarios.size() + " permisos: " + permisosNecesarios.toString());
             ActivityCompat.requestPermissions(
                     MainActivity.this,
-                    new String[]{
-                            Manifest.permission.BLUETOOTH_SCAN,
-                            Manifest.permission.BLUETOOTH_CONNECT,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                    },
+                    permisosNecesarios.toArray(new String[0]),
                     CODIGO_PETICION_PERMISOS
             );
-
         }
         else {
             Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): parece que YA tengo los permisos necesarios !!!!");
+            // Solo después de tener permisos, intentar habilitar Bluetooth
+            habilitarBluetoothSiEsNecesario(bta);
         }
     } // ()
 
     // ------------------------------------------------------------------
-    // Solicita permisos adicionales para step counter
+    // Habilita Bluetooth después de tener los permisos
     // ------------------------------------------------------------------
-    private void solicitarPermisosTracking() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
-                        CODIGO_PETICION_PERMISOS + 1
-                );
+    private void habilitarBluetoothSiEsNecesario(BluetoothAdapter bta) {
+        if (bta == null) {
+            Log.e(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): BluetoothAdapter es null");
+            return;
+        }
+
+        // Verificar que tenemos el permiso BLUETOOTH_CONNECT
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): No tenemos permiso BLUETOOTH_CONNECT aún");
+            return;
+        }
+
+        if (!bta.isEnabled()) {
+            Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): Bluetooth desactivado, solicitando activación...");
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, CODIGO_PETICION_PERMISOS);
+        } else {
+            Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): Bluetooth ya está activado");
+        }
+
+        Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): habilitado =  " + bta.isEnabled() );
+        Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): estado =  " + bta.getState() );
+
+        // Obtener el scanner después de habilitar Bluetooth
+        if (this.elEscanner == null) {
+            this.elEscanner = bta.getBluetoothLeScanner();
+            if (this.elEscanner != null) {
+                Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): Scanner BLE obtenido correctamente");
+                // Ahora inicializar el vinculador
+                inicializarVinculador();
+            } else {
+                Log.e(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): No se pudo obtener scanner BLE");
             }
         }
-    }
+    } // ()
 
+    // ------------------------------------------------------------------
+    // ELIMINADO: solicitarPermisosTracking() ya no es necesario
+    // Ahora todos los permisos se solicitan juntos en inicializarBlueTooth()
+    // ------------------------------------------------------------------
 
     //Funcion para activar boton de inicio de recorrido
     private void estadoBotonRecorrido(boolean estadoDispotivoVinculado){
         trackButton.setEnabled(estadoDispotivoVinculado);
     }
+
     // ------------------------------------------------------------------
-    // Método principal de ciclo de vida: inicializa la actividad y Bluetooth
+    // Inicializa el vinculador BLE
     // ------------------------------------------------------------------
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
-
-        // Inicializar vistas
-        textMajor = findViewById(R.id.textMajor);
-        textMinor = findViewById(R.id.textMinor);
-        distanciaTotal = findViewById(R.id.distanciaTotal);
-        tiempoTotal = findViewById(R.id.tiempoTotal);
-        trackButton = findViewById(R.id.track);
-
-        // Inicializar Bluetooth
-        inicializarBlueTooth();
-
-        // Recuperar datos del Intent
-        Intent intent = getIntent();
-        if (intent != null) {
-            idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
-            token = intent.getStringExtra("TOKEN");
+    private void inicializarVinculador() {
+        if (this.elEscanner == null) {
+            Log.e(ETIQUETA_LOG, " inicializarVinculador(): Scanner BLE no disponible aún");
+            // Reintentaremos cuando tengamos permisos
+            return;
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        1001
-                );
-            }
-        }
-
-// ==============================================================================================================
-// VINCULAR
-// Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
-// con el beacon. Si se vincula correctamente, registra el nodo en el backend.
-// ==============================================================================================================
-        iconoVincular = findViewById(R.id.iconoVincular);
-        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-        estadoBotonRecorrido(false);
         vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() {
             @Override public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {
                 Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
                 switch (nuevoEstado) {
                     case VINCULADO:
                         //REGISTRO NODO: enviar userId + nombre del beacon al backend
-                        String userId = Integer.toString((idUsuario));  // !!! temporal REPLACE WITH REAL USERID
+                        String userId = Integer.toString((idUsuario));
                         String nombreNodo = vinculador.getNombreNodoActual();
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
                         buscarEsteDispositivoBTLE(nombreNodo);
                         estadoBotonRecorrido(true);
-                        // ===================================================================
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         break;
                     case TIMEOUT:
@@ -555,35 +578,129 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(">>>>", "Listener onError: code=" + errorCode);
             }
         });
+
+        Log.d(ETIQUETA_LOG, " inicializarVinculador(): Vinculador BLE inicializado correctamente");
+    }
+
+    // ------------------------------------------------------------------
+    // NUEVO: Verifica la disponibilidad de sensores de pasos
+    // ------------------------------------------------------------------
+    private void verificarSensores() {
+        if (stepTracker != null) {
+            boolean disponible = stepTracker.isStepCounterAvailable();
+            String info = stepTracker.getSensorInfo();
+
+            Log.d(ETIQUETA_LOG, " ===== VERIFICACIÓN DE SENSORES =====");
+            Log.d(ETIQUETA_LOG, " Sensor disponible: " + disponible);
+            Log.d(ETIQUETA_LOG, " Info: " + info);
+
+            if (!disponible) {
+                Log.e(ETIQUETA_LOG, " ⚠️ PROBLEMA: Este dispositivo NO tiene sensor de pasos");
+                runOnUiThread(() -> {
+                    Toast.makeText(this,
+                            "Este dispositivo no tiene sensor de pasos",
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Método principal de ciclo de vida: inicializa la actividad y Bluetooth
+    // ------------------------------------------------------------------
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
+
+        // Inicializar vistas
+        textMajor = findViewById(R.id.textMajor);
+        textMinor = findViewById(R.id.textMinor);
+        textSteps = findViewById(R.id.distanciaTotal); // Ahora muestra pasos
+        tiempoTotal = findViewById(R.id.tiempoTotal);
+        trackButton = findViewById(R.id.track);
+
+        // Inicializar Bluetooth
+        inicializarBlueTooth();
+
+        // Recuperar datos del Intent
+        Intent intent = getIntent();
+        if (intent != null) {
+            idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
+            token = intent.getStringExtra("TOKEN");
+        }
+
+// ==============================================================================================================
+// VINCULAR
+// Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
+// con el beacon. Si se vincula correctamente, registra el nodo en el backend.
+// ==============================================================================================================
+        iconoVincular = findViewById(R.id.iconoVincular);
+        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+        estadoBotonRecorrido(false);
+
+        // Inicializar vinculador solo si tenemos el scanner BLE
+        inicializarVinculador();
 // ==============================================================================================================
 
-        // Solicitar permisos para step counter
-        solicitarPermisosTracking();
+        // Inicializar trackers con comprobación de nulidad
+        try {
+            stepTracker = new StepCounterTracker(this);
+            timeTracker = new WalkingTimeTracker();
+            gpsTracker = new GPSFondo(this);
 
-        // Inicializar trackers
-        stepTracker = new StepCounterTracker(this);
-        timeTracker = new WalkingTimeTracker();
+            // Configurar listener para step counter (ahora solo pasos)
+            stepTracker.setStepListener((steps) -> {
+                if (isTracking) {
+                    WalkingTimeTracker.TimeComponents time = timeTracker.getTimeComponents();
+                    updateTrackingUI(steps, time.hours, time.minutes, time.seconds);
+                }
+            });
 
-        // Configurar listener para step counter
-        stepTracker.setDistanceListener((distanceMeters, steps) -> {
-            if (isTracking) {
-                WalkingTimeTracker.TimeComponents time = timeTracker.getTimeComponents();
-                updateTrackingUI(distanceMeters, steps, time.hours, time.minutes, time.seconds);
-            }
-        });
+            // Configurar listener para time tracker
+            timeTracker.setTimeUpdateListener((hours, minutes, seconds, totalSeconds) -> {
+                if (isTracking) {
+                    int steps = stepTracker.getSteps();
+                    updateTrackingUI(steps, hours, minutes, seconds);
+                }
+            });
 
-        // Configurar listener para time tracker
-        timeTracker.setTimeUpdateListener((hours, minutes, seconds, totalSeconds) -> {
-            if (isTracking) {
-                double distance = stepTracker.getDistanceMeters();
-                int steps = stepTracker.getSteps();
-                updateTrackingUI(distance, steps, hours, minutes, seconds);
-            }
-        });
+            // Configurar listener para GPS tracker
+            gpsTracker.setLocationUpdateListener(new GPSFondo.LocationUpdateListener() {
+                @Override
+                public void onLocationUpdate(Location location) {
+                    if (isTracking) {
+                        Log.d(ETIQUETA_LOG, String.format(" GPS Update: Lat=%.6f, Lon=%.6f, Accuracy=%.1fm",
+                                location.getLatitude(),
+                                location.getLongitude(),
+                                location.getAccuracy()));
 
-        // Valores iniciales
-        distanciaTotal.setText("---");
-        tiempoTotal.setText("---");
+                        // Aquí puedes guardar la ubicación en tu backend si lo necesitas
+                        // Por ejemplo: enviarUbicacionABackend(location);
+                    }
+                }
+
+                @Override
+                public void onLocationError(String error) {
+                    Log.e(ETIQUETA_LOG, " GPS Error: " + error);
+                }
+            });
+
+            // Valores iniciales
+            textSteps.setText("0 pasos");
+            tiempoTotal.setText("00:00:00");
+
+            Log.d(ETIQUETA_LOG, " Trackers inicializados correctamente");
+
+            // IMPORTANTE: Verificar sensores después de inicializar
+            verificarSensores();
+
+        } catch (Exception e) {
+            Log.e(ETIQUETA_LOG, " Error al inicializar trackers: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
 
@@ -591,35 +708,62 @@ public class MainActivity extends AppCompatActivity {
 
     // ------------------------------------------------------------------
     // Callback para el resultado de la petición de permisos
+    // MODIFICADO: Ahora maneja todos los permisos juntos
     // ------------------------------------------------------------------
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult( requestCode, permissions, grantResults);
 
-        switch (requestCode) {
-            case CODIGO_PETICION_PERMISOS:
-                // Si se conceden los permisos, se puede continuar con la funcionalidad BLE
-                if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == CODIGO_PETICION_PERMISOS) {
+            // Revisar qué permisos fueron concedidos
+            boolean bluetoothGranted = true;
+            boolean locationGranted = false;
+            boolean activityRecognitionGranted = false;
 
-                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos concedidos  !!!!");
-                }  else {
-                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos NO concedidos  !!!!");
+            for (int i = 0; i < permissions.length; i++) {
+                String permission = permissions[i];
+                boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+
+                Log.d(ETIQUETA_LOG, " Permiso: " + permission + " = " + (granted ? "CONCEDIDO" : "DENEGADO"));
+
+                if (permission.equals(Manifest.permission.BLUETOOTH_SCAN) ||
+                        permission.equals(Manifest.permission.BLUETOOTH_CONNECT)) {
+                    bluetoothGranted = bluetoothGranted && granted;
+                } else if (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    locationGranted = granted;
+                } else if (permission.equals(Manifest.permission.ACTIVITY_RECOGNITION)) {
+                    activityRecognitionGranted = granted;
                 }
-                return;
-            case CODIGO_PETICION_PERMISOS + 1:
-                // Permisos para ACTIVITY_RECOGNITION
-                if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            }
+
+            // Si se concedieron los permisos de Bluetooth, continuar
+            if (bluetoothGranted && locationGranted) {
+                Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos BT y Location concedidos !!!!");
+                BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
+                habilitarBluetoothSiEsNecesario(bta);
+            } else {
+                Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos BT/Location NO concedidos !!!!");
+            }
+
+            // Verificar permiso de ACTIVITY_RECOGNITION
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (activityRecognitionGranted) {
                     Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION concedido");
+                    if (stepTracker != null) {
+                        verificarSensores();
+                    }
                 } else {
-                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION denegado");
+                    Log.w(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION DENEGADO");
+                    Log.w(ETIQUETA_LOG, " ¡La funcionalidad de contador de pasos no funcionará!");
+                    Toast.makeText(this,
+                            "Permiso de actividad física denegado. El contador de pasos no funcionará.",
+                            Toast.LENGTH_LONG).show();
                 }
-                return;
+            }
         }
     } // ()
 
-// ==============================================================================================================
+    // ==============================================================================================================
 // botonVincularPulsado()
 // Descripción: Muestra un diálogo para introducir el nombre del beacon (ej: "GTI") y
 // llama al VinculadorBLE para iniciar la vinculación. Si el código es válido, registra el nodo
@@ -637,10 +781,6 @@ public class MainActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("Vincular", (dlg, which) -> {
                     String codigo = input.getText().toString().trim();
-                    vinculador.vincularPorNombre(codigo, 10_000);
-                    // registra el nodo inmediatamente
-                    RegistroNodo registro = new RegistroNodo("12345", codigo);
-                    registro.registrarNodo();
                     if (codigo.isEmpty()) {
                         Log.d(">>>>", "Código vacío");
                         return;
@@ -663,6 +803,9 @@ public class MainActivity extends AppCompatActivity {
         }
         if (stepTracker != null) {
             stepTracker.stopTracking();
+        }
+        if (gpsTracker != null) {
+            gpsTracker.stopTracking();
         }
     }
 
