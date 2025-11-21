@@ -53,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
     private boolean recibioGas = false;
     private boolean recibioTemperatura = false;
 
+    // Monitor del estado del nodo (conectado / desconectado / incoherencias)
+    private NotifEstadoNodo monitorEstadoNodo;
+
     // Referencias a las vistas
     private TextView textMajor;
     private TextView textMinor;
@@ -311,6 +314,13 @@ public class MainActivity extends AppCompatActivity {
         // Actualizamos nuestro contador local para futuras comparaciones
         this.contadorAndroid = contadorArduino;
 
+        // -----------------------------------------------------------
+        // Llamamos al monitor del nodo (conectado / desconectado / incoherente)
+        // -----------------------------------------------------------
+        if (monitorEstadoNodo != null) {
+            monitorEstadoNodo.onBeaconRecibido(medicionGas, medicionTemperatura);
+        }
+
 
         // Llamamos a la notificación desde el hilo principal (UI thread)
         runOnUiThread(() -> {
@@ -560,6 +570,18 @@ public class MainActivity extends AppCompatActivity {
                         detenerBusquedaDispositivosBTLE();
                         // Recargamos MainActivity para que empiece lectura BLE automática
                         runOnUiThread(() -> refrescarActividad());
+                        buscarEsteDispositivoBTLE(nombreNodo);
+                        estadoBotonRecorrido(true);
+
+                        // ===================================================
+                        // Iniciar el monitor de estado del nodo
+                        // ===================================================
+                        monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this, nombreNodo);
+                        monitorEstadoNodo.iniciarMonitor();
+                        // ===================================================
+
+                        // ===================================================================
+                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         break;
                 }
             }
@@ -793,7 +815,13 @@ private void refrescarActividad() {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Limpiar recursos
+
+        // Detener monitor del nodo
+        if (monitorEstadoNodo != null) {
+            monitorEstadoNodo.detenerMonitor();
+        }
+
+        // Limpiar recursos de trackers
         if (timeTracker != null) {
             timeTracker.destroy();
         }
