@@ -375,6 +375,13 @@ public class MainActivity extends AppCompatActivity {
         stepTracker.stopTracking();
         timeTracker.stopTracking();
 
+        // --------------------------------------------------------------
+        // ---- Abrir resumen de calidad del aire (se envía USER_ID) ----
+        Intent intent = new Intent(MainActivity.this, AirQualitySummaryActivity.class);
+        intent.putExtra("USER_ID", idUsuario);
+        startActivity(intent);
+        // --------------------------------------------------------------
+
         Log.d(ETIQUETA_LOG, " stopTracking(): tracking detenido - valores congelados");
     }
 
