@@ -1,13 +1,15 @@
 package com.example.air_o_walk_sprint0;
 
-
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.util.Log;
 
 public class StepCounterTracker implements SensorEventListener {
+
+    private static final String TAG = "StepCounterTracker";
 
     private SensorManager sensorManager;
     private Sensor stepCounterSensor;
@@ -17,13 +19,13 @@ public class StepCounterTracker implements SensorEventListener {
     private int previousSteps = 0;
     private int sessionSteps = 0;
 
-    // Average step length in meters (adjustable per user)
-    //private double stepLengthMeters = 0.762; // ~30 inches average
-    private double stepLengthMeters = 0.45;
-    private DistanceListener listener;
+    private boolean isTracking = false;
+    private boolean useFallbackDetector = false;
 
-    public interface DistanceListener {
-        void onDistanceChanged(double distanceMeters, int steps);
+    private StepListener listener;
+
+    public interface StepListener {
+        void onStepCountChanged(int steps);
     }
 
     public StepCounterTracker(Context context) {
@@ -34,34 +36,89 @@ public class StepCounterTracker implements SensorEventListener {
 
         // TYPE_STEP_DETECTOR: Triggers event for each step detected
         stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+
+        // Log sensor availability
+        if (stepCounterSensor != null) {
+            Log.d(TAG, "TYPE_STEP_COUNTER disponible");
+        } else {
+            Log.w(TAG, "TYPE_STEP_COUNTER NO disponible");
+        }
+
+        if (stepDetectorSensor != null) {
+            Log.d(TAG, "TYPE_STEP_DETECTOR disponible");
+        } else {
+            Log.w(TAG, "TYPE_STEP_DETECTOR NO disponible");
+        }
     }
 
-    public void setStepLength(double meters) {
-        this.stepLengthMeters = meters;
-    }
-
-    public void setDistanceListener(DistanceListener listener) {
+    public void setStepListener(StepListener listener) {
         this.listener = listener;
     }
 
     public void startTracking() {
+        if (isTracking) {
+            Log.w(TAG, "Ya está rastreando pasos");
+            return;
+        }
+
+        boolean registered = false;
+
+        // Try STEP_COUNTER first (more accurate)
         if (stepCounterSensor != null) {
-            sensorManager.registerListener(this, stepCounterSensor,
-                    SensorManager.SENSOR_DELAY_NORMAL);
-        } else if (stepDetectorSensor != null) {
-            // Fallback to step detector if counter not available
-            sensorManager.registerListener(this, stepDetectorSensor,
-                    SensorManager.SENSOR_DELAY_NORMAL);
+            registered = sensorManager.registerListener(
+                    this,
+                    stepCounterSensor,
+                    SensorManager.SENSOR_DELAY_UI  // Changed to UI for better responsiveness
+            );
+            useFallbackDetector = false;
+            Log.d(TAG, "Intentando registrar TYPE_STEP_COUNTER: " + registered);
+        }
+
+        // Fallback to STEP_DETECTOR if counter not available or registration failed
+        if (!registered && stepDetectorSensor != null) {
+            registered = sensorManager.registerListener(
+                    this,
+                    stepDetectorSensor,
+                    SensorManager.SENSOR_DELAY_UI
+            );
+            useFallbackDetector = true;
+            Log.d(TAG, "Usando TYPE_STEP_DETECTOR como fallback: " + registered);
+        }
+
+        if (registered) {
+            isTracking = true;
+            Log.d(TAG, "Step tracking iniciado correctamente");
+        } else {
+            Log.e(TAG, "ERROR: No se pudo registrar ningún sensor de pasos");
         }
     }
 
     public void stopTracking() {
+        if (!isTracking) {
+            return;
+        }
+
         sensorManager.unregisterListener(this);
+        isTracking = false;
+        Log.d(TAG, "Step tracking detenido");
     }
 
     public void resetSession() {
-        previousSteps = totalSteps;
+        Log.d(TAG, "Reseteando sesión - previousSteps=" + previousSteps +
+                ", totalSteps=" + totalSteps);
+
+        // If using step counter, set the baseline
+        if (!useFallbackDetector) {
+            previousSteps = totalSteps;
+        }
+
         sessionSteps = 0;
+
+        if (listener != null) {
+            listener.onStepCountChanged(0);
+        }
+
+        Log.d(TAG, "Sesión reseteada - sessionSteps=0");
     }
 
     @Override
@@ -69,47 +126,73 @@ public class StepCounterTracker implements SensorEventListener {
         if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
             totalSteps = (int) event.values[0];
 
+            Log.v(TAG, "STEP_COUNTER evento: totalSteps=" + totalSteps +
+                    ", previousSteps=" + previousSteps);
+
+            // First time initialization
             if (previousSteps == 0) {
                 previousSteps = totalSteps;
+                Log.d(TAG, "Inicializando previousSteps=" + previousSteps);
             }
 
             sessionSteps = totalSteps - previousSteps;
+            Log.v(TAG, "sessionSteps calculados: " + sessionSteps);
 
         } else if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
             sessionSteps++;
+            Log.v(TAG, "STEP_DETECTOR evento: sessionSteps=" + sessionSteps);
         }
 
-        double distanceMeters = sessionSteps * stepLengthMeters;
-
         if (listener != null) {
-            listener.onDistanceChanged(distanceMeters, sessionSteps);
+            listener.onStepCountChanged(sessionSteps);
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        // Handle accuracy changes if needed
-    }
+        String sensorName = sensor.getType() == Sensor.TYPE_STEP_COUNTER
+                ? "STEP_COUNTER" : "STEP_DETECTOR";
+        String accuracyStr;
 
-    public double getDistanceMeters() {
-        return sessionSteps * stepLengthMeters;
-    }
+        switch (accuracy) {
+            case SensorManager.SENSOR_STATUS_ACCURACY_HIGH:
+                accuracyStr = "HIGH";
+                break;
+            case SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM:
+                accuracyStr = "MEDIUM";
+                break;
+            case SensorManager.SENSOR_STATUS_ACCURACY_LOW:
+                accuracyStr = "LOW";
+                break;
+            case SensorManager.SENSOR_STATUS_UNRELIABLE:
+                accuracyStr = "UNRELIABLE";
+                break;
+            default:
+                accuracyStr = "UNKNOWN";
+        }
 
-    public double getDistanceKilometers() {
-        return getDistanceMeters() / 1000.0;
+        Log.d(TAG, sensorName + " precisión cambió a: " + accuracyStr);
     }
 
     public int getSteps() {
         return sessionSteps;
     }
 
-    // Calculate personalized step length based on height
-    public static double calculateStepLength(double heightCm) {
-        // Rule of thumb: step length ≈ height * 0.43
-        return (heightCm / 100.0) * 0.43;
-    }
-
     public boolean isStepCounterAvailable() {
         return stepCounterSensor != null || stepDetectorSensor != null;
+    }
+
+    public boolean isTracking() {
+        return isTracking;
+    }
+
+    public String getSensorInfo() {
+        if (stepCounterSensor != null) {
+            return "Usando TYPE_STEP_COUNTER";
+        } else if (stepDetectorSensor != null) {
+            return "Usando TYPE_STEP_DETECTOR (fallback)";
+        } else {
+            return "Sin sensor de pasos disponible";
+        }
     }
 }
