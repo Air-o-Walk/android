@@ -1,5 +1,7 @@
 package com.example.air_o_walk_sprint0;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.HashMap;
@@ -11,23 +13,6 @@ import java.util.HashMap;
  */
 public class LogicaRegistro {
 
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String dni;
-    private String phone;
-    private String townHallName;
-
-    // Constructor para inicializar los datos del usuario
-    public LogicaRegistro(String firstName, String lastName, String email, String dni, String phone, String townHallName) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.dni = dni;
-        this.phone = phone;
-        this.townHallName = townHallName;
-    }
-
     // Método para obtener la lista de ayuntamientos desde el servidor
     public void obtenerListaAyuntamientos(final AyuntamientosCallback callback) {
         PeticionarioREST elPeticionario = new PeticionarioREST();
@@ -36,34 +21,71 @@ public class LogicaRegistro {
         elPeticionario.hacerPeticionREST("GET", url, null, new PeticionarioREST.RespuestaREST() {
             @Override
             public void callback(int codigo, String cuerpoRes) {
+                Log.d("LogicaRegistro", "Código respuesta: " + codigo);
+                Log.d("LogicaRegistro", "Respuesta: " + cuerpoRes);
+
                 if (codigo == 200) {
-                    HashMap<String, String> ayuntamientosMap = parsearAyuntamientos(cuerpoRes);
-                    callback.onAyuntamientosObtenidos(ayuntamientosMap);
+                    try {
+                        // La respuesta exitosa es directamente un array JSON
+                        JSONArray jsonArray = new JSONArray(cuerpoRes);
+                        HashMap<String, String> ayuntamientosMap = parsearAyuntamientos(jsonArray);
+                        callback.onAyuntamientosObtenidos(ayuntamientosMap);
+
+                    } catch (Exception e) {
+                        // Si falla como array, intentamos como objeto (para errores)
+                        try {
+                            JSONObject jsonResponse = new JSONObject(cuerpoRes);
+                            boolean success = jsonResponse.optBoolean("success", false);
+                            if (!success) {
+                                String errorMsg = jsonResponse.optString("message", "Error desconocido");
+                                callback.onError("Error: " + errorMsg);
+                            } else {
+                                // Si tiene success:true pero no es un array, intentamos obtener data
+                                JSONArray dataArray = jsonResponse.optJSONArray("data");
+                                if (dataArray != null) {
+                                    HashMap<String, String> ayuntamientosMap = parsearAyuntamientos(dataArray);
+                                    callback.onAyuntamientosObtenidos(ayuntamientosMap);
+                                } else {
+                                    callback.onError("Formato de respuesta inválido");
+                                }
+                            }
+                        } catch (Exception ex) {
+                            callback.onError("Error procesando la respuesta: " + ex.getMessage());
+                            ex.printStackTrace();
+                        }
+                    }
+                } else if (codigo == 404) {
+                    // Para respuestas 404, parseamos como objeto de error
+                    try {
+                        JSONObject jsonResponse = new JSONObject(cuerpoRes);
+                        String errorMsg = jsonResponse.optString("message", "No se encontraron ayuntamientos");
+                        callback.onError("Error: " + errorMsg);
+                    } catch (Exception e) {
+                        callback.onError("Error: No se encontraron ayuntamientos");
+                    }
                 } else {
-                    callback.onError("Error obteniendo los ayuntamientos");
+                    callback.onError("Error obteniendo los ayuntamientos. Código: " + codigo);
                 }
             }
         });
     }
 
-    // Método para parsear la respuesta JSON de los ayuntamientos
-    private HashMap<String, String> parsearAyuntamientos(String jsonResponse) {
+    // Método sobrecargado para manejar tanto JSONArray como String
+    private HashMap<String, String> parsearAyuntamientos(JSONArray jsonArray) {
         HashMap<String, String> ayuntamientosMap = new HashMap<>();
-
         try {
-            JSONArray jsonArray = new JSONArray(jsonResponse);
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject ayuntamiento = jsonArray.getJSONObject(i);
                 String id = ayuntamiento.getString("id");
                 String nombre = ayuntamiento.getString("name");
-                ayuntamientosMap.put(nombre, id); // Guardamos en el HashMap: nombre -> id
+                ayuntamientosMap.put(nombre, id);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return ayuntamientosMap;
     }
+
 
     // Método para obtener el ID del ayuntamiento basado en su nombre
     public String obtenerIdAyuntamiento(String townHallName, HashMap<String, String> ayuntamientosMap) {
@@ -71,26 +93,27 @@ public class LogicaRegistro {
     }
 
     // Método para realizar el registro del usuario (POST)
-    public void realizarRegistroUsuario(String townHallId, final RegistroCallback callback) {
+    public void solicitudUsuario(String townHallId, String firstName, String lastName, String email,
+                                 String dni, String phone, RegistroCallback callback) {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
         // Crear el cuerpo de la petición POST
         String cuerpo = "{"
-                + "\"firstName\": \"" + this.firstName + "\", "
-                + "\"lastName\": \"" + this.lastName + "\", "
-                + "\"email\": \"" + this.email + "\", "
-                + "\"dni\": \"" + this.dni + "\", "
-                + "\"phone\": \"" + this.phone + "\", "
+                + "\"firstName\": \"" + firstName + "\", "
+                + "\"lastName\": \"" + lastName + "\", "
+                + "\"email\": \"" + email + "\", "
+                + "\"dni\": \"" + dni + "\", "
+                + "\"phone\": \"" + phone + "\", "
                 + "\"townHallId\": \"" + townHallId + "\""
                 + "}";
 
-        elPeticionario.hacerPeticionREST("POST", "http://api.sagucre.upv.edu.es/registro", cuerpo, new PeticionarioREST.RespuestaREST() {
+        elPeticionario.hacerPeticionREST("POST", "http://api.sagucre.upv.edu.es/apply", cuerpo, new PeticionarioREST.RespuestaREST() {
             @Override
             public void callback(int codigo, String cuerpoRes) {
                 if (codigo == 200) {
                     callback.onRegistroExitoso("Usuario registrado correctamente, comprueba tu correo");
                 } else {
-                    callback.onRegistroFallido("Error al registrar el usuario");
+                    callback.onRegistroFallido("Error al registrar el usuario"+codigo);
                 }
             }
         });

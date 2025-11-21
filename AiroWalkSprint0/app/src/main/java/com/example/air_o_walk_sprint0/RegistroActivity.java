@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
+ * Hecho por Maria Algora
  * Clase que implementa la interfaz del registro de usuario.
  * Gestiona los campos del formulario, valida los datos introducidos y llama a la lógica correspondiente.
  */
@@ -31,25 +32,7 @@ public class RegistroActivity extends AppCompatActivity {
     private String selectedTownHallName;
     private HashMap<String, String> ayuntamientosMap = new HashMap<>();
 
-
-    // ========================================================
-    // ======================= PARTE MOCK ======================
-    // ========================================================
-
-    private LogicaRegistroMock logicaRegistro = new LogicaRegistroMock();
-
-    // ========================================================
-    // ===================== FIN PARTE MOCK ====================
-    // ========================================================
-
-
-    // ========================================================
-    // ===================== PARTE REAL ========================
-    // ========================================================
-    // private LogicaRegistro logicaRegistro; // DESCOMENTAR EN PRODUCCIÓN
-    // ========================================================
-    // =================== FIN PARTE REAL ======================
-    // ========================================================
+     private LogicaRegistro logicaRegistro;
 
 
     @Override
@@ -68,57 +51,14 @@ public class RegistroActivity extends AppCompatActivity {
         buttonRegister = findViewById(R.id.buttonRegister);
         buttonLogin = findViewById(R.id.buttonLogin);
 
-
-        // ========================================================
-        // =================== PARTE MOCK (GET) ===================
-        // ========================================================
-        obtenerAyuntamientosMock(); // Método temporal para pruebas. Simula el GET.
-        // obtenerAyuntamientos(); // DESCOMENTAR EN PRODUCCIÓN CUANDO EXISTA LA API REAL
-        // ========================================================
-        // ================= FIN PARTE MOCK (GET) =================
-        // ========================================================
+        logicaRegistro = new LogicaRegistro();
+        obtenerAyuntamientos();
 
 
         buttonRegister.setOnClickListener(v -> registerUser());
         buttonLogin.setOnClickListener(v -> startActivity(new Intent(RegistroActivity.this, LoginActivity.class)));
     }
 
-
-    // ========================================================
-    // =================== PARTE MOCK (GET) ===================
-    // ========================================================
-    /**
-     * Simula la obtención de ayuntamientos desde el mock.
-     * Esta función debe eliminarse o comentarse al pasar al entorno real.
-     */
-    private void obtenerAyuntamientosMock() {
-        logicaRegistro.obtenerAyuntamientosMock(new LogicaRegistroMock.AyuntamientosCallback() {
-            @Override
-            public void onAyuntamientosObtenidos(HashMap<String, String> ayuntamientosMap) {
-                RegistroActivity.this.ayuntamientosMap = ayuntamientosMap;
-                ArrayList<String> townHallNames = new ArrayList<>(ayuntamientosMap.keySet());
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(RegistroActivity.this,
-                        android.R.layout.simple_spinner_item, townHallNames);
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                spinnerTownHall.setAdapter(adapter);
-            }
-
-            @Override
-            public void onError(String mensajeError) {
-                Toast.makeText(RegistroActivity.this, mensajeError, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-    // ========================================================
-    // ================= FIN PARTE MOCK (GET) =================
-    // ========================================================
-
-
-
-    // ========================================================
-    // ==================== PARTE REAL (GET) ==================
-    // ========================================================
-    /*
     private void obtenerAyuntamientos() {
         logicaRegistro.obtenerListaAyuntamientos(new LogicaRegistro.AyuntamientosCallback() {
             @Override
@@ -137,11 +77,6 @@ public class RegistroActivity extends AppCompatActivity {
             }
         });
     }
-    */
-    // ========================================================
-    // ================= FIN PARTE REAL (GET) =================
-    // ========================================================
-
 
 
     private void registerUser() {
@@ -184,33 +119,7 @@ public class RegistroActivity extends AppCompatActivity {
 
         String townHallId = ayuntamientosMap.get(selectedTownHallName);
 
-
-        // ========================================================
-        // =================== PARTE MOCK (POST) ==================
-        // ========================================================
-        logicaRegistro.registrarUsuario(firstName, lastName, email, dni, phone, townHallId,
-                new LogicaRegistroMock.RegistroCallback() {
-                    @Override
-                    public void onRegistroExitoso(String jsonResponse) {
-                        // Muestra el JSON devuelto por el mock
-                        mostrarPopupJson(jsonResponse);
-                    }
-
-                    @Override
-                    public void onRegistroFallido(String mensajeError) {
-                        Toast.makeText(RegistroActivity.this, mensajeError, Toast.LENGTH_SHORT).show();
-                    }
-                });
-        // ========================================================
-        // ================= FIN PARTE MOCK (POST) =================
-        // ========================================================
-
-
-        // ========================================================
-        // ==================== PARTE REAL (POST) ==================
-        // ========================================================
-        /*
-        logicaRegistro.realizarRegistroUsuario(firstName, lastName, email, dni, phone, townHallId,
+        logicaRegistro.solicitudUsuario(townHallId, firstName,lastName, email, dni, phone,
                 new LogicaRegistro.RegistroCallback() {
                     @Override
                     public void onRegistroExitoso(String respuestaServidor) {
@@ -222,22 +131,6 @@ public class RegistroActivity extends AppCompatActivity {
                         Toast.makeText(RegistroActivity.this, mensajeError, Toast.LENGTH_SHORT).show();
                     }
                 });
-        */
-        // ========================================================
-        // ================= FIN PARTE REAL (POST) =================
-        // ========================================================
-    }
-
-
-    /**
-     * Muestra un popup (AlertDialog) con el JSON simulado que devuelve el mock.
-     */
-    private void mostrarPopupJson(String jsonResponse) {
-        new AlertDialog.Builder(this)
-                .setTitle("Respuesta simulada (JSON)")
-                .setMessage(jsonResponse)
-                .setPositiveButton("OK", null)
-                .show();
     }
 
     private void mostrarPopupTerminosYPrivacidad() {
@@ -264,5 +157,4 @@ public class RegistroActivity extends AppCompatActivity {
                 })
                 .show();
     }
-
 }
