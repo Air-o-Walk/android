@@ -607,12 +607,42 @@ public class MainActivity extends AppCompatActivity {
             Log.e(ETIQUETA_LOG, " inicializarVinculador(): Scanner BLE no disponible aún");
             // Reintentaremos cuando tengamos permisos
             return;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
+
+        // Inicializar vistas
+        textMajor = findViewById(R.id.textMajor);
+        textMinor = findViewById(R.id.textMinor);
+        distanciaTotal = findViewById(R.id.distanciaTotal);
+        tiempoTotal = findViewById(R.id.tiempoTotal);
+        trackButton = findViewById(R.id.track);
+
+        // Inicializar Bluetooth
+        inicializarBlueTooth();
+
+        // Recuperar datos del Intent
+        Intent intent = getIntent();
+        if (intent != null) {
+            idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
+            token = intent.getStringExtra("TOKEN");
+
+            Log.d(ETIQUETA_LOG, "Datos recibidos - USER_ID: " + idUsuario + ", TOKEN: " + (token != null ? "presente" : "null"));
         }
         // ==============================
         // VERIFICAR SI EL USUARIO YA TIENE NODO VINCULADO
         // ==============================
             verificarNodoVinculado();
         // ==============================
+
+// Configurar botón para ir al perfil (esto debe estar en un onClickListener, no ejecutarse automáticamente)
+        findViewById(R.id.boton_perfil).setOnClickListener(v -> {
+            abrirPerfilActivity();
+        });
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -863,6 +893,24 @@ public class MainActivity extends AppCompatActivity {
     } // ()
 
     // ==============================================================================================================
+    /**
+     * Método para abrir la actividad de perfil
+     */
+    private void abrirPerfilActivity() {
+        if (idUsuario == -1 || token == null) {
+            Toast.makeText(this, "Error: No hay datos de usuario disponibles", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(MainActivity.this, PerfilActivity.class);
+        intent.putExtra("USER_ID", idUsuario);
+        intent.putExtra("TOKEN", token);
+        startActivity(intent);
+
+        Log.d(ETIQUETA_LOG, "Abriendo PerfilActivity con USER_ID: " + idUsuario);
+    }
+
+// ==============================================================================================================
 // botonVincularPulsado()
 // Mostrar diálogo para introducir el nombre del beacon (ej: "GTI")
 // Si ya está vinculado → mostrar opciones ( aceptar/desvincular )
