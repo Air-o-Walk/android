@@ -1,5 +1,6 @@
 package com.example.air_o_walk_sprint0;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -12,14 +13,35 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * María Algora
+ * Clase que implementa la interfaz del login y conecta con la lógica de negocio.
+ * Gestiona los campos del formulario, valida los datos introducidos y llama a la logica.
+ * Recibe los campos del usuario y la contraseña; y el botón de login
+ */
 public class LoginActivity extends AppCompatActivity {
 
     private EditText editTextUsuario, editTextContrasena;
     private Button buttonLogin;
+    private SharedPreferences prefs;
 
+    /**
+     * Inicializa los elementos del layout y configura el listener del botón de login.
+     * @param savedInstanceState Estado previo de la actividad, si lo hubiera
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // SharedPreferences para guardar sesión
+        prefs = getSharedPreferences("UserSession", MODE_PRIVATE);
+
+        // Verificar si ya está logueado
+        if (prefs.getBoolean("isLoggedIn", false)) {
+            navigateToMainActivity();
+            return;
+        }
+
         setContentView(R.layout.login_activity);
 
         editTextUsuario = findViewById(R.id.editTextUsuario);
@@ -34,6 +56,11 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Obtiene los valores introducidos por el usuario, valida los campos
+     * y realiza la autenticación usando la clase LogicaLogin.
+     * Usa hilos secundarios para no bloquear el principal (la interfaz) mientras hace peticiones
+     */
     private void realizarLogin() {
         String usuario = editTextUsuario.getText().toString().trim();
         String contrasena = editTextContrasena.getText().toString().trim();
@@ -43,9 +70,6 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Mostrar progreso
-        // progressBar.setVisibility(View.VISIBLE);
-
         LogicaLogin logicaLogin = new LogicaLogin(usuario, contrasena);
         logicaLogin.realizarLogin(new LogicaLogin.LoginCallback() {
             @Override
@@ -53,37 +77,33 @@ public class LoginActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        // progressBar.setVisibility(View.GONE);
                         Toast.makeText(LoginActivity.this, "Login hecho correctamente", Toast.LENGTH_LONG).show();
 
                         // Navegar a la siguiente actividad
                         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
 
-
                         // Pasar a MainActivity
                         try {
-                            // Convertir String a JSONObject
                             JSONObject jsonObject = new JSONObject(respuesta);
-
-                            // Extraer valores
                             int userId = jsonObject.getInt("userId");
                             String token = jsonObject.getString("token");
 
                             Log.d("Login", "User ID: " + userId);
                             Log.d("Login", "Token: " + token);
 
-                            // Usar los datos
-                            intent.putExtra("USER_ID", userId);
-                            intent.putExtra("TOKEN", token);
-                            startActivity(intent);
-                            finish();
+                            // GUARDAR sesión en SharedPreferences
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putInt("userId", userId);
+                            editor.putString("token", token);
+                            editor.putBoolean("isLoggedIn", true);
+                            editor.apply();
+
+                            navigateToMainActivity();
 
                         } catch (JSONException e) {
                             e.printStackTrace();
+                            Toast.makeText(LoginActivity.this, "Error al procesar respuesta", Toast.LENGTH_SHORT).show();
                         }
-
-                        startActivity(intent);
-                        finish();
                     }
                 });
             }
@@ -93,11 +113,18 @@ public class LoginActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        // progressBar.setVisibility(View.GONE);
                         Toast.makeText(LoginActivity.this, "Error: " + mensajeError, Toast.LENGTH_LONG).show();
                     }
                 });
             }
         });
+    }
+
+    private void navigateToMainActivity() {
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        intent.putExtra("USER_ID", prefs.getInt("userId", -1));
+        intent.putExtra("TOKEN", prefs.getString("token", ""));
+        startActivity(intent);
+        finish();
     }
 }
