@@ -607,30 +607,6 @@ public class MainActivity extends AppCompatActivity {
             Log.e(ETIQUETA_LOG, " inicializarVinculador(): Scanner BLE no disponible aún");
             // Reintentaremos cuando tengamos permisos
             return;
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
-
-        // Inicializar vistas
-        textMajor = findViewById(R.id.textMajor);
-        textMinor = findViewById(R.id.textMinor);
-        distanciaTotal = findViewById(R.id.distanciaTotal);
-        tiempoTotal = findViewById(R.id.tiempoTotal);
-        trackButton = findViewById(R.id.track);
-
-        // Inicializar Bluetooth
-        inicializarBlueTooth();
-
-        // Recuperar datos del Intent
-        Intent intent = getIntent();
-        if (intent != null) {
-            idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
-            token = intent.getStringExtra("TOKEN");
-
-            Log.d(ETIQUETA_LOG, "Datos recibidos - USER_ID: " + idUsuario + ", TOKEN: " + (token != null ? "presente" : "null"));
         }
         // ==============================
         // VERIFICAR SI EL USUARIO YA TIENE NODO VINCULADO
@@ -712,6 +688,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ------------------------------------------------------------------
+    // NUEVO: Verifica la disponibilidad de sensores de pasos
     // NUEVO: Verifica la disponibilidad de sensores de pasos
     // ------------------------------------------------------------------
     private void verificarSensores() {
