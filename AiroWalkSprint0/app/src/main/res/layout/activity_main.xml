@@ -77,6 +77,23 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/iconoVincular" />
 
+
+    <Button
+        android:id="@+id/btnFindSensor"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Encontrar mi sensor"
+        android:textSize="16sp"
+        android:paddingVertical="16dp"
+        android:backgroundTint="#A37FCE"
+        android:textColor="@android:color/white"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@+id/botonBuscarNuestroDispositivoBTLE"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+
     <Button
         android:id="@+id/track"
         android:layout_width="0dp"
@@ -89,7 +106,7 @@
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/botonBuscarNuestroDispositivoBTLE" />
+        app:layout_constraintTop_toBottomOf="@+id/btnFindSensor" />
 
     <!-- ========================================================== -->
     <!-- SECCIÓN INFERIOR: Información de recorrido y tiempo -->

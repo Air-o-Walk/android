@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     // Estado del tracking
     private boolean isTracking = false;
 
+
     // ------------------------------------------------------------------
     // Escanea todos los dispositivos BLE cercanos y muestra su información
     // ------------------------------------------------------------------
@@ -671,6 +672,16 @@ public class MainActivity extends AppCompatActivity {
 
                         // ===================================================================
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
+                        // Mostrar botón "Encontrar mi sensor"
+                        Button btnFind = findViewById(R.id.btnFindSensor);
+                        btnFind.setVisibility(View.VISIBLE);
+
+                        btnFind.setOnClickListener(v -> {
+                            Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                            i.putExtra("NODE_NAME", nombreNodoVinculado);
+                            startActivity(i);
+                        });
+
                         break;
                 }
             }
@@ -963,6 +974,16 @@ private void verificarNodoVinculado() {
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         estadoBotonRecorrido(true);
 
+                        // Mostrar botón "Encontrar mi sensor"
+                        Button btnFind = findViewById(R.id.btnFindSensor);
+                        btnFind.setVisibility(View.VISIBLE);
+
+                        btnFind.setOnClickListener(v -> {
+                            Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                            i.putExtra("NODE_NAME", nombreNodoVinculado);
+                            startActivity(i);
+                        });
+
                         // Empieza a leer del beacon automáticamente
                         buscarEsteDispositivoBTLE(nombreNodo);
                     });
@@ -1008,6 +1029,8 @@ private void verificarNodoVinculado() {
 
                     iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
                     estadoBotonRecorrido(false);
+                    findViewById(R.id.btnFindSensor).setVisibility(View.GONE);
+
 
                     detenerBusquedaDispositivosBTLE();
                     stopTracking();
