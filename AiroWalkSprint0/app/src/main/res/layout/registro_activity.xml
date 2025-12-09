@@ -1,81 +1,169 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:scrollbars="vertical">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#FFFFFF">
 
-    <EditText
-        android:id="@+id/campo_first_name"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nombre"
-        android:inputType="textPersonName"
-        android:layout_marginBottom="16dp" />
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <EditText
-        android:id="@+id/campo_last_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Apellido"
-        android:inputType="textPersonName"
-        android:layout_marginBottom="16dp" />
+        <!-- FRAME THAT CONTROLS CURVED TITLE + LOGO + CONTAINER -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
 
-    <EditText
-        android:id="@+id/campo_email"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Correo"
-        android:inputType="textEmailAddress"
-        android:layout_marginBottom="16dp" />
+            <!-- Curved title (smaller + moved upward) -->
+            <ImageView
+                android:id="@+id/curved_title"
+                android:layout_width="100dp"
+                android:layout_height="55dp"
+                android:src="@drawable/air_o_walk_arc"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="0dp"
+                android:adjustViewBounds="true" />
 
-    <EditText
-        android:id="@+id/campo_dni"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="DNI"
-        android:inputType="text"
-        android:layout_marginBottom="16dp" />
+        <LinearLayout
+            android:id="@+id/panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_panel_morado"
+            android:paddingTop="60dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:paddingBottom="24dp"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="100dp">
 
-    <EditText
-        android:id="@+id/campo_phone"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Telefono"
-        android:inputType="phone"
-        android:layout_marginBottom="32dp" />
+            <EditText
+                android:id="@+id/campo_first_name"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_input"
+                android:hint="Nombre"
+                android:paddingHorizontal="16dp"
+                android:textColor="#514F77"
+                android:textColorHint="#8B86A3"
+                android:textColorLink="#1A1A1A" />
 
-    <Spinner
-        android:id="@+id/spinner_town_hall_id"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp" />
+            <EditText
+                android:id="@+id/campo_last_name"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_input"
+                android:hint="Apellido"
+                android:paddingHorizontal="16dp"
+                android:textColor="#514F77"
+                android:textColorHint="#8B86A3" />
 
-    <CheckBox
-        android:id="@+id/checkBoxTerms"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Acepto los términos y condiciones y la política de privacidad"
-        android:layout_marginBottom="16dp" />
+            <EditText
+                android:id="@+id/campo_email"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_input"
+                android:hint="Correo"
+                android:inputType="textEmailAddress"
+                android:paddingHorizontal="16dp"
+                android:textColor="#514F77"
+                android:textColorHint="#8B86A3"
+                android:textColorLink="#FEF7FF" />
 
-    <Button
-        android:id="@+id/buttonRegister"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Registrarse"
-        android:layout_marginBottom="32dp" />
+            <EditText
+                android:id="@+id/campo_dni"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_input"
+                android:hint="DNI"
+                android:paddingHorizontal="16dp"
+                android:textColor="#514F77"
+                android:textColorHint="#8B86A3"
+                android:textColorLink="#FEF7FF" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="¿Ya tienes cuenta?"
-        android:layout_marginBottom="8dp"
-         />
+            <EditText
+                android:id="@+id/campo_phone"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_input"
+                android:hint="Teléfono"
+                android:inputType="phone"
+                android:paddingHorizontal="16dp"
+                android:textColor="#514F77"
+                android:textColorHint="#8B86A3"
+                android:textColorLink="#000000" />
 
-    <Button
-        android:id="@+id/buttonLogin"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Iniciar sesión" />
-</LinearLayout>
+                <Spinner
+                    android:id="@+id/spinner_town_hall_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="16dp" />
+
+            <CheckBox
+                android:id="@+id/checkBoxTerms"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="Al continuar aceptas los Términos y la Política de privacidad."
+                android:textColor="#C84A4A"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonRegister"
+                android:layout_width="200dp"
+                android:layout_height="48dp"
+                android:text="Registrarse"
+                android:textColor="#000"
+                android:background="@drawable/bg_btn"
+                app:backgroundTint="@null"
+                app:cornerRadius="40dp"/>
+
+            </LinearLayout>
+
+            <!-- Logo perfectly overlapping panel -->
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="125dp"
+                android:layout_height="125dp"
+                android:src="@drawable/logo"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="25dp" />
+
+        </FrameLayout>
+
+
+        <!-- LOGIN SECTION -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Ya tienes cuenta?"
+            android:textSize="14sp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonLogin"
+            android:layout_width="120dp"
+            android:layout_height="48dp"
+            android:text="Login"
+            android:textColor="#000"
+            android:background="@drawable/bg_btn_green"
+            app:backgroundTint="@null"
+            app:strokeWidth="0dp"
+            app:cornerRadius="40dp"
+            android:layout_gravity="center"/>
+
+
+    </LinearLayout>
+</ScrollView>
