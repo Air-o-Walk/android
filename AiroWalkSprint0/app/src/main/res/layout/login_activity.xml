@@ -1,36 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="32dp"
-    android:gravity="center">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#EEF1E7">
 
-    <!-- Campo de Usuario -->
-    <EditText
-        android:id="@+id/editTextUsuario"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Usuario"
-        android:layout_marginBottom="16dp"
-        android:padding="16dp" />
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
 
-    <!-- Campo de Contraseña -->
-    <EditText
-        android:id="@+id/editTextContrasena"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Contraseña"
-        android:inputType="textPassword"
-        android:layout_marginBottom="32dp"
-        android:padding="16dp" />
+        <!-- FRAME FOR TITLE + LOGO + PANEL -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-    <!-- Botón de Login -->
-    <Button
-        android:id="@+id/buttonLogin"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Login"
-        android:padding="16dp" />
+            <!-- Curved title -->
+            <ImageView
+                android:id="@+id/curved_title"
+                android:layout_width="100dp"
+                android:layout_height="55dp"
+                android:src="@drawable/air_o_walk_arc"
+                android:layout_gravity="center_horizontal|top"
+                android:adjustViewBounds="true"
+                android:layout_marginTop="0dp" />
 
-</LinearLayout>
+            <!-- PURPLE PANEL -->
+            <LinearLayout
+                android:id="@+id/panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_panel_morado"
+                android:paddingLeft="24dp"
+                android:paddingRight="24dp"
+                android:paddingBottom="32dp"
+                android:paddingTop="90dp"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="90dp">
+
+                <!-- USERNAME -->
+                <EditText
+                    android:id="@+id/editTextUsuario"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input"
+                    android:hint="Usuario"
+                    android:textColor="#514F77"
+                    android:textColorHint="#8B86A3"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- PASSWORD -->
+                <EditText
+                    android:id="@+id/editTextContrasena"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input"
+                    android:hint="Contraseña"
+                    android:inputType="textPassword"
+                    android:textColor="#514F77"
+                    android:textColorHint="#8B86A3"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="4dp" />
+
+                <!-- FORGOT PASSWORD -->
+                <TextView
+                    android:id="@+id/textForgotPassword"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="¿Olvidaste tu contraseña?"
+                    android:textColor="#C84A4A"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="start" />
+
+                <!-- LOGIN BUTTON -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonLogin"
+                    android:layout_width="160dp"
+                    android:layout_height="48dp"
+                    android:text="Login"
+                    android:textColor="#000"
+                    android:background="@drawable/bg_btn"
+                    app:backgroundTint="@null"
+                    app:cornerRadius="40dp"
+                    android:layout_gravity="center"/>
+
+            </LinearLayout>
+
+            <!-- LOGO OVERLAPPING PANEL -->
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="130dp"
+                android:layout_height="130dp"
+                android:src="@drawable/logo"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="15dp" />
+
+        </FrameLayout>
+
+        <!-- REGISTER SECTION -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Aún no tienes cuenta?"
+            android:textSize="14sp"
+            android:textColor="#514F77"
+            android:gravity="center"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonRegister"
+            android:layout_width="180dp"
+            android:layout_height="48dp"
+            android:text="Registrarse"
+            android:textColor="#000"
+            android:background="@drawable/bg_btn_green"
+            app:backgroundTint="@null"
+            app:cornerRadius="40dp"
+            android:layout_gravity="center"/>
+
+    </LinearLayout>
+</ScrollView>
