@@ -1,5 +1,8 @@
 package com.example.air_o_walk_sprint0;
+import android.app.Dialog;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.widget.EditText;
@@ -119,6 +122,10 @@ public class PerfilActivity extends AppCompatActivity {
         findViewById(R.id.editar_password).setOnClickListener(v -> {
             mostrarDialogoEdicionPassword();
         });
+        // QUEJAS + PRIVACIDAD
+        findViewById(R.id.chevron_quejas).setOnClickListener(v -> showQuejasPopup());
+        findViewById(R.id.chevron_privacidad).setOnClickListener(v -> showPrivacidadPopup());
+
     }
 
     /**
@@ -264,5 +271,31 @@ public class PerfilActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         return prefs.getInt("user_id", 0);
     }
+
+    private void showQuejasPopup() {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_quejas);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        dialog.findViewById(R.id.btnVolverQuejas).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.findViewById(R.id.btnEnviarQueja).setOnClickListener(v -> {
+            Toast.makeText(this, "Queja enviada", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+    private void showPrivacidadPopup() {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_privacidad);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        dialog.findViewById(R.id.btnVolverPrivacidad).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+
 
 }

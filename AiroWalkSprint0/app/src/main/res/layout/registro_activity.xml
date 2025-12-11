@@ -115,7 +115,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:text="Al continuar aceptas los Términos y la Política de privacidad."
-                android:textColor="#C84A4A"
+                android:textColor="#F1642E"
                 android:textSize="12sp" />
 
             <com.google.android.material.button.MaterialButton

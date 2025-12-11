@@ -71,11 +71,11 @@
                     android:id="@+id/textForgotPassword"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="¿Olvidaste tu contraseña?"
-                    android:textColor="#C84A4A"
-                    android:textSize="12sp"
                     android:layout_marginBottom="24dp"
-                    android:gravity="start" />
+                    android:gravity="start"
+                    android:text="¿Olvidaste tu contraseña?"
+                    android:textColor="#F1642E"
+                    android:textSize="12sp" />
 
                 <!-- LOGIN BUTTON -->
                 <com.google.android.material.button.MaterialButton

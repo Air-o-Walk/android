@@ -1,102 +1,242 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:padding="24dp"
+    android:background="#EEF1E7">
 
-    <TextView
-        android:id="@+id/titulo_password"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Contraseña"
-        app:layout_constraintStart_toStartOf="@+id/campo_email"
-        app:layout_constraintTop_toBottomOf="@+id/campo_email" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/campo_password"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="**********"
-        app:layout_constraintStart_toStartOf="@+id/titulo_password"
-        app:layout_constraintTop_toBottomOf="@+id/titulo_password" />
+        <!-- PROFILE ICON -->
+        <ImageView
+            android:id="@+id/fotoPerfil"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:src="@drawable/ic_profile_placeholder"
+            android:layout_gravity="center"
+            android:layout_marginBottom="32dp" />
 
-    <TextView
-        android:id="@+id/titulo_email"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="22dp"
-        android:text="Correo"
-        app:layout_constraintStart_toStartOf="@+id/campo_username"
-        app:layout_constraintTop_toBottomOf="@+id/campo_username" />
+        <!-- USERNAME -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/campo_email"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="TextView"
-        app:layout_constraintStart_toStartOf="@+id/titulo_email"
-        app:layout_constraintTop_toBottomOf="@+id/titulo_email" />
+            <TextView
+                android:id="@+id/titulo_username"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Usuario"
+                android:textStyle="bold"
+                android:textColor="#4D4A72"
+                android:textSize="16sp" />
 
-    <ImageView
-        android:id="@+id/fotoPerfil"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="17dp"
-        android:layout_marginTop="54dp"
-        app:layout_constraintStart_toEndOf="@+id/titulo_username"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:srcCompat="@tools:sample/avatars" />
+            <ImageButton
+                android:id="@+id/editar_username"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit"
+                android:background="@android:color/transparent"
+                android:tint="#4D4A72" />
+        </LinearLayout>
 
-    <TextView
-        android:id="@+id/titulo_username"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="74dp"
-        android:layout_marginTop="55dp"
-        android:text="Usuario"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/fotoPerfil" />
+        <TextView
+            android:id="@+id/campo_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Maria Mei Mei"
+            android:textColor="#000"
+            android:layout_marginBottom="20dp" />
 
-    <TextView
-        android:id="@+id/campo_username"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="TextView"
-        app:layout_constraintStart_toStartOf="@+id/titulo_username"
-        app:layout_constraintTop_toBottomOf="@+id/titulo_username" />
+        <!-- EMAIL -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <ImageButton
-        android:id="@+id/editar_username"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        app:layout_constraintBottom_toBottomOf="@+id/titulo_username"
-        app:layout_constraintStart_toEndOf="@+id/titulo_username"
-        app:layout_constraintTop_toTopOf="@+id/titulo_username"
-        app:srcCompat="@drawable/ic_edit" />
+            <TextView
+                android:id="@+id/titulo_email"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Correo"
+                android:textStyle="bold"
+                android:textColor="#4D4A72"
+                android:textSize="16sp" />
 
-    <ImageButton
-        android:id="@+id/editar_email"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        app:layout_constraintBottom_toBottomOf="@+id/campo_email"
-        app:layout_constraintStart_toEndOf="@+id/titulo_email"
-        app:layout_constraintTop_toTopOf="@+id/titulo_email"
-        app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/ic_edit" />
+            <ImageButton
+                android:id="@+id/editar_email"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit"
+                android:background="@android:color/transparent"
+                android:tint="#4D4A72" />
+        </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/editar_password"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        app:layout_constraintBottom_toBottomOf="@+id/campo_password"
-        app:layout_constraintStart_toEndOf="@+id/titulo_password"
-        app:layout_constraintTop_toTopOf="@+id/titulo_password"
-        app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/ic_edit" />
+        <TextView
+            android:id="@+id/campo_email"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:autoLink="email"
+            android:text="maria1@gmail.com"
+            android:textColor="#F1642E"
+            android:textColorLink="#F1642E" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- TELEFONO -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/titulo_telefono"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Telefono"
+                android:textStyle="bold"
+                android:textColor="#4D4A72"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/editar_telefono"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit"
+                android:background="@android:color/transparent"
+                android:tint="#4D4A72" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/campo_telefono"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12345678"
+            android:textColor="#000"
+            android:layout_marginBottom="20dp" />
+
+        <!-- PASSWORD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/titulo_password"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Contraseña"
+                android:textStyle="bold"
+                android:textColor="#4D4A72"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/editar_password"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit"
+                android:background="@android:color/transparent"
+                android:tint="#4D4A72" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/campo_password"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="************"
+            android:textColor="#000"
+            android:layout_marginBottom="30dp" />
+
+        <!-- LINK 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="10dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/link_quejas"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Quejas/Incidencias"
+                android:textColor="#4D4A72"
+                android:textStyle="bold"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/chevron_quejas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="&gt;"
+                android:textColor="#F1642E"
+                android:textSize="22sp" />
+
+
+        </LinearLayout>
+
+        <!-- LINK 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="10dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/link_privacidad"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Política y Privacidad"
+                android:textColor="#4D4A72"
+                android:textStyle="bold"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/chevron_privacidad"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="&gt;"
+                android:textColor="#F1642E"
+                android:textSize="22sp" />
+
+
+        </LinearLayout>
+
+        <!-- LOGOUT BUTTON -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonLogout"
+            android:layout_width="180dp"
+            android:layout_height="48dp"
+            android:text="Logout"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center"
+            android:backgroundTint="#A3B565"
+            app:cornerRadius="40dp"
+            android:layout_marginTop="26dp"/>
+
+        <!-- DELETE ACCOUNT -->
+        <TextView
+            android:id="@+id/deleteAccount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="12dp"
+            android:text="Eliminar Cuenta"
+            android:textColor="#F1642E"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+</ScrollView>
