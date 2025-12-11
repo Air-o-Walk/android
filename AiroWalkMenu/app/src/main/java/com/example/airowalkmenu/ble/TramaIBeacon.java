@@ -1,4 +1,4 @@
-package com.example.airowalkmenu.data.models;
+package com.example.airowalkmenu.ble;
 import java.util.Arrays;
 
 // -----------------------------------------------------------------------------------

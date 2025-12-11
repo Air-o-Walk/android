@@ -1,6 +1,8 @@
 package com.example.airowalkmenu.data.models;
 
 import android.util.Log;
+import com.example.airowalkmenu.data.network.PeticionarioREST;
+
 
 // -----------------------------------------------------------------------------
 // RegistroNodo.java

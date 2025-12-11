@@ -1,6 +1,8 @@
 package com.example.airowalkmenu.domain;
 
 import android.util.Log;
+import com.example.airowalkmenu.data.network.PeticionarioREST;
+
 
 /**
  * Clase que encapsula la lógica de negocio para el envío de mediciones al backend.

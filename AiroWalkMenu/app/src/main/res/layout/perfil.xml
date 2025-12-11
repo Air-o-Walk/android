@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/titulo_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Contraseña"
+        app:layout_constraintStart_toStartOf="@+id/campo_email"
+        app:layout_constraintTop_toBottomOf="@+id/campo_email" />
+
+    <TextView
+        android:id="@+id/campo_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="**********"
+        app:layout_constraintStart_toStartOf="@+id/titulo_password"
+        app:layout_constraintTop_toBottomOf="@+id/titulo_password" />
+
+    <TextView
+        android:id="@+id/titulo_email"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:text="Correo"
+        app:layout_constraintStart_toStartOf="@+id/campo_username"
+        app:layout_constraintTop_toBottomOf="@+id/campo_username" />
+
+    <TextView
+        android:id="@+id/campo_email"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintStart_toStartOf="@+id/titulo_email"
+        app:layout_constraintTop_toBottomOf="@+id/titulo_email" />
+
+    <ImageView
+        android:id="@+id/fotoPerfil"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="17dp"
+        android:layout_marginTop="54dp"
+        app:layout_constraintStart_toEndOf="@+id/titulo_username"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:srcCompat="@tools:sample/avatars" />
+
+    <TextView
+        android:id="@+id/titulo_username"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="74dp"
+        android:layout_marginTop="55dp"
+        android:text="Usuario"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/fotoPerfil" />
+
+    <TextView
+        android:id="@+id/campo_username"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintStart_toStartOf="@+id/titulo_username"
+        app:layout_constraintTop_toBottomOf="@+id/titulo_username" />
+
+    <ImageButton
+        android:id="@+id/editar_username"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        app:layout_constraintBottom_toBottomOf="@+id/titulo_username"
+        app:layout_constraintStart_toEndOf="@+id/titulo_username"
+        app:layout_constraintTop_toTopOf="@+id/titulo_username"
+        app:srcCompat="@drawable/ic_edit" />
+
+    <ImageButton
+        android:id="@+id/editar_email"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        app:layout_constraintBottom_toBottomOf="@+id/campo_email"
+        app:layout_constraintStart_toEndOf="@+id/titulo_email"
+        app:layout_constraintTop_toTopOf="@+id/titulo_email"
+        app:layout_constraintVertical_bias="0.0"
+        app:srcCompat="@drawable/ic_edit" />
+
+    <ImageButton
+        android:id="@+id/editar_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        app:layout_constraintBottom_toBottomOf="@+id/campo_password"
+        app:layout_constraintStart_toEndOf="@+id/titulo_password"
+        app:layout_constraintTop_toTopOf="@+id/titulo_password"
+        app:layout_constraintVertical_bias="0.0"
+        app:srcCompat="@drawable/ic_edit" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

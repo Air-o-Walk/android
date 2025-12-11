@@ -11,7 +11,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.air_o_walk_sprint0.LogicaEditarPerfil;
+import com.example.airowalkmenu.R;
+import com.example.airowalkmenu.domain.LogicaEditarPerfil;
 
 public class PerfilActivity extends AppCompatActivity {
     private String token;

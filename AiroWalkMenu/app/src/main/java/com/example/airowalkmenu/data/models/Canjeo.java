@@ -1,4 +1,4 @@
-package com.example.airowalkmenu.services;
+package com.example.airowalkmenu.data.models;
 
 public class Canjeo {
     private int id;

@@ -10,7 +10,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.airowalkmenu.MainActivity;
 import com.example.airowalkmenu.R;
+import com.example.airowalkmenu.domain.LogicaLogin;
 
 import org.json.JSONException;
 import org.json.JSONObject;

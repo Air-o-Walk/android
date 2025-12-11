@@ -8,6 +8,11 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.example.airowalkmenu.data.network.PeticionarioREST;
+import com.example.airowalkmenu.data.models.Premio;
+import com.example.airowalkmenu.data.models.Canjeo;
+
+
 
 /**
  * Clase que encapsula toda la lógica de peticiones REST

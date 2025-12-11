@@ -9,7 +9,7 @@
 * getPuntos
 * */
 
-package com.example.airowalkmenu.services;
+package com.example.airowalkmenu.data.models;
 
 import android.util.Log;
 

@@ -1,4 +1,4 @@
-package com.example.airowalkmenu.services;
+package com.example.airowalkmenu.ble;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
