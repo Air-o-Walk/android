@@ -129,6 +129,14 @@ public class LogicaEditarPerfil {
      * @param callback Callback para notificar el resultado
      */
     private void procesarRespuestaEdicion(int codigo, String cuerpo, String campo, EditarCallback callback) {
+        Log.d("DEBUG_500", "=== DEBUG EDICIÓN ===");
+        Log.d("DEBUG_500", "Código HTTP: " + codigo);
+        Log.d("DEBUG_500", "Cuerpo respuesta: " + cuerpo);
+        Log.d("DEBUG_500", "Campo: " + campo);
+        Log.d("DEBUG_500", "URL usada: http://api.sagucre.upv.edu.es/user/" + userId);
+        Log.d("DEBUG_500", "Token inicia: " + (token != null ? token.substring(0, 20) + "..." : "NULL"));
+        Log.d("DEBUG_500", "===================");
+
         try {
             if (codigo == 200) {
                 // Actualización exitosa
@@ -147,7 +155,7 @@ public class LogicaEditarPerfil {
             } else if (codigo == 404) {
                 callback.onEdicionFallida(campo, "Usuario no encontrado");
             } else if (codigo >= 500) {
-                callback.onEdicionFallida(campo, "Error del servidor o puede que tarde en actualizar");
+                callback.onEdicionFallida(campo, "Tu solicitud está siendo procesada. Puede tardar un poco.");
             } else {
                 callback.onEdicionFallida(campo, "Error desconocido: " + codigo);
             }
