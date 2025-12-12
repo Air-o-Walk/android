@@ -826,6 +826,16 @@ public class MainActivity extends AppCompatActivity {
                         });
 
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
+                        // Mostrar botón "Encontrar mi sensor"
+                        Button btnFind = findViewById(R.id.btnFindSensor);
+                        btnFind.setVisibility(View.VISIBLE);
+
+                        btnFind.setOnClickListener(v -> {
+                            Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                            i.putExtra("NODE_NAME", nombreNodoVinculado);
+                            startActivity(i);
+                        });
+
                         break;
                 }
             }
@@ -1068,8 +1078,15 @@ public class MainActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                             estadoBotonRecorrido(true);
+                            // Mostrar botón "Encontrar mi sensor"
+                            Button btnFind = findViewById(R.id.btnFindSensor);
+                            btnFind.setVisibility(View.VISIBLE);
 
-                            buscarEsteDispositivoBTLE(nombreNodo);
+                            btnFind.setOnClickListener(v -> {
+                                Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                                i.putExtra("NODE_NAME", nombreNodoVinculado);
+                                startActivity(i);
+                            });                            buscarEsteDispositivoBTLE(nombreNodo);
                         });
 
                     } else {
@@ -1078,6 +1095,9 @@ public class MainActivity extends AppCompatActivity {
                             estadoBotonRecorrido(false);
                         });
                     }
+
+
+
 
                 } catch (Exception e) {
                     Log.e(">>>>", "Error procesando verificación nodo: " + e.getMessage());
@@ -1106,6 +1126,8 @@ public class MainActivity extends AppCompatActivity {
 
                     iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
                     estadoBotonRecorrido(false);
+                    findViewById(R.id.btnFindSensor).setVisibility(View.GONE);
+
 
                     detenerBusquedaDispositivosBTLE();
 
