@@ -27,7 +27,7 @@ public class MeasurementsSender {
     //Envía todas las mediciones de la recorrida al servidor
     public static void enviarMedicionCompleta(
             //ID del nodo/beacon vinculado
-            String nodeId,
+            int nodeId,
             //Última medición de O3 (ozono) en ppm
             float ultimaMedicionO3,
             //Última medición de CO (monóxido de carbono) en ppm
@@ -37,9 +37,9 @@ public class MeasurementsSender {
             //Última ubicación GPS conocida
             Location ubicacion,
             //Total de pasos caminados en la sesión
-            int pasosTotal,
+            //int pasosTotal,
             //Tiempo total caminado en segundos
-            long tiempoTotal,
+            //long tiempoTotal,
             //Callback para manejar la respuesta
             MeasurementCallback callback) {
 
@@ -51,7 +51,7 @@ public class MeasurementsSender {
             return;
         }
 
-        if (nodeId == null || nodeId.isEmpty()) {
+        if (nodeId == -1) {
             Log.e(ETIQUETA_LOG, " MeasurementsSender: nodeId es nulo o vacío");
             if (callback != null) {
                 callback.onError("nodeId no válido");
@@ -72,23 +72,16 @@ public class MeasurementsSender {
             datos.put("longitude", ubicacion.getLongitude());
 
             // Datos adicionales de la recorrida
-            datos.put("steps", pasosTotal);
+            /*datos.put("steps", pasosTotal);
             datos.put("walking_time_seconds", tiempoTotal);
             datos.put("accuracy", ubicacion.getAccuracy());
-            datos.put("timestamp", System.currentTimeMillis());
+            datos.put("timestamp", System.currentTimeMillis());*/
 
             // Datos opcionales si están disponibles
-            if (ubicacion.hasAltitude()) {
-                datos.put("altitude", ubicacion.getAltitude());
-            }
-
-            if (ubicacion.hasSpeed()) {
-                datos.put("speed", ubicacion.getSpeed());
-            }
 
             // Calcular distancia aproximada (0.75 metros por paso)
-            double distanciaAproximadaMetros = pasosTotal * 0.75;
-            datos.put("distance_meters", distanciaAproximadaMetros);
+            //double distanciaAproximadaMetros = pasosTotal * 0.75;
+            //datos.put("distance_meters", distanciaAproximadaMetros);
 
             Log.d(ETIQUETA_LOG, " ===============================================");
             Log.d(ETIQUETA_LOG, " MeasurementsSender: Enviando medición completa");
@@ -97,9 +90,9 @@ public class MeasurementsSender {
             Log.d(ETIQUETA_LOG, " - CO: " + ultimaMedicionCO + " ppm");
             Log.d(ETIQUETA_LOG, " - NO2: " + ultimaMedicionNO2 + " ppm");
             Log.d(ETIQUETA_LOG, " - Ubicación: " + ubicacion.getLatitude() + ", " + ubicacion.getLongitude());
-            Log.d(ETIQUETA_LOG, " - Pasos: " + pasosTotal);
-            Log.d(ETIQUETA_LOG, " - Tiempo: " + tiempoTotal + " segundos");
-            Log.d(ETIQUETA_LOG, " - Distancia aprox: " + String.format("%.2f", distanciaAproximadaMetros) + " metros");
+            //Log.d(ETIQUETA_LOG, " - Pasos: " + pasosTotal);
+            //Log.d(ETIQUETA_LOG, " - Tiempo: " + tiempoTotal + " segundos");
+            //Log.d(ETIQUETA_LOG, " - Distancia aprox: " + String.format("%.2f", distanciaAproximadaMetros) + " metros");
             Log.d(ETIQUETA_LOG, " ===============================================");
 
             //Especificación de cual parte de la api que estamos solicitando
@@ -228,6 +221,8 @@ public class MeasurementsSender {
             }
         }
     }
+
+
 
     //Interface para callbacks de respuestas
     public interface MeasurementCallback {

@@ -170,13 +170,21 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal">
-        <Button
-            android:id="@+id/boton_perfil"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Editar Perfil"
-            android:layout_margin="16dp" />
-    </LinearLayout>
+
+            <Button
+                android:id="@+id/boton_perfil"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:text="Editar Perfil" />
+
+            <Button
+                android:id="@+id/button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="abrirPantallaCanjeos"
+                android:text="Canjear Puntos" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

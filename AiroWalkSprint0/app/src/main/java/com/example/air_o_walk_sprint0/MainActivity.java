@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView iconoVincular;
     private boolean yaVinculado = false;
     private String nombreNodoVinculado = null;
+    private int nodeId = 153;
 
     // Trackers para pasos, tiempo y GPS
     private StepCounterTracker stepTracker;
@@ -202,6 +203,8 @@ public class MainActivity extends AppCompatActivity {
 
                 mostrarInformacionDispositivoBTLE( resultado );
                 mostrarMedicion(resultado);
+
+
             }
 
             @Override
@@ -293,8 +296,8 @@ public class MainActivity extends AppCompatActivity {
         // ultimaMedicionCO = ...;
         // ultimaMedicionNO2 = ...;
         // Por ahora usamos valores simulados para CO y NO2
-        ultimaMedicionCO = 0f;  // Reemplazar con valor real si está disponible
-        ultimaMedicionNO2 = 0f; // Reemplazar con valor real si está disponible
+        ultimaMedicionCO = medicionGas * 700;  // Reemplazar con valor real si está disponible
+        ultimaMedicionNO2 = medicionGas * 700; // Reemplazar con valor real si está disponible
 
         // NUEVO: Actualizar última ubicación conocida del nodo
         if (gpsTracker != null) {
@@ -312,6 +315,8 @@ public class MainActivity extends AppCompatActivity {
         if (monitorEstadoNodo != null) {
             monitorEstadoNodo.onBeaconRecibido(medicionGas, medicionTemperatura);
         }
+
+        enviarUltimaUbicacionNodo();
 
         // Llamamos a la notificación desde el hilo principal (UI thread)
         runOnUiThread(() -> {
@@ -358,22 +363,15 @@ public class MainActivity extends AppCompatActivity {
 
         // Usar MeasurementsSender para enviar todas las mediciones
         MeasurementsSender.enviarMedicionCompleta(
-                nombreNodoVinculado,
+                nodeId,
                 ultimaMedicionO3,
                 ultimaMedicionCO,
                 ultimaMedicionNO2,
                 ultimaUbicacionNodo,
-                pasosTotal,
-                tiempoTotalSegundos,
                 new MeasurementsSender.MeasurementCallback() {
                     @Override
                     public void onSuccess(String respuesta) {
                         Log.d(ETIQUETA_LOG, " Mediciones completas enviadas exitosamente");
-                        runOnUiThread(() -> {
-                            Toast.makeText(MainActivity.this,
-                                    "Mediciones enviadas al servidor",
-                                    Toast.LENGTH_SHORT).show();
-                        });
                     }
 
                     @Override
