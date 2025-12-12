@@ -122,8 +122,7 @@ public class PerfilActivity extends AppCompatActivity {
             mostrarDialogoEdicionPassword();
         });
         // QUEJAS + PRIVACIDAD
-        findViewById(R.id.chevron_quejas).setOnClickListener(v -> showQuejasPopup());
-        findViewById(R.id.chevron_privacidad).setOnClickListener(v -> showPrivacidadPopup());
+
 
     }
 
