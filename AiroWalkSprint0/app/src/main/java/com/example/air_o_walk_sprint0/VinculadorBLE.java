@@ -47,7 +47,7 @@ public class VinculadorBLE {
     // --------------------------------------------------------------
     // Constructor
     // Descripción: Inyecta el escáner BLE y el listener de la UI.
-    // Diseño: scanner , listener -> constructor() ->
+    // Diseño: scanner + listener -> asignar campos -> listo para vincularPorNombre()
     // Parámetros:
     //   - scanner : BluetoothLeScanner ya inicializado
     //   - listener: callbacks de estado y hallazgo de dispositivo
@@ -178,7 +178,7 @@ public class VinculadorBLE {
 // --------------------------------------------------------------
 // cambiarEstado()
 // Descripción: actualiza el estado interno y notifica al listener.
-// Disneo : Estado nuevo -> cambiarEstado() ->
+// Disneo : Estado nuevo ->
 // --------------------------------------------------------------
     private void cambiarEstado(Estado nuevo) {
         this.estado = nuevo;

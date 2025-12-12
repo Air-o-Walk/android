@@ -1,5 +1,4 @@
 package com.example.air_o_walk_sprint0;
-
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
@@ -12,34 +11,17 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.air_o_walk_sprint0.LogicaEditarPerfil;
 
-// --------------------------------------------------------------
-// PerfilActivity.java
-// Hecho por Maria Algora
-// Descripción: Pantalla de perfil del usuario. Permite visualizar y editar datos básicos.
-//      - Muestra username y email actuales.
-//      - Permite modificar username, email y contraseña.
-//      - Valida formato de email y contraseñas antes de enviarlas.
-// --------------------------------------------------------------
 public class PerfilActivity extends AppCompatActivity {
-
     private String token;
     private int userId;
     private LogicaEditarPerfil logicaEditar;
 
-    // --------------------------------------------------------------
-    // onCreate()
-    // Descripción: Punto de entrada de la Activity. Inicializa la interfaz de usuario,
-    //              obtiene las credenciales del intent anterior y configura los botones de edición.
-    // Diseño: Intent(USER_ID, TOKEN) → inicializar lógica y UI → mostrar datos.
-    // --------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.perfil);
 
-        // ---------------------------
-        // OBTENER CREDENCIALES
-        // ---------------------------
+        // Obtener token y userId del Intent
         userId = getIntent().getIntExtra("USER_ID", 0);
         token = getIntent().getStringExtra("TOKEN");
 
@@ -51,22 +33,11 @@ public class PerfilActivity extends AppCompatActivity {
 
         logicaEditar = new LogicaEditarPerfil(token, userId);
 
-        // ---------------------------
-        // CARGAR DATOS DEL USUARIO
-        // ---------------------------
+        // Cargar datos del usuario y configurar botones
         cargarDatosUsuario();
-
-        // ---------------------------
-        // CONFIGURAR BOTONES DE EDICIÓN
-        // ---------------------------
         setupBotonesEdicion();
     }
 
-    // --------------------------------------------------------------
-    // cargarDatosUsuario()
-    // Descripción: Obtiene la información básica del usuario (username, email)
-    //              desde la lógica de negocio y la muestra en la interfaz.
-    // --------------------------------------------------------------
     private void cargarDatosUsuario() {
         logicaEditar.obtenerDatosBasicosUsuario(new LogicaEditarPerfil.UsuarioBasicoCallback() {
             @Override
@@ -81,33 +52,24 @@ public class PerfilActivity extends AppCompatActivity {
 
             @Override
             public void onError(String mensajeError) {
-                runOnUiThread(() ->
-                        Toast.makeText(PerfilActivity.this, "Error: " + mensajeError, Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(PerfilActivity.this, "Error: " + mensajeError, Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
 
-    // --------------------------------------------------------------
-    // setupBotonesEdicion()
-    // Descripción: Configura los tres botones de edición de la pantalla:
-    //              username, email y password. Cada botón abre un diálogo correspondiente.
-    // --------------------------------------------------------------
+
     private void setupBotonesEdicion() {
-
-        // ------ Botón editar username ------
+        // Botón editar username
         findViewById(R.id.editar_username).setOnClickListener(v -> {
-                    mostrarDialogoEdicion("username", "Nuevo nombre de usuario (3-20 caracteres)",
-                            nuevoValor -> {
-                                if (!esUsernameValido(nuevoValor)) {
-                                    Toast.makeText(this, "Por favor, ingresa un nombre de usuario válido. Debe tener entre 3 y 20 caracteres y solo puede incluir letras, números, puntos, guiones bajos o guiones.", Toast.LENGTH_LONG).show();
-                                    return;
-                                }
-
-                        logicaEditar.actualizarUsername(nuevoValor, new LogicaEditarPerfil.EditarCallback() {
+            mostrarDialogoEdicion("username", "Nuevo nombre de usuario",
+                    nuevoValor -> logicaEditar.actualizarUsername(nuevoValor, new LogicaEditarPerfil.EditarCallback() {
                         @Override
                         public void onEdicionExitosa(String campo, String mensaje) {
                             runOnUiThread(() -> {
                                 Toast.makeText(PerfilActivity.this, mensaje, Toast.LENGTH_SHORT).show();
+                                // Actualizar TextView
                                 ((TextView) findViewById(R.id.campo_username)).setText(nuevoValor);
                             });
                         }
@@ -121,12 +83,11 @@ public class PerfilActivity extends AppCompatActivity {
             );
         });
 
-        // ------ Botón editar email ------
+        // Botón editar email
         findViewById(R.id.editar_email).setOnClickListener(v -> {
             mostrarDialogoEdicion("email", "Nuevo email",
                     nuevoValor -> {
 
-                        // Validación del formato del email antes de enviar
                         if (!esEmailValido(nuevoValor)) {
                             runOnUiThread(() ->
                                     Toast.makeText(PerfilActivity.this,
@@ -154,35 +115,28 @@ public class PerfilActivity extends AppCompatActivity {
             );
         });
 
-        // ------ Botón editar password ------
+        // Botón editar password
         findViewById(R.id.editar_password).setOnClickListener(v -> {
             mostrarDialogoEdicionPassword();
         });
     }
 
-    // --------------------------------------------------------------
-    // esEmailValido()
-    // Descripción: Evalúa si el formato de un email es correcto utilizando una expresión regular.
-    // --------------------------------------------------------------
+    /**
+     * Valida el formato del email.
+     */
     private boolean esEmailValido(String email) {
-        if (email == null || email.isEmpty()) return false;
-        return email.trim().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+
+        // Patrón simple para validar email
+        String patron = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        return email.matches(patron);
     }
 
-    // --------------------------------------------------------------
-    // esUsernameValido()
-    // Descripción: Evalúa si el formato de un username es correcto utilizando una expresión regular.
-    // --------------------------------------------------------------
-    private boolean esUsernameValido(String username) {
-        if (username == null || username.trim().isEmpty()) return false;
-        return username.trim().matches("^[a-zA-Z0-9_.-]{3,20}$");
-    }
-
-    // --------------------------------------------------------------
-    // mostrarDialogoEdicionPassword()
-    // Descripción: Genera un cuadro de diálogo que permite al usuario cambiar la contraseña.
-    //              Solicita contraseña actual, nueva y confirmación antes de enviar.
-    // --------------------------------------------------------------
+    /**
+     * Muestra un diálogo para editar la contraseña con verificación de contraseña actual.
+     */
     private void mostrarDialogoEdicionPassword() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Cambiar contraseña");
@@ -218,19 +172,17 @@ public class PerfilActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
         builder.show();
     }
-
-    // --------------------------------------------------------------
-    // crearLayoutDialogoPassword()
-    // Descripción: Crea dinámicamente un formulario dentro del diálogo de contraseña
-    //              con los campos: actual, nueva y confirmar.
-    // --------------------------------------------------------------
     private LinearLayout crearLayoutDialogoPassword(boolean modoPrueba) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 0, 50, 0);
 
         final EditText inputCurrent = new EditText(this);
-        inputCurrent.setHint(modoPrueba ? "Contraseña actual (usar '123456' en pruebas)" : "Contraseña actual");
+        if (modoPrueba) {
+            inputCurrent.setHint("Contraseña actual (usar '123456' en pruebas)");
+        } else {
+            inputCurrent.setHint("Contraseña actual");
+        }
         inputCurrent.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         layout.addView(inputCurrent);
 
@@ -246,15 +198,9 @@ public class PerfilActivity extends AppCompatActivity {
 
         return layout;
     }
-
-    // --------------------------------------------------------------
-    // validarPassword()
-    // Descripción: Realiza verificaciones básicas de seguridad antes de enviar una nueva contraseña.
-    // Validaciones:
-    //      - Todos los campos completados.
-    //      - Nueva contraseña y confirmación coinciden.
-    //      - Longitud mínima de 6 caracteres.
-    // --------------------------------------------------------------
+    /**
+     * Valida los campos de contraseña antes de enviar la solicitud.
+     */
     private boolean validarPassword(String current, String newPass, String confirmPass) {
         if (current.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
             Toast.makeText(this, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
@@ -266,65 +212,57 @@ public class PerfilActivity extends AppCompatActivity {
             return false;
         }
 
-            if (!nuevaContraseña.matches("^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+-=]).{6,}$")) {
-                Toast.makeText(this, "¡Ups! Tu contraseña debe tener al menos 6 caracteres, " +
-                                "una letra, un número y un carácter especial (como @, #, _, -, etc).",
-                        Toast.LENGTH_LONG).show();
-                return false;
-            }
+        if (newPass.length() < 6) {
+            Toast.makeText(this, "La nueva contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show();
+            return false;
+        }
 
         return true;
     }
 
-    // --------------------------------------------------------------
-    // mostrarDialogoEdicion()
-    // Descripción: Muestra un diálogo reutilizable para editar textos simples (username, email, etc.)
-    // --------------------------------------------------------------
+    /**
+     * Muestra un diálogo para editar un campo.
+     */
     private void mostrarDialogoEdicion(String campo, String titulo, OnValorEditadoListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(titulo);
 
         final EditText input = new EditText(this);
-
         if (campo.equals("password")) {
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         } else if (campo.equals("email")) {
+
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
             input.setHint("ejemplo@dominio.com");
-        }
 
+        }
         builder.setView(input);
 
         builder.setPositiveButton("Guardar", (dialog, which) -> {
             String nuevoValor = input.getText().toString().trim();
-            if (!nuevoValor.isEmpty()) listener.onValorEditado(nuevoValor);
+            if (!nuevoValor.isEmpty()) {
+                listener.onValorEditado(nuevoValor);
+            }
         });
-
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+
         builder.show();
     }
 
-    // --------------------------------------------------------------
-    // OnValorEditadoListener
-    // Descripción: Interfaz funcional simple para manejar eventos al editar campos.
-    // --------------------------------------------------------------
     interface OnValorEditadoListener {
         void onValorEditado(String nuevoValor);
     }
 
-    // --------------------------------------------------------------
-    // obtenerTokenDeSharedPreferences()
-    // obtenerUserIdDeSharedPreferences()
-    // Descripción: Métodos auxiliares para recuperar credenciales almacenadas localmente.
-    //              Su implementación depende del diseño de guardado del token.
-    // --------------------------------------------------------------
     private String obtenerTokenDeSharedPreferences() {
+        // Implementar según cómo guardes el token
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         return prefs.getString("token", "");
     }
 
     private int obtenerUserIdDeSharedPreferences() {
+        // Implementar según cómo guardes el user ID
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         return prefs.getInt("user_id", 0);
     }
+
 }
