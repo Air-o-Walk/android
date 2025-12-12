@@ -1,5 +1,12 @@
 package com.example.air_o_walk_sprint0;
-
+// --------------------------------------------------------------
+// DistanceEstimator.java
+// Autor: Meryame Ait Boumlik
+// Descripción:
+//   Clase auxiliar que suaviza lecturas RSSI mediante ventana deslizante
+//   y clasifica la distancia aproximada del beacon. También asigna un
+//   nivel de señal (0–5) para la UI.
+// --------------------------------------------------------------
 public class DistanceEstimator {
 
     private static final int WINDOW_SIZE = 5;
@@ -22,20 +29,18 @@ public class DistanceEstimator {
 
     public String getDistanceCategory() {
         float rssi = getFilteredRSSI();
-
-        if (rssi > -60) return "Muy cerca";
-        if (rssi > -75) return "Cerca";
-        if (rssi > -85) return "Lejos";
-
-        return "Fuera de rango";
+        if (rssi > -60) return "Muy cerca";   // ~0–1m
+        if (rssi > -70) return "Cerca";       // ~1–2m
+        if (rssi > -78) return "Lejos";       // ~2–3m
+        return "Señal muy débil";              // >3m
     }
 
     public int getSignalLevel() {
         float rssi = getFilteredRSSI();
 
-        if (rssi > -55) return 5;   // strongest
-        if (rssi > -65) return 4;   // strong
-        if (rssi > -75) return 3;   // good
+        if (rssi > -60) return 5;   // strongest
+        if (rssi > -70) return 4;   // strong
+        if (rssi > -78) return 3;   // good
         if (rssi > -85) return 2;   // weak
 
         return 0;                   // no signal

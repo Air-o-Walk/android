@@ -25,37 +25,66 @@ import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
 
 import java.util.ArrayList;
-
+// --------------------------------------------------------------
+// FindMyNodeActivity.java
+// Autor: Meryame Ait Boumlik
+// Descripción:
+//   Activity encargada de localizar un iBeacon concreto en tiempo real.
+//   Escanea anuncios BLE, estima distancia por RSSI, detecta pérdida de señal,
+//   muestra barras de señal y permite abrir la última ubicación GPS conocida.
+// Diseño general:
+//   onCreate() → initGPS() → startScanning()
+//   → onScanResult() → updateUI() | showOutOfRange()
+//   → rangeCheckerThread() detecta desaparición del nodo
+// --------------------------------------------------------------
 public class FindMyNodeActivity extends AppCompatActivity {
 
     private static final String TAG = "FIND_NODE";
     private static final int GPS_PERMISSION_REQUEST = 1234;
 
+    // ------------------------------------------------------------------
     // BLE
+    // ------------------------------------------------------------------
     private BluetoothLeScanner scanner;
     private ScanCallback scanCallback;
 
-    // Estimator
+    // ------------------------------------------------------------------
+    // Distancia / Estimador
+    // ------------------------------------------------------------------
     private DistanceEstimator estimator;
     private String nodeName;
 
-    // UI references
+    // ------------------------------------------------------------------
+    // Referencias UI
+    // ------------------------------------------------------------------
     private TextView txtDistance;
     private ImageView imgBars;
     private View circle;
     private Button btnLastLocation;
 
-    // Node detection & timing
+    // ------------------------------------------------------------------
+    // Control de visibilidad y tiempo del beacon
+    // ------------------------------------------------------------------
     private boolean nodeVisible = false;
     private long lastSeenTimestamp = 0;
 
+    // ------------------------------------------------------------------
     // GPS
+    // ------------------------------------------------------------------
     private LocationManager locationManager;
     private LocationListener gpsListener;
     private Location lastLocation = null;
-
+    // Thread que vigila si el nodo desaparece por timeout dinámico
     private Thread rangeCheckerThread;
 
+    // --------------------------------------------------------------
+    // onCreate()
+    // Descripción:
+    //   - Inicializa UI
+    //   - Obtiene nombre del nodo desde Intent
+    //   - Crea estimador de distancia
+    //   - Activa GPS y BLE scanning
+    // --------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,7 +95,7 @@ public class FindMyNodeActivity extends AppCompatActivity {
 
         estimator = new DistanceEstimator();
 
-        // Bind UI
+        // Enlazar UI
         txtDistance = findViewById(R.id.txtDistance);
         imgBars = findViewById(R.id.imgSignalBars);
         circle = findViewById(R.id.distanceCircle);
@@ -75,6 +104,7 @@ public class FindMyNodeActivity extends AppCompatActivity {
         Button btnBack = findViewById(R.id.btnVolver);
         btnBack.setOnClickListener(v -> finish());
 
+        // Botón que abre última ubicación GPS detectada
         btnLastLocation.setOnClickListener(v -> {
             if (lastLocation != null) {
                 String uri = "geo:" + lastLocation.getLatitude() + "," + lastLocation.getLongitude();
@@ -82,7 +112,7 @@ public class FindMyNodeActivity extends AppCompatActivity {
             }
         });
 
-        // BLE scanner
+        // Inicializar escáner BLE
         BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
         if (btAdapter != null)
             scanner = btAdapter.getBluetoothLeScanner();
@@ -91,9 +121,13 @@ public class FindMyNodeActivity extends AppCompatActivity {
         startScanning();
     }
 
-    // -----------------------------------------------------------
-    // GPS INITIALIZATION
-    // -----------------------------------------------------------
+    // --------------------------------------------------------------
+    // initGPS()
+    // Descripción:
+    //   - Solicita permisos si falta alguno
+    //   - Crea listener que actualiza lastLocation
+    //   - Comienza a recibir actualizaciones GPS
+    // --------------------------------------------------------------
     private void initGPS() {
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
@@ -103,7 +137,12 @@ public class FindMyNodeActivity extends AppCompatActivity {
 
             ActivityCompat.requestPermissions(
                     this,
-                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    new String[]{
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                            android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    }
+                    ,
                     GPS_PERMISSION_REQUEST
             );
             return;
@@ -131,7 +170,10 @@ public class FindMyNodeActivity extends AppCompatActivity {
         }
     }
 
-    // Handle GPS permission result
+    // --------------------------------------------------------------
+    // onRequestPermissionsResult()
+    // Descripción: Reintenta inicializar GPS si el usuario lo permite
+    // --------------------------------------------------------------
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -145,9 +187,7 @@ public class FindMyNodeActivity extends AppCompatActivity {
         }
     }
 
-    // -----------------------------------------------------------
-    // BLE SCANNING
-    // -----------------------------------------------------------
+
     private void startScanning() {
 
         if (scanner == null) {
@@ -155,20 +195,26 @@ public class FindMyNodeActivity extends AppCompatActivity {
             txtDistance.setText("Bluetooth apagado");
             return;
         }
+        nodeVisible = false;
+        showOutOfRange();
 
         scanCallback = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
-                BluetoothDevice dev = result.getDevice();
+
+                if (result.getScanRecord() == null) return;
 
                 byte[] scanData = result.getScanRecord().getBytes();
+                TramaIBeacon tib = new TramaIBeacon(scanData);
 
-// The ESP32 iBeacon always contains your beacon name inside the UUID bytes,
-// but NOT inside device.getName()
+                String uuidText = Utilidades.bytesToString(tib.getUUID());   // Gives EPSG-GTI-PROY-3A
 
-                String raw = bytesToHexString(scanData);
-                if (!raw.contains(nodeName)) return;   // Now this detects the correct device
+                Log.d(TAG, "UUID recibido = " + uuidText + " buscando=" + nodeName);
 
+                // MATCH IF nodeName IS ANY SUBSTRING OF THE UUID
+                if (!uuidText.contains(nodeName)) {
+                    return;
+                }
 
                 int rssi = result.getRssi();
                 estimator.addReading(rssi);
@@ -178,6 +224,8 @@ public class FindMyNodeActivity extends AppCompatActivity {
 
                 updateUI();
             }
+
+
         };
 
         ArrayList<ScanFilter> filters = new ArrayList<>();
@@ -192,20 +240,38 @@ public class FindMyNodeActivity extends AppCompatActivity {
         startRangeCheckerThread();
     }
 
-    // -----------------------------------------------------------
-    // THREAD: CHECK IF NODE DISAPPEARS
-    // -----------------------------------------------------------
+    // --------------------------------------------------------------
+    // startRangeCheckerThread()
+    // Descripción:
+    //   - Hilo secundario que evalúa cada 500ms si el nodo dejó de emitir
+    //   - Timeout dinámico según la intensidad RSSI promedio
+    //   - Si pasa el timeout → nodo considerado "Fuera de rango"
+    // --------------------------------------------------------------
     private void startRangeCheckerThread() {
         rangeCheckerThread = new Thread(() -> {
             while (!isFinishing()) {
+
                 long now = System.currentTimeMillis();
+                long timeout;
 
-                if (nodeVisible && now - lastSeenTimestamp > 3000) {
-                    nodeVisible = false;
+                float rssi = estimator.getFilteredRSSI();
 
-                    Log.d(TAG, "Node out of range — last known location saved");
+                if (rssi > -60) {
+                    timeout = 8000;    // close → strict timeout
+                } else if (rssi > -70) {
+                    timeout = 5000;    // medium → moderate timeout
+                } else if (rssi > -78) {
+                    timeout = 3000;    // 2–3m → weak reception
+                } else {
+                    timeout = 0;    // far → packets often lost
+                }
 
-                    runOnUiThread(this::showOutOfRange);
+                if (now - lastSeenTimestamp > timeout) {
+                    if (nodeVisible) {
+                        nodeVisible = false;
+                        Log.d(TAG, "Node out of range — last known location saved");
+                        runOnUiThread(this::showOutOfRange);
+                    }
                 }
 
                 try {
@@ -217,13 +283,17 @@ public class FindMyNodeActivity extends AppCompatActivity {
         rangeCheckerThread.start();
     }
 
-    // -----------------------------------------------------------
-    // UPDATE UI WHEN BEACON IS FOUND
-    // -----------------------------------------------------------
+
+    // --------------------------------------------------------------
+    // updateUI()
+    // Descripción:
+    //   - Actualiza texto, color del círculo e icono de barras
+    //   - Se llama cada vez que se recibe un frame válido del beacon
+    // --------------------------------------------------------------
     private void updateUI() {
         String category = estimator.getDistanceCategory();
         int level = estimator.getSignalLevel();
-
+        Log.d("FIND_NODE", "UI updated with category: " + category + " | level: " + level);
         runOnUiThread(() -> {
 
             txtDistance.setText("Distancia: " + category);
@@ -253,12 +323,22 @@ public class FindMyNodeActivity extends AppCompatActivity {
     private void showOutOfRange() {
         txtDistance.setText("Fuera de rango");
         circle.setBackgroundResource(R.drawable.circle_cold);
-        btnLastLocation.setVisibility(View.VISIBLE);
+
+        if (lastLocation != null) {
+            btnLastLocation.setVisibility(View.VISIBLE);
+        } else {
+            btnLastLocation.setVisibility(View.GONE);
+        }
+
+        imgBars.setImageResource(R.drawable.ic_signal_0);
     }
 
-    // -----------------------------------------------------------
-    // CLEANUP
-    // -----------------------------------------------------------
+
+    // --------------------------------------------------------------
+    // onDestroy()
+    // Descripción:
+    //   - Limpia GPS, BLE scanning y el hilo vigía
+    // --------------------------------------------------------------
     @Override
     protected void onDestroy() {
         super.onDestroy();
