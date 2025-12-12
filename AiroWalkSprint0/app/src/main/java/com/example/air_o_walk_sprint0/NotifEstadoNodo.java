@@ -16,35 +16,20 @@ import androidx.core.app.NotificationManagerCompat;
 /*
 // ===================================================================================================
 //  NotifEstadoNodo.java
-//  Autor : Christopher
+//  Autor : Christopher y Adenor
 //
 //  Descripción:
 //  -----------------------------------------------------------------------------------------------
 //  Clase responsable de monitorizar el estado del nodo sensor (beacon) después de la vinculación.
 //  Se encarga de:
 //
-//     1) Detectar si se están recibiendo beacons → “Nodo conectado”
-//     2) Detectar si dejan de recibirse beacons durante X segundos → “Nodo desconectado”
+//     1) Detectar si se están recibiendo beacons → "Nodo conectado"
+//     2) Detectar si dejan de recibirse beacons durante X segundos → "Nodo desconectado"
 //     3) Analizar las mediciones recibidas (gas, temperatura, etc.) y determinar si son incoherentes
 //        usando un threshold.
+//     4) NUEVO: Notificar mediante listener cuando se pierde la conexión
 //
 //  Todo está encapsulado aquí para no modificar las otras clases del proyecto.
-//
-//  Diseño de la clase:
-//  -----------------------------------------------------------------------------------------------
-//  NotifEstadoNodo
-//       |-- Constructor(contexto, nombreNodo)
-//       |-- onBeaconRecibido(valorGas, valorTemp)
-//       |       L-- Actualiza timestamp
-//       |       L-- Analiza valores incoherentes
-//       |
-//       |-- iniciarMonitor()
-//       |       L-- Inicia un watchdog que revisa si se perdieron los beacons
-//       |
-//       |-- detenerMonitor()
-//       |
-//       |-- checkConexion()
-//       |       L-- Si pasan TIMEOUT_BEACON ms sin beacons → desconexión
 // ===================================================================================================
 */
 
@@ -76,6 +61,16 @@ public class NotifEstadoNodo {
     // Canal de notificaciones
     private static final String CANAL_NODO = "canal_estado_nodo";
 
+    // NUEVO: Listener para desconexión
+    private DesconexionListener desconexionListener;
+
+    // ------------------------------------------------------------
+    // NUEVO: Interface para notificar desconexión
+    // ------------------------------------------------------------
+    public interface DesconexionListener {
+        void onNodoDesconectado();
+    }
+
     // ------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------
@@ -83,6 +78,13 @@ public class NotifEstadoNodo {
         this.context = ctx;
         this.nombreNodo = nombreNodo;
         crearCanal();
+    }
+
+    // ------------------------------------------------------------
+    // NUEVO: Método para configurar listener de desconexión
+    // ------------------------------------------------------------
+    public void setDesconexionListener(DesconexionListener listener) {
+        this.desconexionListener = listener;
     }
 
     // ------------------------------------------------------------
@@ -131,6 +133,7 @@ public class NotifEstadoNodo {
 
     // ------------------------------------------------------------
     // checkConexion() → si pasan X segundos sin beacons → desconectado
+    // MODIFICADO: Ahora notifica mediante listener
     // ------------------------------------------------------------
     private void checkConexion() {
 
@@ -139,6 +142,11 @@ public class NotifEstadoNodo {
         if (estabaConectado && (ahora - ultimoBeacon) > TIMEOUT_BEACON_MS) {
             notificarNodoDesconectado();
             estabaConectado = false;
+
+            // NUEVO: Notificar a MainActivity mediante listener
+            if (desconexionListener != null) {
+                desconexionListener.onNodoDesconectado();
+            }
         }
     }
 
