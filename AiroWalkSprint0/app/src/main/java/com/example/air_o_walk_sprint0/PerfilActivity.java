@@ -1,5 +1,7 @@
 package com.example.air_o_walk_sprint0;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.widget.EditText;
@@ -119,6 +121,10 @@ public class PerfilActivity extends AppCompatActivity {
         findViewById(R.id.editar_password).setOnClickListener(v -> {
             mostrarDialogoEdicionPassword();
         });
+        // QUEJAS + PRIVACIDAD
+        findViewById(R.id.chevron_quejas).setOnClickListener(v -> showQuejasPopup());
+        findViewById(R.id.chevron_privacidad).setOnClickListener(v -> showPrivacidadPopup());
+
     }
 
     /**
