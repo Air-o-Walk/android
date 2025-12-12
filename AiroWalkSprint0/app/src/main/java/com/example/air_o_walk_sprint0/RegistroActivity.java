@@ -35,11 +35,20 @@ public class RegistroActivity extends AppCompatActivity {
      private LogicaRegistro logicaRegistro;
 
 
+    // --------------------------------------------------------------
+    // onCreate()
+    // Descripción: Inicializa la interfaz de registro, configura referencias UI
+    //              y lanza carga de ayuntamientos desde backend.
+    // Diseño: Layout → referencias UI → obtenerAyuntamientos() → configurar botones.
+    // --------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.registro_activity);
 
+        // ---------------------------
+        // REFERENCIAS UI
+        // ---------------------------
         campoFirstName = findViewById(R.id.campo_first_name);
         campoLastName = findViewById(R.id.campo_last_name);
         campoEmail = findViewById(R.id.campo_email);
@@ -51,14 +60,25 @@ public class RegistroActivity extends AppCompatActivity {
         buttonRegister = findViewById(R.id.buttonRegister);
         buttonLogin = findViewById(R.id.buttonLogin);
 
+        // ---------------------------
+        // INICIALIZAR LÓGICA Y CARGAR DATOS
+        // ---------------------------
         logicaRegistro = new LogicaRegistro();
         obtenerAyuntamientos();
 
-
+        // ---------------------------
+        // CONFIGURAR BOTONES
+        // ---------------------------
         buttonRegister.setOnClickListener(v -> registerUser());
         buttonLogin.setOnClickListener(v -> startActivity(new Intent(RegistroActivity.this, LoginActivity.class)));
     }
 
+
+    // --------------------------------------------------------------
+    // obtenerAyuntamientos()
+    // Descripción: Solicita al backend la lista de ayuntamientos y popula el Spinner.
+    //              Mapea nombre → ID para usar en el registro.
+    // --------------------------------------------------------------
     private void obtenerAyuntamientos() {
         logicaRegistro.obtenerListaAyuntamientos(new LogicaRegistro.AyuntamientosCallback() {
             @Override
@@ -78,14 +98,26 @@ public class RegistroActivity extends AppCompatActivity {
         });
     }
 
-
+    // --------------------------------------------------------------
+    // registerUser()
+    // Descripción: Valida TODOS los campos del formulario y envía solicitud de registro.
+    //              Validaciones secuenciales con mensajes de error específicos.
+    // Diseño: Leer campos → validar uno a uno → si OK → solicitudUsuario().
+    // --------------------------------------------------------------
     private void registerUser() {
+
+        // ---------------------------
+        // OBTENER DATOS DE CAMPOS
+        // ---------------------------
         String firstName = campoFirstName.getText().toString().trim();
         String lastName = campoLastName.getText().toString().trim();
         String email = campoEmail.getText().toString().trim();
         String dni = campoDni.getText().toString().trim();
         String phone = campoPhone.getText().toString().trim();
 
+        // ---------------------------
+        // VALIDACIONES
+        // ---------------------------
         if (TextUtils.isEmpty(firstName)) {
             campoFirstName.setError("El nombre es obligatorio");
             return;
@@ -117,6 +149,9 @@ public class RegistroActivity extends AppCompatActivity {
             return;
         }
 
+        // ---------------------------
+        // LLAMADA AL BACKEND
+        // ---------------------------
         String townHallId = ayuntamientosMap.get(selectedTownHallName);
 
         logicaRegistro.solicitudUsuario(townHallId, firstName,lastName, email, dni, phone,
@@ -133,6 +168,11 @@ public class RegistroActivity extends AppCompatActivity {
                 });
     }
 
+    // --------------------------------------------------------------
+    // mostrarPopupTerminosYPrivacidad()
+    // Descripción: Muestra AlertDialog con términos y condiciones + política de privacidad.
+    //              Marca/desmarca checkbox según respuesta del usuario.
+    // --------------------------------------------------------------
     private void mostrarPopupTerminosYPrivacidad() {
         // Contenido de los términos y condiciones y la política de privacidad
         String contenido =
