@@ -178,8 +178,8 @@ public class NotifEstadoNodo {
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(context, CANAL_NODO)
                         .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
-                        .setContentTitle("Nodo conectado")
-                        .setContentText("Recibiendo datos de: " + nombreNodo)
+                        .setContentTitle("Dispositivo conectado")
+                        .setContentText("Recibiendo datos exitosamente!")
                         .setPriority(NotificationCompat.PRIORITY_HIGH);
 
         try {
@@ -207,8 +207,8 @@ public class NotifEstadoNodo {
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(context, CANAL_NODO)
                         .setSmallIcon(android.R.drawable.stat_notify_error)
-                        .setContentTitle("Nodo desconectado")
-                        .setContentText("No se reciben beacons de: " + nombreNodo)
+                        .setContentTitle("Dispositivo desconectado :(")
+                        .setContentText("No se reciben datos del dispositivo")
                         .setPriority(NotificationCompat.PRIORITY_HIGH);
 
         try {
@@ -269,8 +269,8 @@ public class NotifEstadoNodo {
     private void crearCanal() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            CharSequence nombre = "Estado del nodo";
-            String descripcion = "Notificaciones sobre conexión y lecturas del nodo";
+            CharSequence nombre = "Estado del dispositivo";
+            String descripcion = "Notificaciones sobre conexión";
             int importancia = NotificationManager.IMPORTANCE_HIGH;
 
             NotificationChannel canal = new NotificationChannel(CANAL_NODO, nombre, importancia);
