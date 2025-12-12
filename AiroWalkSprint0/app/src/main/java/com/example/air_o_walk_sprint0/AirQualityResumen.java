@@ -14,7 +14,7 @@ import org.json.JSONObject;
 //- Tiempo activo (h)
 //- Distancia recorrida (km)
 //- Puntos obtenidos
-//- Datos para la gráfica (timestamps, O3, NO2, CO)
+//- Datos para la gráfica (timestamps, O3, NO2, CO, index)
 // --------------------------------------------------------------
 public class AirQualityResumen {
     private static final String TAG = "AirQualityResumen";
@@ -43,6 +43,8 @@ public class AirQualityResumen {
         public JSONArray o3;
         public JSONArray no2;
         public JSONArray co;
+        public JSONArray index;
+
     }
 
     // --------------------------------------------------------------
@@ -112,10 +114,14 @@ public class AirQualityResumen {
         data.status = root.getString("status");
         data.summaryText = root.getString("summaryText");
 
-        data.timeHours = root.getDouble("timeHours");
-        data.distanceKm = root.getDouble("distanceKm");
-        data.steps = root.getInt("steps");
-        data.points = root.getInt("points");
+        data.timeHours = root.optDouble("timeHours", 0);
+        data.distanceKm = root.optDouble("distanceKm", 0);
+
+        // steps unknown → safe fallback
+        data.steps = root.optInt("steps", 0);
+
+        // Backend returns points sometimes as "0" (string)
+        data.points = root.optInt("points", 0);
 
         JSONObject graph = root.getJSONObject("graph");
 
@@ -124,6 +130,13 @@ public class AirQualityResumen {
         data.no2 = graph.getJSONArray("no2");
         data.co = graph.getJSONArray("co");
 
+        // NEW: index might not exist on server yet
+        data.index = graph.optJSONArray("index");
+        if (data.index == null) {
+            data.index = new JSONArray(); // Avoid crash
+        }
+
         return data;
     }
+
 }
