@@ -1,0 +1,26 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/nav_perfil"
+        android:title="PERFIL"/>
+
+    <item android:id="@+id/nav_recorrido"
+        android:title="RECORRIDO"/>
+
+    <item android:id="@+id/nav_recompensa"
+        android:title="RECOMPENSA"/>
+
+    <item android:id="@+id/nav_mapa"
+        android:title="MAPA"/>
+
+    <item android:title="────────"/>
+
+    <item android:id="@+id/nav_historial"
+        android:title="HISTORIAL"/>
+
+    <item android:id="@+id/nav_notificaciones"
+        android:title="NOTIFICACIONES"/>
+
+    <item android:id="@+id/nav_info"
+        android:title="INFORMACIÓN SOBRE GASES"/>
+
+</menu>
