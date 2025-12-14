@@ -28,7 +28,7 @@ import java.util.List;
 //      - Resumen textual
 //      - Gráfica de indice normalizado en las últimas 8 horas
 // --------------------------------------------------------------
-public class AirQualitySummaryActivity extends AppCompatActivity {
+public class AirQualitySummaryActivity extends BaseActivity {
 
     private static final String TAG = "AirQualitySummary";
 
@@ -49,6 +49,8 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_air_quality_summary);
+        setupHeaderAndDrawer(true);   // true = has drawer
+        setupBackBehavior();
 
         Log.d(TAG, "onCreate(): Iniciando pantalla.");
 

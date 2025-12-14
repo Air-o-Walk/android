@@ -14,7 +14,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.air_o_walk_sprint0.LogicaEditarPerfil;
 
-public class PerfilActivity extends AppCompatActivity {
+public class PerfilActivity extends BaseActivity {
     private String token;
     private int userId;
     private LogicaEditarPerfil logicaEditar;
@@ -22,7 +22,9 @@ public class PerfilActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.perfil);
+        setContentView(R.layout.activity_perfil);
+        setupHeaderAndDrawer(true);
+        setupBackBehavior();
 
         // Obtener token y userId del Intent
         userId = getIntent().getIntExtra("USER_ID", 0);

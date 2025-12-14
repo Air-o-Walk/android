@@ -44,7 +44,7 @@ import com.google.android.material.navigation.NavigationView;
 // Clase principal de la actividad Android
 // ------------------------------------------------------------------
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity  {
 
     // Etiqueta para los logs
     private static final String ETIQUETA_LOG = ">>>>";
@@ -104,6 +104,10 @@ public class MainActivity extends AppCompatActivity {
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private ImageView btnMenu;
+
+    private TextView textVinculacion;
+    private View btnVincular;
+
 
 
     // ------------------------------------------------------------------
@@ -748,8 +752,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        iconoVincular = findViewById(R.id.iconoVincular);
-        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+
         estadoBotonRecorrido(false);
 
         vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() {
@@ -892,88 +895,155 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // ===============================
-        // Drawer + Header initialization
-        // ===============================
-        drawerLayout = findViewById(R.id.drawerLayout);
-        navigationView = findViewById(R.id.navigationView);
-        btnMenu = findViewById(R.id.btnMenu);
-        // Open drawer when hamburger is clicked
-        btnMenu.setOnClickListener(v ->
-                drawerLayout.openDrawer(GravityCompat.START)
-        );
-
-        // Handle drawer menu clicks
-        navigationView.setNavigationItemSelectedListener(item -> {
-            drawerLayout.closeDrawer(GravityCompat.START);
-
-            int id = item.getItemId();
-
-            if (id == R.id.nav_perfil) {
-                abrirPerfilActivity();
-            } else {
-                Toast.makeText(
-                        this,
-                        "Pantalla aún no implementada",
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
-
-            return true;
-        });
-
-
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    drawerLayout.closeDrawer(GravityCompat.START);
-                } else {
-                    setEnabled(false); // disable callback
-                    MainActivity.super.onBackPressed();
-                }
-            }
-        });
-
-
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
-        textMajor = findViewById(R.id.textMajor);
-        textMinor = findViewById(R.id.textMinor);
-        textSteps = findViewById(R.id.distanciaTotal);
-        tiempoTotal = findViewById(R.id.tiempoTotal);
-        trackButton = findViewById(R.id.track);
-
-        inicializarBlueTooth();
-
+        // =====================================================
+        // 1️⃣ READ INTENT FIRST (CRITICAL)
+        // =====================================================
         Intent intent = getIntent();
         if (intent != null) {
             idUsuario = intent.getIntExtra("USER_ID", -1);
             token = intent.getStringExtra("TOKEN");
         }
 
-        iconoVincular = findViewById(R.id.iconoVincular);
-        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+        if (idUsuario == -1 || token == null) {
+            Log.e(ETIQUETA_LOG, "ERROR: USER_ID o TOKEN no recibidos");
+            Toast.makeText(this,
+                    "Error de sesión. Vuelve a iniciar sesión.",
+                    Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        // =====================================================
+        // 2️⃣ BIND MAIN UI
+        // =====================================================
+        textMajor = findViewById(R.id.textMajor);
+        textMinor = findViewById(R.id.textMinor);
+        // IMPORTANTE: Los IDs de los TextViews parecen ser diferentes en tu código anterior y nuevo.
+        // Usa los IDs que realmente están en tu activity_main.xml.
+        // Asumiré que quieres usar los IDs del código nuevo (distanciaTotal y tiempoTotal)
+        textSteps = findViewById(R.id.distanciaTotal);
+        tiempoTotal = findViewById(R.id.tiempoTotal);
+        trackButton = findViewById(R.id.track);
+
+        // Nuevas vistas en el código
+        textVinculacion = findViewById(R.id.textVinculacion);
+        btnVincular = findViewById(R.id.botonBuscarNuestroDispositivoBTLE);
+
+
+        // =====================================================
+        // 3️⃣ DRAWER + HEADER (¡Verifica el layout del header!)
+        // =====================================================
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        btnMenu = findViewById(R.id.btnMenu); // El botón de menú/hamburguesa está en el activity_main
+
+        // OBTENER ICONO DEL HEADER: Esta es la parte crítica
+        try {
+            iconoVincular = findViewById(R.id.iconoVincular);
+
+            // Configurar listener para iconoVincular (en el header)
+            if (iconoVincular != null) {
+                iconoVincular.setOnClickListener(v -> {
+                    if (yaVinculado) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Dispositivo conectado")
+                                .setMessage(
+                                        "Tu dispositivo está conectado y midiendo la calidad del aire.\n\n" +
+                                                "¿Deseas desvincularlo?"
+                                )
+                                .setPositiveButton("Desvincular", (d, w) -> desvincularNodo())
+                                .setNegativeButton("Cancelar", null)
+                                .show();
+                    } else {
+                        // Llama a la lógica de vinculación al hacer clic en el icono
+                        botonVincularPulsado(v);
+                    }
+                });
+            } else {
+                Log.w(ETIQUETA_LOG, "AVISO: iconoVincular no se encontró en el header del Navigation View.");
+            }
+        } catch (Exception e) {
+            Log.e(ETIQUETA_LOG, "Error al inicializar Drawer/Header: " + e.getMessage(), e);
+            // Podrías lanzar un Toast aquí si es un error crítico
+        }
+
+        // Configurar listener para btnMenu (en el toolbar/layout principal)
+        if (btnMenu != null && drawerLayout != null) {
+            btnMenu.setOnClickListener(v ->
+                    drawerLayout.openDrawer(GravityCompat.START)
+            );
+        } else {
+            Log.w(ETIQUETA_LOG, "AVISO: btnMenu o drawerLayout no se encontraron.");
+        }
+
+        // Configurar listener para los elementos del Navigation View
+        navigationView.setNavigationItemSelectedListener(item -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+
+            if (item.getItemId() == R.id.nav_perfil) {
+                abrirPerfilActivity();
+            } else {
+                Toast.makeText(this,
+                        "Pantalla aún no implementada",
+                        Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        });
+
+        // Configuración del botón de retroceso
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                } else {
+                    setEnabled(false);
+                    MainActivity.super.onBackPressed();
+                }
+            }
+        });
+
+        // =====================================================
+        // 4️⃣ INITIAL UI STATE
+        // =====================================================
+        // Solo si iconoVincular no es null
+        if (iconoVincular != null) {
+            iconoVincular.setImageResource(R.drawable.ic_link_off); // Usando el nuevo icono
+        }
         estadoBotonRecorrido(false);
 
+
+        // Solo si las vistas principales no son null
+        if (textSteps != null) textSteps.setText("0 pasos");
+        if (tiempoTotal != null) tiempoTotal.setText("00:00:00");
+
+        // =====================================================
+        // 5️⃣ BLUETOOTH + VINCULADOR (SAFE NOW)
+        // =====================================================
+        inicializarBlueTooth();
         inicializarVinculador();
 
+        // =====================================================
+        // 6️⃣ TRACKERS
+        // =====================================================
         try {
             stepTracker = new StepCounterTracker(this);
             timeTracker = new WalkingTimeTracker();
             gpsTracker = new GPSFondo(this);
 
-            stepTracker.setStepListener((steps) -> {
+            // Listeners
+            stepTracker.setStepListener(steps -> {
                 if (isTracking && beaconConectado) {
-                    WalkingTimeTracker.TimeComponents time = timeTracker.getTimeComponents();
-                    updateTrackingUI(steps, time.hours, time.minutes, time.seconds);
+                    WalkingTimeTracker.TimeComponents t = timeTracker.getTimeComponents();
+                    updateTrackingUI(steps, t.hours, t.minutes, t.seconds);
                 }
             });
 
-            timeTracker.setTimeUpdateListener((hours, minutes, seconds, totalSeconds) -> {
+            timeTracker.setTimeUpdateListener((h, m, s, total) -> {
                 if (isTracking && beaconConectado) {
-                    int steps = stepTracker.getSteps();
-                    updateTrackingUI(steps, hours, minutes, seconds);
+                    updateTrackingUI(stepTracker.getSteps(), h, m, s);
                 }
             });
 
@@ -981,12 +1051,6 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onLocationUpdate(Location location) {
                     if (isTracking && beaconConectado) {
-                        Log.d(ETIQUETA_LOG, String.format(" GPS Update: Lat=%.6f, Lon=%.6f, Accuracy=%.1fm",
-                                location.getLatitude(),
-                                location.getLongitude(),
-                                location.getAccuracy()));
-
-                        // NUEVO: Actualizar última ubicación conocida en tiempo real
                         ultimaUbicacionNodo = location;
                     }
                 }
@@ -997,21 +1061,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            textSteps.setText("0 pasos");
-            tiempoTotal.setText("00:00:00");
-
-            Log.d(ETIQUETA_LOG, " Trackers inicializados correctamente");
-
             verificarSensores();
 
         } catch (Exception e) {
-            Log.e(ETIQUETA_LOG, " Error al inicializar trackers: " + e.getMessage());
-            e.printStackTrace();
+            Log.e(ETIQUETA_LOG, " Error inicializando trackers", e);
+            // Manejo de error más visible para el usuario si es crítico
+            Toast.makeText(this, "Error de sensores: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
-
     }
+
 
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
@@ -1062,7 +1122,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void abrirPerfilActivity() {
+    public void abrirPerfilActivity() {
         if (idUsuario == -1 || token == null) {
             Toast.makeText(this, "Error: No hay datos de usuario disponibles", Toast.LENGTH_SHORT).show();
             return;
@@ -1077,19 +1137,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void botonVincularPulsado(View v) {
+
+        // 🔒 EXTRA SAFETY: if already linked, DO NOTHING
         if (yaVinculado) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Nodo ya vinculado")
-                    .setMessage(
-                            "Actualmente estás vinculado al beacon:\n\n" +
-                                    "📡 " + nombreNodoVinculado +
-                                    "\n\nPuedes conservarlo o desvincularlo."
-                    )
-                    .setPositiveButton("Aceptar", null)
-                    .setNegativeButton("Desvincular nodo", (dialog, which) -> {
-                        desvincularNodo();
-                    })
-                    .show();
             return;
         }
 
@@ -1097,21 +1147,20 @@ public class MainActivity extends AppCompatActivity {
         input.setHint("Ej: GTI");
 
         new AlertDialog.Builder(this)
-                .setTitle("Vincular Beacon")
-                .setMessage("Introduce el código (nombre del beacon):")
+                .setTitle("Conectar dispositivo")
+                .setMessage("Introduce el nombre del dispositivo para empezar a medir la calidad del aire.")
                 .setView(input)
                 .setPositiveButton("Vincular", (dlg, which) -> {
                     String codigo = input.getText().toString().trim();
-                    if (codigo.isEmpty()) {
-                        Log.d(">>>>", "Código vacío");
-                        return;
-                    }
-                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+                    if (codigo.isEmpty()) return;
+
+                    iconoVincular.setImageResource(R.drawable.ic_link_off);
                     vinculador.vincularPorNombre(codigo, 10_000);
                 })
-                .setNegativeButton("Cancelar", (d, w) -> {})
+                .setNegativeButton("Cancelar", null)
                 .show();
     }
+
 
     private void verificarNodoVinculado() {
         String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
@@ -1126,41 +1175,29 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject json = new JSONObject(cuerpo);
 
                     if (json.getBoolean("success")) {
-                        String nombreNodo = json.getJSONObject("node").getString("name");
-
+                        nombreNodoVinculado = json.getJSONObject("node").getString("name");
                         yaVinculado = true;
-                        nombreNodoVinculado = nombreNodo;
-
-                        runOnUiThread(() -> {
-                            iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
-                            estadoBotonRecorrido(true);
-                            // Mostrar botón "Encontrar mi sensor"
-                            Button btnFind = findViewById(R.id.btnFindSensor);
-                            btnFind.setVisibility(View.VISIBLE);
-
-                            btnFind.setOnClickListener(v -> {
-                                Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
-                                i.putExtra("NODE_NAME", nombreNodoVinculado);
-                                startActivity(i);
-                            });                            buscarEsteDispositivoBTLE(nombreNodo);
-                        });
-
                     } else {
-                        runOnUiThread(() -> {
-                            iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                            estadoBotonRecorrido(false);
-                        });
+                        yaVinculado = false;
+                        nombreNodoVinculado = null;
                     }
 
+                    runOnUiThread(() -> {
+                        actualizarEstadoVinculacionUI();
 
-
+                        // Start scan only if linked
+                        if (yaVinculado) {
+                            buscarEsteDispositivoBTLE(nombreNodoVinculado);
+                        }
+                    });
 
                 } catch (Exception e) {
-                    Log.e(">>>>", "Error procesando verificación nodo: " + e.getMessage());
+                    Log.e(">>>>", "Error procesando verificación nodo", e);
                 }
             }
         });
     }
+
 
     private void desvincularNodo() {
         String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
@@ -1174,32 +1211,26 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(">>>>", "Desvincular nodo, código=" + codigo + " cuerpo=" + cuerpo);
 
                 runOnUiThread(() -> {
-
                     yaVinculado = false;
                     nombreNodoVinculado = null;
                     beaconConectado = false;
-                    ultimaUbicacionNodo = null;
-
-                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                    estadoBotonRecorrido(false);
-                    findViewById(R.id.btnFindSensor).setVisibility(View.GONE);
-
 
                     detenerBusquedaDispositivosBTLE();
 
-                    if (isTracking) {
-                        stopTracking();
-                    }
+                    actualizarEstadoVinculacionUI();
+
+                    if (isTracking) stopTracking();
 
                     textSteps.setText("---");
                     tiempoTotal.setText("---");
 
                     new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Nodo desvinculado")
-                            .setMessage("El beacon ha sido desvinculado correctamente.")
+                            .setTitle("Dispositivo desvinculado")
+                            .setMessage("El sensor ha dejado de medir la calidad del aire.")
                             .setPositiveButton("Aceptar", null)
                             .show();
                 });
+
 
             }
         });
@@ -1235,6 +1266,34 @@ public class MainActivity extends AppCompatActivity {
             enviarUltimaUbicacionNodo();
         }
     }
+    private void actualizarUIVinculacion() {
+        if (yaVinculado) {
+            textVinculacion.setVisibility(View.GONE);
+            btnVincular.setVisibility(View.GONE);
+        } else {
+            textVinculacion.setVisibility(View.VISIBLE);
+            btnVincular.setVisibility(View.VISIBLE);
+        }
+    }
+    private void actualizarEstadoVinculacionUI() {
+
+        if (iconoVincular != null) {
+            iconoVincular.setImageResource(
+                    yaVinculado ? R.drawable.ic_link : R.drawable.ic_link_off
+            );
+            iconoVincular.setEnabled(true);
+            iconoVincular.setAlpha(1f);
+        }
+
+        actualizarUIVinculacion();
+        estadoBotonRecorrido(yaVinculado);
+
+        Button btnFind = findViewById(R.id.btnFindSensor);
+        if (btnFind != null) {
+            btnFind.setVisibility(yaVinculado ? View.VISIBLE : View.GONE);
+        }
+    }
+
 
 
 

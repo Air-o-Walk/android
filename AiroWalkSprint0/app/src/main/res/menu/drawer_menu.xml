@@ -4,18 +4,16 @@
         android:title="PERFIL"/>
 
     <item android:id="@+id/nav_recorrido"
-        android:title="RECORRIDO"/>
+        android:title="RESUMEN RECORRIDO"/>
 
     <item android:id="@+id/nav_recompensa"
         android:title="RECOMPENSA"/>
 
     <item android:id="@+id/nav_mapa"
-        android:title="MAPA"/>
+        android:title="MAPA/HOME"/>
 
     <item android:title="────────"/>
 
-    <item android:id="@+id/nav_historial"
-        android:title="HISTORIAL"/>
 
     <item android:id="@+id/nav_notificaciones"
         android:title="NOTIFICACIONES"/>
