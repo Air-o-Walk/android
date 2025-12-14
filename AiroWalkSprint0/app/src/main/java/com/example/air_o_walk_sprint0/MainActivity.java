@@ -24,6 +24,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -33,6 +34,11 @@ import org.json.JSONObject;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.core.view.GravityCompat;
+import com.google.android.material.navigation.NavigationView;
+
 
 // ------------------------------------------------------------------
 // Clase principal de la actividad Android
@@ -93,6 +99,12 @@ public class MainActivity extends AppCompatActivity {
     private float ultimaMedicionO3 = 0f;
     private float ultimaMedicionCO = 0f;
     private float ultimaMedicionNO2 = 0f;
+
+    // Drawer / Navigation
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ImageView btnMenu;
+
 
     // ------------------------------------------------------------------
     // Escanea todos los dispositivos BLE cercanos y muestra su información
@@ -880,6 +892,50 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // ===============================
+        // Drawer + Header initialization
+        // ===============================
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        btnMenu = findViewById(R.id.btnMenu);
+        // Open drawer when hamburger is clicked
+        btnMenu.setOnClickListener(v ->
+                drawerLayout.openDrawer(GravityCompat.START)
+        );
+
+        // Handle drawer menu clicks
+        navigationView.setNavigationItemSelectedListener(item -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+
+            int id = item.getItemId();
+
+            if (id == R.id.nav_perfil) {
+                abrirPerfilActivity();
+            } else {
+                Toast.makeText(
+                        this,
+                        "Pantalla aún no implementada",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+
+            return true;
+        });
+
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                } else {
+                    setEnabled(false); // disable callback
+                    MainActivity.super.onBackPressed();
+                }
+            }
+        });
+
+
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
         textMajor = findViewById(R.id.textMajor);
@@ -1179,5 +1235,7 @@ public class MainActivity extends AppCompatActivity {
             enviarUltimaUbicacionNodo();
         }
     }
+
+
 
 }
