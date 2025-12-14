@@ -73,7 +73,7 @@ public class RegistroActivity extends AppCompatActivity {
 
             @Override
             public void onError(String mensajeError) {
-                Toast.makeText(RegistroActivity.this, mensajeError, Toast.LENGTH_SHORT).show();
+                Toast.makeText(RegistroActivity.this, "No se pudieron cargar los ayuntamientos. Inténtalo nuevamente más tarde.", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -107,13 +107,13 @@ public class RegistroActivity extends AppCompatActivity {
             return;
         }
         if (!checkBoxTerms.isChecked()) {
-            Toast.makeText(this, "Debes aceptar los términos y condiciones", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Por favor, acepta los términos y condiciones para continuar.", Toast.LENGTH_LONG).show();
             return;
         }
 
         selectedTownHallName = (String) spinnerTownHall.getSelectedItem();
         if (selectedTownHallName == null || selectedTownHallName.isEmpty()) {
-            Toast.makeText(this, "Selecciona un ayuntamiento", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Por favor, selecciona tu ayuntamiento antes de registrarte.", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -123,12 +123,12 @@ public class RegistroActivity extends AppCompatActivity {
                 new LogicaRegistro.RegistroCallback() {
                     @Override
                     public void onRegistroExitoso(String respuestaServidor) {
-                        Toast.makeText(RegistroActivity.this, respuestaServidor, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegistroActivity.this, "¡Registro completado con éxito! Te enviamos un correo de confirmación.", Toast.LENGTH_LONG).show();
                     }
 
                     @Override
                     public void onRegistroFallido(String mensajeError) {
-                        Toast.makeText(RegistroActivity.this, mensajeError, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegistroActivity.this, "No se pudo completar el registro. Verifica tus datos o inténtalo más tarde.", Toast.LENGTH_LONG).show();
                     }
                 });
     }
