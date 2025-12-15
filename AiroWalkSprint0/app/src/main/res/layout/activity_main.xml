@@ -5,10 +5,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#EEF1E7"
+    >
 
     <!-- ===================================================== -->
-    <!-- MAIN CONTENT (Header + Your existing screen) -->
+    <!-- MAIN CONTENT -->
     <!-- ===================================================== -->
 
     <LinearLayout
@@ -19,26 +21,68 @@
         <!-- HEADER BAR -->
         <include layout="@layout/header_bar"/>
 
-        <!-- YOUR ORIGINAL MAIN ACTIVITY LAYOUT -->
+        <!-- ===================================================== -->
+        <!-- MAIN SCREEN -->
+        <!-- ===================================================== -->
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="16dp">
 
-            <!-- ========================================================== -->
-            <!-- SECCIÓN SUPERIOR: Datos del sensor -->
-            <!-- ========================================================== -->
+            <!-- ================= VINCULACIÓN ================= -->
+
+            <TextView
+                android:id="@+id/textVinculacion"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="El sensor mide la calidad del aire.\n¿Deseas conectarlo ahora?"
+                android:textSize="16sp"
+                android:textAlignment="center"
+                android:textColor="@android:color/black"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/botonBuscarNuestroDispositivoBTLE"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Vincular Dispositivo"
+                android:onClick="botonVincularPulsado"
+                app:layout_constraintTop_toBottomOf="@id/textVinculacion"
+                app:backgroundTint="@null"
+                android:background="@drawable/bg_btn_green"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <Button
+                android:id="@+id/btnFindSensor"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Encontrar mi dispositivo"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/botonBuscarNuestroDispositivoBTLE"
+                app:layout_constraintStart_toStartOf="parent"
+                app:backgroundTint="@null"
+                android:background="@drawable/bg_btn_green"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- ================= SENSOR DATA ================= -->
 
             <LinearLayout
                 android:id="@+id/layoutMajorMinor"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="24dp"
                 android:background="#CFA9E4"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="20dp"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/btnFindSensor"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
@@ -60,39 +104,8 @@
                     android:textStyle="bold"/>
             </LinearLayout>
 
-            <!-- ICONO VINCULACIÓN -->
-            <ImageView
-                android:id="@+id/iconoVincular"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_marginTop="32dp"
-                android:src="@drawable/ic_vincular_rojo"
-                app:layout_constraintTop_toBottomOf="@id/layoutMajorMinor"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
 
-            <!-- BOTONES -->
-            <Button
-                android:id="@+id/botonBuscarNuestroDispositivoBTLE"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:onClick="botonVincularPulsado"
-                android:text="Vincular Dispositivo"
-                app:layout_constraintTop_toBottomOf="@id/iconoVincular"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
-
-            <Button
-                android:id="@+id/btnFindSensor"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Encontrar mi sensor"
-                android:visibility="gone"
-                app:layout_constraintTop_toBottomOf="@id/botonBuscarNuestroDispositivoBTLE"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+            <!-- ================= TRACKING ================= -->
 
             <Button
                 android:id="@+id/track"
@@ -100,13 +113,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:enabled="false"
-                android:onClick="botonDistanceTrackerPulsado"
                 android:text="Activar Recorrido"
-                app:layout_constraintTop_toBottomOf="@id/btnFindSensor"
+                android:onClick="botonDistanceTrackerPulsado"
+                app:layout_constraintTop_toBottomOf="@id/layoutMajorMinor"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
 
-            <!-- ESTADÍSTICAS -->
+
+            <!-- ================= STATS ================= -->
+
             <LinearLayout
                 android:id="@+id/layoutEstadisticas"
                 android:layout_width="0dp"
@@ -115,12 +130,12 @@
                 android:background="#E3F2FD"
                 android:orientation="vertical"
                 android:padding="24dp"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/track"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
-                <!-- Distancia -->
+                <!-- Distance -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -142,11 +157,9 @@
                         android:text="---"
                         android:textSize="24sp"
                         android:textStyle="bold"/>
-
                 </LinearLayout>
 
-
-                <!-- Tiempo -->
+                <!-- Time -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -168,15 +181,15 @@
                         android:text="---"
                         android:textSize="24sp"
                         android:textStyle="bold"/>
-
                 </LinearLayout>
-                <!-- BOTONES INFERIORES -->
+
+                <!-- Bottom buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
                     android:gravity="center"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="16dp">
+                    android:orientation="horizontal">
 
                     <Button
                         android:id="@+id/boton_perfil"
@@ -190,12 +203,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
-                        android:onClick="abrirPantallaCanjeos"
-                        android:text="Canjear Puntos"/>
-
+                        android:text="Canjear Puntos"
+                        android:onClick="abrirPantallaCanjeos"/>
                 </LinearLayout>
-
-
 
             </LinearLayout>
 
@@ -203,7 +213,7 @@
     </LinearLayout>
 
     <!-- ===================================================== -->
-    <!-- HAMBURGER MENU -->
+    <!-- DRAWER MENU -->
     <!-- ===================================================== -->
 
     <com.google.android.material.navigation.NavigationView

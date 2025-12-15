@@ -30,15 +30,18 @@
 
     <!-- Link -->
     <ImageView
-        android:id="@+id/btnLink"
+        android:id="@+id/iconoVincular"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:src="@drawable/ic_link"
-        app:tint="#9AE66E"
+        android:src="@drawable/ic_link_off"
         android:layout_marginEnd="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:importantForAccessibility="yes"
         app:layout_constraintEnd_toStartOf="@id/btnNotif"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
+
 
     <!-- Bell -->
     <ImageView
