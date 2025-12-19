@@ -1,6 +1,30 @@
 package com.example.air_o_walk_sprint0;
 
 import android.util.Log;
+/**
+ * @class MeasurementsLogica
+ * @brief Gestiona el envío de estadísticas diarias del usuario al backend.
+ *
+ * Esta clase encapsula la lógica necesaria para enviar al servidor
+ * los datos acumulados durante una sesión de uso, incluyendo:
+ * - Identificador del usuario
+ * - Número de pasos realizados
+ * - Puntos obtenidos
+ * - Tiempo activo (en horas)
+ *
+ * La comunicación se realiza mediante una petición REST al endpoint
+ * correspondiente del backend. El resultado de la operación se notifica
+ * de forma asíncrona mediante un listener.
+ *
+ * Diseño:
+ * new MeasurementsLogica(userId, pasos, puntos, tiempo)
+ *   → guardarDailyStats()
+ *   → callback HTTP
+ *   → OnFinishedListener.onFinished(success)
+ *
+ * @author Adenor Buret
+ * @version 1.0
+ */
 
 public class MeasurementsLogica {
 

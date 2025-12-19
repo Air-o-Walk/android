@@ -22,13 +22,6 @@ import java.util.List;
  * aplica un timeout y notifica los eventos a la interfaz de usuario
  * mediante callbacks.
  *
- * Estados posibles:
- * - IDLE: sin actividad
- * - ESCANEANDO: búsqueda activa del nodo
- * - VINCULADO: nodo encontrado correctamente
- * - TIMEOUT: no se encontró el nodo dentro del tiempo límite
- * - ERROR: error durante el proceso de escaneo
- *
  * @author Meryame Ait Boumlik
  * @version 1.0
  */
@@ -58,25 +51,29 @@ public class VinculadorBLE {
     private boolean activo = false;
     private String nombreNodoActual;
 
-    // --------------------------------------------------------------
-    // Constructor
-    // Descripción: Inyecta el escáner BLE y el listener de la UI.
-    // Diseño: scanner + listener -> asignar campos -> listo para vincularPorNombre()
-    // Parámetros:
-    //   - scanner : BluetoothLeScanner ya inicializado
-    //   - listener: callbacks de estado y hallazgo de dispositivo
-    // --------------------------------------------------------------
+    /**
+     * Constructor.
+     *
+     * Descripción: Inyecta el escáner BLE y el listener de la UI.
+     *
+     * Diseño:
+     * scanner + listener -> asignar campos -> listo para vincularPorNombre()
+     *
+     * @param scanner BluetoothLeScanner ya inicializado
+     * @param listener Callbacks de estado y hallazgo de dispositivo
+     */
     public VinculadorBLE(BluetoothLeScanner scanner, Listener listener) {
         this.scanner = scanner;
         this.listener = listener;
     }
      public Estado getEstado() { return estado; }
 
-     // --------------------------------------------------------------
-     // vincularPorNombre()
-     // Descripción: inicia escaneo filtrado por nombre; finaliza en VINCULADO/ERROR/TIMEOUT.
-     // Diseno: nombre + timeout -> vincularPorNombre() -> VINCULADO | TIMEOUT | ERROR
-     // --------------------------------------------------------------
+    /**
+     * vincularPorNombre()
+     * Descripción: inicia escaneo filtrado por nombre; finaliza en VINCULADO/ERROR/TIMEOUT.
+     * Diseno: nombre + timeout -> vincularPorNombre() -> VINCULADO | TIMEOUT | ERROR
+     */
+
     public void vincularPorNombre(String nombre, long timeoutMs) {
         this.nombreNodoActual = nombre; // guardar nombre actual
         if (scanner == null) {
@@ -169,11 +166,14 @@ public class VinculadorBLE {
     }
     //()
 
-     // --------------------------------------------------------------
-     // detener()
-     // Descripción: para el escaneo si está activo y limpia recursos.
-     // Diseno : -> detener ->
-     // --------------------------------------------------------------
+    /**
+     * detener()
+     *
+     * Descripción: para el escaneo si está activo y limpia recursos.
+     *
+     * Diseño:
+     * detener() -> stopScan -> liberar callback
+     */
     public void detener() {
         if (!activo) return;
         try {
@@ -189,11 +189,13 @@ public class VinculadorBLE {
         }
     }
 //()
-// --------------------------------------------------------------
-// cambiarEstado()
-// Descripción: actualiza el estado interno y notifica al listener.
-// Disneo : Estado nuevo ->
-// --------------------------------------------------------------
+    /**
+     * cambiarEstado()
+     *
+     * Descripción: actualiza el estado interno y notifica al listener.
+     *
+     * @param nuevo Nuevo estado del proceso
+     */
     private void cambiarEstado(Estado nuevo) {
         this.estado = nuevo;
         Log.d(ETIQUETA_LOG, "Estado -> " + nuevo);

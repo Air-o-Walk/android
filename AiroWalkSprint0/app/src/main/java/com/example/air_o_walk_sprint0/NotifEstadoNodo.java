@@ -13,25 +13,26 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 
-/*
-// ===================================================================================================
-//  NotifEstadoNodo.java
-//  Autor : Christopher y Adenor
-//
-//  Descripción:
-//  -----------------------------------------------------------------------------------------------
-//  Clase responsable de monitorizar el estado del nodo sensor (beacon) después de la vinculación.
-//  Se encarga de:
-//
-//     1) Detectar si se están recibiendo beacons → "Nodo conectado"
-//     2) Detectar si dejan de recibirse beacons durante X segundos → "Nodo desconectado"
-//     3) Analizar las mediciones recibidas (gas, temperatura, etc.) y determinar si son incoherentes
-//        usando un threshold.
-//     4) NUEVO: Notificar mediante listener cuando se pierde la conexión
-//
-//  Todo está encapsulado aquí para no modificar las otras clases del proyecto.
-// ===================================================================================================
-*/
+/**
+ * @class NotifEstadoNodo
+ * @brief Monitoriza el estado del nodo sensor (beacon) tras la vinculación.
+ *
+ * Clase responsable de supervisar el estado del nodo BLE asociado al usuario.
+ * Se encarga de:
+ *
+ * 1) Detectar si se están recibiendo beacons → nodo conectado
+ * 2) Detectar si dejan de recibirse beacons durante un tiempo determinado → nodo desconectado
+ * 3) Analizar las mediciones recibidas (gas, temperatura, etc.) y detectar valores incoherentes
+ *    mediante el uso de umbrales (thresholds)
+ * 4) Notificar el estado mediante notificaciones del sistema
+ * 5) NUEVO: Avisar a la actividad principal mediante un listener cuando se pierde la conexión
+ *
+ * Toda la lógica está encapsulada en esta clase para evitar modificar
+ * el resto de componentes del proyecto.
+ *
+ * @author Christopher y Adenor
+ * @version 1.0
+ */
 
 public class NotifEstadoNodo {
 

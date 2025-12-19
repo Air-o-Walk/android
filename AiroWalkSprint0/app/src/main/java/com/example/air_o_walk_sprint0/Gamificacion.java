@@ -1,20 +1,28 @@
-/*header
-    AUTOR: SANTIAGO AGUIRRE
 
-* int puntos
-* calcurlarPuntosMedianteDistancia
-* sumarPuntosLocal
-* sumarPuntos
-* recibirPuntos
-* getPuntos
-* */
 
 package com.example.air_o_walk_sprint0;
 
 import android.util.Log;
 
 import org.json.JSONObject;
-
+/**
+ * @class Gamificacion
+ * @brief Gestiona la lógica de gamificación y puntos del usuario.
+ *
+ * Esta clase se encarga de calcular, almacenar y sincronizar los puntos
+ * obtenidos por un usuario. Permite calcular puntos a partir de la distancia,
+ * acumular puntos de la última sesión y consultar los puntos totales
+ * almacenados en el backend.
+ *
+ * Funcionalidades principales:
+ * - Cálculo de puntos mediante distancia recorrida
+ * - Acumulación de puntos de la última sesión
+ * - Sincronización de puntos con el backend
+ * - Obtención asíncrona de los puntos totales del usuario
+ *
+ * @author Santiago Aguirre
+ * @version 1.0
+ */
 public class Gamificacion {
 
     private int puntosTotales;  /*PUNTOS TOTALES DEL USURIO*/

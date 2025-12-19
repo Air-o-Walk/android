@@ -45,13 +45,18 @@ public class AirQualitySummaryActivity extends BaseActivity {
     private TextView textPuntos;
     private TextView textResumen;
     private int idUsuario;
-    // --------------------------------------------------------------
-    // onCreate()
-    // Descripción: Inicializa la UI, recupera el USER_ID recibido desde la Activity anterior y lanza la petición al backend.
-    // Diseño: UI + USER_ID -> obtenerResumen -> actualizar pantalla
-    // Parámetros:
-    //      - savedInstanceState : estado previo (Android)
-    // --------------------------------------------------------------
+    /**
+     * onCreate()
+     *
+     * Descripción: Inicializa la UI, recupera el USER_ID recibido desde la
+     * Activity anterior y lanza la petición al backend.
+     *
+     * @details
+     * Diseño:
+     * UI + USER_ID -> obtenerResumen -> actualizar pantalla
+     *
+     * @param savedInstanceState estado previo (Android)
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -131,15 +136,21 @@ public class AirQualitySummaryActivity extends BaseActivity {
         });
 
     }
-    // --------------------------------------------------------------
-    // dibujarGrafica()
-    // Descripción: // gráfica del índice normalizado (0–1) con líneas de umbrales (buena / regular / mala)
-    // Diseño:
-    // LineChart chart, AirQualityData data → dibujarGrafica() → gráfica del índice normalizado y eje X con horas
-    // Parámetros:- chart : el LineChart de la UI
-    //            - data  : datos recibidos del backend
-    //
-    // --------------------------------------------------------------
+    /**
+     * dibujarGrafica()
+     *
+     * Descripción: Gráfica del índice normalizado (0–1) con líneas de
+     * umbrales (buena / regular / mala).
+     *
+     * @details
+     * Diseño:
+     * LineChart chart, AirQualityData data
+     * → dibujarGrafica()
+     * → gráfica del índice normalizado y eje X con horas
+     *
+     * @param chart LineChart de la interfaz
+     * @param data datos recibidos del backend
+     */
     private void dibujarGrafica(LineChart chart, AirQualityResumen.AirQualityData data) {
 
         try {

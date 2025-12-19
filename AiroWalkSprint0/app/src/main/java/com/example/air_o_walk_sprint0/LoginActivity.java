@@ -21,10 +21,22 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * María Algora
- * Clase que implementa la interfaz del login y conecta con la lógica de negocio.
- * Gestiona los campos del formulario, valida los datos introducidos y llama a la logica.
- * Recibe los campos del usuario y la contraseña; y el botón de login
+ * @class LoginActivity
+ * @brief Pantalla de inicio de sesión de la aplicación.
+ *
+ * Esta actividad implementa la interfaz gráfica del login y actúa
+ * como puente entre la interfaz de usuario y la lógica de negocio.
+ * Gestiona:
+ * - Los campos del formulario de usuario y contraseña
+ * - La validación de los datos introducidos
+ * - La llamada a la clase LogicaLogin para autenticar al usuario
+ *
+ * Además, gestiona la persistencia de la sesión mediante
+ * SharedPreferences y redirige al usuario a la pantalla principal
+ * cuando el login es exitoso.
+ *
+ * @author María Algora
+ * @version 1.0
  */
 public class LoginActivity extends AppCompatActivity {
 

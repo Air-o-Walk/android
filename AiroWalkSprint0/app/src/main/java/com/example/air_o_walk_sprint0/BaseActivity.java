@@ -10,7 +10,23 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
-
+/**
+ * @class BaseActivity
+ * @brief Actividad base común para las pantallas de la aplicación.
+ *
+ * Esta clase centraliza la lógica compartida entre las distintas
+ * actividades de la aplicación, incluyendo:
+ * - Configuración del header
+ * - Gestión del menú lateral (drawer)
+ * - Comportamiento del botón de retroceso
+ * - Acceso al icono de vinculación del sensor
+ *
+ * Las actividades que heredan de esta clase pueden activar o no
+ * el menú lateral según sus necesidades.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected DrawerLayout drawerLayout;
@@ -19,7 +35,12 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected ImageView iconoVincular;
 
     /**
-     * Sets up header behavior and drawer/back button
+     * Configura el comportamiento del header y del menú lateral.
+     *
+     * Permite habilitar o deshabilitar el drawer según la pantalla.
+     * Si no hay drawer, el botón del header actúa como botón de retroceso.
+     *
+     * @param hasDrawer indica si la actividad dispone de menú lateral
      */
     protected void setupHeaderAndDrawer(boolean hasDrawer) {
 
@@ -75,7 +96,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     /**
-     * Vinculación icon behavior
+     * Configura el comportamiento del icono de vinculación del sensor.
+     *
+     * Si la actividad actual es la principal, delega la acción.
+     * En caso contrario, muestra un mensaje informativo al usuario.
      */
     private void setupIconoVincular() {
         if (iconoVincular == null) return;
@@ -95,7 +119,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     /**
-     * Handles system back button (drawer-aware)
+     * Gestiona el comportamiento del botón físico de retroceso.
+     *
+     * Si el menú lateral está abierto, lo cierra.
+     * En caso contrario, delega el comportamiento estándar del sistema.
      */
     protected void setupBackBehavior() {
 

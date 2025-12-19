@@ -7,10 +7,23 @@ import org.json.JSONObject;
 import java.util.HashMap;
 
 /**
- * María Algora
- * Clase que encapsula la lógica de negocio para el registro de usuarios.
- * Recibe _ y realiza la petición HTTP _.
+ * @class LogicaRegistro
+ * @brief Encapsula la lógica de negocio para el registro de nuevos usuarios.
+ *
+ * Esta clase gestiona el proceso de alta de usuarios en la aplicación,
+ * incluyendo:
+ * - Obtención de la lista de ayuntamientos desde el backend
+ * - Selección y mapeo del ayuntamiento correspondiente
+ * - Envío de la solicitud de registro de usuario al servidor
+ *
+ * La comunicación con el backend se realiza mediante peticiones REST
+ * y los resultados se devuelven de forma asíncrona a través de
+ * interfaces de callback.
+ *
+ * @author María Algora
+ * @version 1.0
  */
+
 public class LogicaRegistro {
 
     // Método para obtener la lista de ayuntamientos desde el servidor

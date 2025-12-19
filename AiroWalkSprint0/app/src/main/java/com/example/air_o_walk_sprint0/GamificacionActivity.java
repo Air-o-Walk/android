@@ -10,6 +10,24 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import org.json.JSONObject;
+/**
+ * @class GamificacionActivity
+ * @brief Pantalla de gestión y prueba de la gamificación del usuario.
+ *
+ * Esta actividad permite visualizar los puntos totales del usuario,
+ * acumular puntos de forma temporal durante una sesión y guardarlos
+ * posteriormente en el backend.
+ *
+ * Incluye funcionalidades para:
+ * - Consultar los puntos totales almacenados
+ * - Sumar puntos temporalmente
+ * - Persistir los puntos de la sesión en la base de datos
+ *
+ * La comunicación con el backend se realiza de forma asíncrona.
+ *
+ * @author Santiago Aguirre
+ * @version 1.0
+ */
 
 public class GamificacionActivity extends AppCompatActivity {
 

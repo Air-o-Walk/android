@@ -1,5 +1,18 @@
 package com.example.air_o_walk_sprint0;
-
+/**
+ * @class Canjeo
+ * @brief Modelo de datos que representa un canjeo de premio.
+ *
+ * Esta clase encapsula la información asociada a un canjeo realizado
+ * por un usuario, incluyendo el código del cupón, la fecha de redención,
+ * el premio canjeado y los puntos requeridos.
+ *
+ * Se utiliza principalmente para transportar datos entre la capa
+ * de comunicación con el backend y la interfaz de usuario.
+ *
+ * @author Santiago Aguirre
+ * @version 1.0
+ */
 public class Canjeo {
     private int id;
     private String codigoCupon;
