@@ -5,17 +5,26 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-// --------------------------------------------------------------
-// AirQualityResumen.java
-// Autor: Meryame Ait Boumlik
-// Descripción: Clase responsable de consultar al backend el resumen de calidad del aire de un usuario, incluyendo:
-//- Estado (buena / regular / picos / mala)
-//- Mensaje resumen
-//- Tiempo activo (h)
-//- Distancia recorrida (km)
-//- Puntos obtenidos
-//- Datos para la gráfica (timestamps, O3, NO2, CO, index)
-// --------------------------------------------------------------
+/**
+ * @class AirQualityResumen
+ * @brief Gestiona la obtención del resumen de calidad del aire de un usuario.
+ *
+ * Esta clase se encarga de comunicarse con la API del backend
+ * para obtener una vista resumida de la exposición del usuario
+ * a la calidad del aire, incluyendo:
+ * - Estado de la calidad del aire
+ * - Mensaje resumen
+ * - Tiempo activo y distancia recorrida
+ * - Pasos y puntos obtenidos
+ * - Datos para la gráfica (timestamps, O3, NO2, CO, índice)
+ *
+ * Los resultados se devuelven de forma asíncrona mediante una
+ * interfaz de tipo listener.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
+
 public class AirQualityResumen {
     private static final String TAG = "AirQualityResumen";
     private int userId;

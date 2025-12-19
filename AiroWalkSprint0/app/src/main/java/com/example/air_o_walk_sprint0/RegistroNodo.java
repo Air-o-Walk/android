@@ -2,13 +2,20 @@ package com.example.air_o_walk_sprint0;
 
 import android.util.Log;
 
-// -----------------------------------------------------------------------------
-// RegistroNodo.java
-// Autor : Meryame Ait Boumlik
-// Descripción: Registra en el backend el nodo (beacon) vinculado por un usuario.
-// Envía una petición POST con el userId y el nombre del beacon al endpoint REST.
-// Diseño: -> new RegistroNodo(userId, nombreNodo) -> registrarNodo() -> PeticionarioREST
-// -----------------------------------------------------------------------------
+/**
+ * @class RegistroNodo
+ * @brief Registra en el backend un nodo BLE (beacon) vinculado a un usuario.
+ *
+ * Esta clase se encarga de enviar una petición REST de tipo POST al backend
+ * para asociar un nodo (beacon) a un usuario concreto. La petición incluye
+ * el identificador del usuario y el nombre del nodo.
+ *
+ * Diseño general:
+ * new RegistroNodo(userId, nombreNodo) → registrarNodo() → PeticionarioREST
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public class RegistroNodo {
 
     private String userId;     // ID del usuario que vincula el nodo

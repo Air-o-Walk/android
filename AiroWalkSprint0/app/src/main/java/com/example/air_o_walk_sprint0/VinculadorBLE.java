@@ -12,12 +12,26 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-// --------------------------------------------------------------
- //VinculadorBLE.java
- // Autor : Meryame Ait Boumlik
- //Descripción: Gestiona la “vinculación” por nombre (iBeacon por advertising, sin GATT).
- //Escanea con filtro por nombre, notifica estados a la UI y aplica timeout.
- // --------------------------------------------------------------
+/**
+ * @class VinculadorBLE
+ * @brief Gestiona el proceso de vinculación de un nodo BLE por nombre.
+ *
+ * Esta clase se encarga de realizar la “vinculación” de un iBeacon
+ * utilizando únicamente los paquetes de advertising BLE (sin conexión GATT).
+ * Escanea dispositivos filtrando por nombre, gestiona estados del proceso,
+ * aplica un timeout y notifica los eventos a la interfaz de usuario
+ * mediante callbacks.
+ *
+ * Estados posibles:
+ * - IDLE: sin actividad
+ * - ESCANEANDO: búsqueda activa del nodo
+ * - VINCULADO: nodo encontrado correctamente
+ * - TIMEOUT: no se encontró el nodo dentro del tiempo límite
+ * - ERROR: error durante el proceso de escaneo
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public class VinculadorBLE {
 
     public static final String ETIQUETA_LOG = ">>>>VINCULAR";

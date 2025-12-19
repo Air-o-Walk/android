@@ -17,17 +17,24 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
-// --------------------------------------------------------------
-// AirQualitySummaryActivity.java
-// Autor: Meryame Ait Boumlik
-// Descripción: Pantalla que muestra el resumen de calidad del aire paraun usuario concreto.
-//      - Emoji de calidad del aire
-//      - Tiempo activo
-//      - Distancia recorrida
-//      - Puntos obtenidos
-//      - Resumen textual
-//      - Gráfica de indice normalizado en las últimas 8 horas
-// --------------------------------------------------------------
+/**
+ * @class AirQualitySummaryActivity
+ * @brief Pantalla que muestra el resumen de calidad del aire de un usuario.
+ *
+ * Esta actividad presenta al usuario un resumen visual y textual de su
+ * exposición a la calidad del aire, incluyendo:
+ * - Emoji representativo del estado de la calidad del aire
+ * - Tiempo activo
+ * - Distancia recorrida
+ * - Puntos obtenidos
+ * - Resumen textual
+ * - Gráfica del índice de calidad del aire normalizado en las últimas 8 horas
+ *
+ * Los datos se obtienen del backend de forma asíncrona.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public class AirQualitySummaryActivity extends BaseActivity {
 
     private static final String TAG = "AirQualitySummary";

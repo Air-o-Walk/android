@@ -25,18 +25,28 @@ import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
 
 import java.util.ArrayList;
-// --------------------------------------------------------------
-// FindMyNodeActivity.java
-// Autor: Meryame Ait Boumlik
-// Descripción:
-//   Activity encargada de localizar un iBeacon concreto en tiempo real.
-//   Escanea anuncios BLE, estima distancia por RSSI, detecta pérdida de señal,
-//   muestra barras de señal y permite abrir la última ubicación GPS conocida.
-// Diseño general:
-//   onCreate() → initGPS() → startScanning()
-//   → onScanResult() → updateUI() | showOutOfRange()
-//   → rangeCheckerThread() detecta desaparición del nodo
-// --------------------------------------------------------------
+/**
+ * @class FindMyNodeActivity
+ * @brief Activity encargada de localizar un nodo BLE (iBeacon) en tiempo real.
+ *
+ * Esta actividad escanea anuncios BLE para detectar un iBeacon concreto,
+ * estima la distancia mediante valores RSSI filtrados, detecta la pérdida
+ * de señal y actualiza la interfaz gráfica mostrando:
+ * - Categoría de distancia
+ * - Barras de intensidad de señal
+ * - Estado visual mediante un círculo de color
+ *
+ * Además, almacena la última ubicación GPS conocida y permite abrirla
+ * en un visor de mapas cuando el nodo desaparece.
+ *
+ * Diseño general:
+ * onCreate() → initGPS() → startScanning()
+ * → onScanResult() → updateUI() | showOutOfRange()
+ * → rangeCheckerThread detecta desaparición del nodo
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public class FindMyNodeActivity extends AppCompatActivity {
 
     private static final String TAG = "FIND_NODE";
