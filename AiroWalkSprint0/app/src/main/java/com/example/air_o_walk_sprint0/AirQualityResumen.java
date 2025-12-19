@@ -56,22 +56,33 @@ public class AirQualityResumen {
 
     }
 
-    // --------------------------------------------------------------
-    // Constructor
-    // Descripción: Guarda el ID del usuario cuyos datos se van a consultar.
-    // Parámetros: userId : identificador del usuario.
-    // Diseño: userId -> new AirQualityResumen()
-    // --------------------------------------------------------------
+    /**
+     * Constructor.
+     *
+     * Descripción: Guarda el ID del usuario cuyos datos se van a consultar.
+     *
+     * @details
+     * Diseño:
+     * userId -> new AirQualityResumen()
+     *
+     * @param userId identificador del usuario
+     */
     public AirQualityResumen(int userId) {
         this.userId = userId;
     }
 
-    // --------------------------------------------------------------
-    // obtenerResumen()
-    // Descripción: Hace una llamada REST al backend: GET /usuario/calidad-aire-resumen?userId=...
-    // Diseño:  userId -> obtenerResumen() -> AirQualityData | error
-    // Parámetros: - listener : callbacks de éxito o error
-    // --------------------------------------------------------------
+    /**
+     * obtenerResumen()
+     *
+     * Descripción: Hace una llamada REST al backend:
+     * GET /usuario/calidad-aire-resumen?userId=...
+     *
+     * @details
+     * Diseño:
+     * userId -> obtenerResumen() -> AirQualityData | error
+     *
+     * @param listener callbacks de éxito o error
+     */
     public void obtenerResumen(Listener listener) {
 
         String url = "http://api.sagucre.upv.edu.es/usuario/calidad-aire-resumen?userId=" + userId;
@@ -109,11 +120,20 @@ public class AirQualityResumen {
         );
     }
 
-    // --------------------------------------------------------------
-    // parsearRespuesta()
-    // Descripción: Convierte el JSON recibido del backend en un objeto AirQualityData listo para usar en la Activity.
-    // Diseño: JSON -> parsearRespuesta() -> AirQualityData
-    // --------------------------------------------------------------
+    /**
+     * parsearRespuesta()
+     *
+     * Descripción: Convierte el JSON recibido del backend en un objeto
+     * AirQualityData listo para usar en la Activity.
+     *
+     * @details
+     * Diseño:
+     * JSON -> parsearRespuesta() -> AirQualityData
+     *
+     * @param cuerpoJson JSON recibido del backend
+     * @return objeto AirQualityData parseado
+     * @throws Exception si el JSON es inválido
+     */
     private AirQualityData parsearRespuesta(String cuerpoJson) throws Exception {
 
         JSONObject root = new JSONObject(cuerpoJson);

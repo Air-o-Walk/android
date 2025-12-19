@@ -3,10 +3,21 @@ package com.example.air_o_walk_sprint0;
 import android.util.Log;
 
 /**
- * María Algora
- * Clase que encapsula la lógica de negocio para el login de usuarios.
- * Recibe usuario y contraseña y realiza la petición HTTP GET para validar.
+ * @class LogicaLogin
+ * @brief Encapsula la lógica de negocio para el inicio de sesión de usuarios.
+ *
+ * Esta clase se encarga de gestionar el proceso de autenticación
+ * recibiendo las credenciales del usuario (nombre de usuario y contraseña)
+ * y realizando la petición REST correspondiente al backend.
+ *
+ * La validación del login se realiza de forma asíncrona mediante
+ * un sistema de callbacks que notifican si el inicio de sesión
+ * ha sido exitoso o ha fallado.
+ *
+ * @author María Algora
+ * @version 1.0
  */
+
 public class LogicaLogin {
 
     private String usuario;

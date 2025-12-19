@@ -10,9 +10,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Clase que encapsula toda la lógica de peticiones REST
- * relacionadas con el sistema de canjes de premios
+ * @class LogicaCanjeos
+ * @brief Encapsula la lógica de comunicación REST del sistema de canje de premios.
+ *
+ * Esta clase centraliza todas las peticiones al backend relacionadas con
+ * el sistema de recompensas y canjes, incluyendo:
+ * - Obtención de la lista de premios disponibles
+ * - Ejecución del canje de un premio por puntos
+ * - Procesamiento y parseo de respuestas JSON
+ *
+ * La comunicación se realiza de forma asíncrona mediante interfaces
+ * de callback para notificar resultados y errores a la capa de presentación.
+ *
+ * @author Santiago Aguirre
+ * @version 1.0
  */
+
 public class LogicaCanjeos {
 
     private static final String TAG = "LogicaCanjeos";

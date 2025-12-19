@@ -22,7 +22,11 @@ public class DistanceEstimator {
     private final float[] window = new float[WINDOW_SIZE];
     private int index = 0;
     private boolean filled = false;
-
+    /**
+     * Añade una nueva lectura RSSI a la ventana deslizante.
+     *
+     * @param rssi valor RSSI recibido del beacon
+     */
     public void addReading(float rssi) {
         window[index] = rssi;
         index = (index + 1) % WINDOW_SIZE;
