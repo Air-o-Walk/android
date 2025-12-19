@@ -1,4 +1,5 @@
 package com.example.air_o_walk_sprint0;
+
 import android.app.Dialog;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -14,11 +15,35 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.air_o_walk_sprint0.LogicaEditarPerfil;
 
+/**
+ * @class PerfilActivity
+ * @brief Activity que gestiona la visualización y edición del perfil de usuario.
+ *
+ * Esta clase permite al usuario:
+ * - Visualizar sus datos básicos (username, email, password)
+ * - Editar su nombre de usuario
+ * - Cambiar su correo electrónico con validación de formato
+ * - Actualizar su contraseña con verificación de contraseña actual
+ * - Acceder a secciones de quejas y política de privacidad
+ *
+ * La comunicación con el backend se realiza mediante la clase LogicaEditarPerfil.
+ *
+ * @author Maria Algora
+ * @version 1.0
+ */
 public class PerfilActivity extends BaseActivity {
     private String token;
     private int userId;
     private LogicaEditarPerfil logicaEditar;
 
+    // --------------------------------------------------------------
+    // onCreate()
+    // Descripción: Inicializa la activity, obtiene las credenciales del usuario
+    //              (token y userId) y configura la interfaz de usuario.
+    //              Si no se reciben credenciales válidas, cierra la actividad.
+    // Parámetros: savedInstanceState : estado guardado de la actividad
+    // Diseño: onCreate() -> cargarDatosUsuario() + setupBotonesEdicion()
+    // --------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +68,13 @@ public class PerfilActivity extends BaseActivity {
         setupBotonesEdicion();
     }
 
+    // --------------------------------------------------------------
+    // cargarDatosUsuario()
+    // Descripción: Solicita los datos básicos del usuario (username y email)
+    //              al backend mediante LogicaEditarPerfil y actualiza la interfaz
+    //              con la información recibida.
+    // Diseño: cargarDatosUsuario() -> LogicaEditarPerfil.obtenerDatosBasicosUsuario() -> actualizar UI
+    // --------------------------------------------------------------
     private void cargarDatosUsuario() {
         logicaEditar.obtenerDatosBasicosUsuario(new LogicaEditarPerfil.UsuarioBasicoCallback() {
             @Override
@@ -63,7 +95,15 @@ public class PerfilActivity extends BaseActivity {
         });
     }
 
-
+    // --------------------------------------------------------------
+    // setupBotonesEdicion()
+    // Descripción: Configura los listeners de los botones de edición para:
+    //              - Editar nombre de usuario
+    //              - Editar email (con validación)
+    //              - Cambiar contraseña (con verificación)
+    //              - Acceder a quejas y política de privacidad
+    // Diseño: setupBotonesEdicion() -> listeners -> diálogos de edición
+    // --------------------------------------------------------------
     private void setupBotonesEdicion() {
         // Botón editar username
         findViewById(R.id.editar_username).setOnClickListener(v -> {
@@ -122,15 +162,19 @@ public class PerfilActivity extends BaseActivity {
         findViewById(R.id.editar_password).setOnClickListener(v -> {
             mostrarDialogoEdicionPassword();
         });
+
         // QUEJAS + PRIVACIDAD
         findViewById(R.id.chevron_quejas).setOnClickListener(v -> showQuejasPopup());
         findViewById(R.id.chevron_privacidad).setOnClickListener(v -> showPrivacidadPopup());
-
     }
 
-    /**
-     * Valida el formato del email.
-     */
+    // --------------------------------------------------------------
+    // esEmailValido()
+    // Descripción: Valida el formato de un email usando expresiones regulares.
+    //              Verifica que contenga '@', dominio y extensión válida.
+    // Parámetros: email : dirección de correo a validar
+    // Diseño: email -> esEmailValido() -> boolean
+    // --------------------------------------------------------------
     private boolean esEmailValido(String email) {
         if (email == null || email.isEmpty()) {
             return false;
@@ -141,9 +185,13 @@ public class PerfilActivity extends BaseActivity {
         return email.matches(patron);
     }
 
-    /**
-     * Muestra un diálogo para editar la contraseña con verificación de contraseña actual.
-     */
+    // --------------------------------------------------------------
+    // mostrarDialogoEdicionPassword()
+    // Descripción: Muestra un diálogo para cambiar la contraseña del usuario.
+    //              Solicita: contraseña actual, nueva contraseña y confirmación.
+    //              Valida los campos y envía la petición al backend.
+    // Diseño: mostrarDialogoEdicionPassword() -> validarPassword() -> actualizarPassword()
+    // --------------------------------------------------------------
     private void mostrarDialogoEdicionPassword() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Cambiar contraseña");
@@ -179,6 +227,14 @@ public class PerfilActivity extends BaseActivity {
         builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
         builder.show();
     }
+
+    // --------------------------------------------------------------
+    // crearLayoutDialogoPassword()
+    // Descripción: Crea el layout con los campos de entrada para el diálogo
+    //              de cambio de contraseña (actual, nueva, confirmar).
+    // Parámetros: modoPrueba : si es true, añade texto de ayuda para pruebas
+    // Diseño: modoPrueba -> crearLayoutDialogoPassword() -> LinearLayout
+    // --------------------------------------------------------------
     private LinearLayout crearLayoutDialogoPassword(boolean modoPrueba) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -205,9 +261,17 @@ public class PerfilActivity extends BaseActivity {
 
         return layout;
     }
-    /**
-     * Valida los campos de contraseña antes de enviar la solicitud.
-     */
+
+    // --------------------------------------------------------------
+    // validarPassword()
+    // Descripción: Valida los campos de contraseña antes de enviar la solicitud.
+    //              Verifica que: no estén vacíos, coincidan entre sí,
+    //              y la nueva contraseña tenga al menos 6 caracteres.
+    // Parámetros: - current : contraseña actual
+    //             - newPass : nueva contraseña
+    //             - confirmPass : confirmación de nueva contraseña
+    // Diseño: (current, newPass, confirmPass) -> validarPassword() -> boolean
+    // --------------------------------------------------------------
     private boolean validarPassword(String current, String newPass, String confirmPass) {
         if (current.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
             Toast.makeText(this, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
@@ -227,9 +291,15 @@ public class PerfilActivity extends BaseActivity {
         return true;
     }
 
-    /**
-     * Muestra un diálogo para editar un campo.
-     */
+    // --------------------------------------------------------------
+    // mostrarDialogoEdicion()
+    // Descripción: Muestra un diálogo genérico para editar un campo del perfil.
+    //              Configura el tipo de entrada según el campo (email, password, texto).
+    // Parámetros: - campo : nombre del campo a editar
+    //             - titulo : título del diálogo
+    //             - listener : callback que recibe el nuevo valor
+    // Diseño: (campo, titulo, listener) -> mostrarDialogoEdicion() -> listener.onValorEditado()
+    // --------------------------------------------------------------
     private void mostrarDialogoEdicion(String campo, String titulo, OnValorEditadoListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(titulo);
@@ -238,10 +308,8 @@ public class PerfilActivity extends BaseActivity {
         if (campo.equals("password")) {
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         } else if (campo.equals("email")) {
-
             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
             input.setHint("ejemplo@dominio.com");
-
         }
         builder.setView(input);
 
@@ -256,22 +324,43 @@ public class PerfilActivity extends BaseActivity {
         builder.show();
     }
 
+    // -----------------------------------------------------------------
+    // Interface para manejar valores editados
+    // -----------------------------------------------------------------
+    /**
+     * @interface OnValorEditadoListener
+     * @brief Interfaz callback para recibir el nuevo valor editado en un diálogo.
+     */
     interface OnValorEditadoListener {
         void onValorEditado(String nuevoValor);
     }
 
+    // --------------------------------------------------------------
+    // obtenerTokenDeSharedPreferences()
+    // Descripción: Recupera el token de autenticación almacenado en SharedPreferences.
+    // Diseño: obtenerTokenDeSharedPreferences() -> String (token)
+    // --------------------------------------------------------------
     private String obtenerTokenDeSharedPreferences() {
-        // Implementar según cómo guardes el token
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         return prefs.getString("token", "");
     }
 
+    // --------------------------------------------------------------
+    // obtenerUserIdDeSharedPreferences()
+    // Descripción: Recupera el ID de usuario almacenado en SharedPreferences.
+    // Diseño: obtenerUserIdDeSharedPreferences() -> int (userId)
+    // --------------------------------------------------------------
     private int obtenerUserIdDeSharedPreferences() {
-        // Implementar según cómo guardes el user ID
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         return prefs.getInt("user_id", 0);
     }
 
+    // --------------------------------------------------------------
+    // showQuejasPopup()
+    // Descripción: Muestra un diálogo modal con el formulario de quejas.
+    //              Permite al usuario enviar sugerencias o reportar problemas.
+    // Diseño: showQuejasPopup() -> Dialog -> dismiss/enviar
+    // --------------------------------------------------------------
     private void showQuejasPopup() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_quejas);
@@ -286,6 +375,13 @@ public class PerfilActivity extends BaseActivity {
 
         dialog.show();
     }
+
+    // --------------------------------------------------------------
+    // showPrivacidadPopup()
+    // Descripción: Muestra un diálogo modal con la política de privacidad
+    //              de la aplicación.
+    // Diseño: showPrivacidadPopup() -> Dialog -> dismiss
+    // --------------------------------------------------------------
     private void showPrivacidadPopup() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_privacidad);
@@ -295,7 +391,4 @@ public class PerfilActivity extends BaseActivity {
 
         dialog.show();
     }
-
-
-
 }

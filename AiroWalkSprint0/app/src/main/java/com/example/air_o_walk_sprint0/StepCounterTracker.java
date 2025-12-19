@@ -7,8 +7,26 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
+/**
+ * @class StepCounterTracker
+ * @brief Gestiona el seguimiento de pasos del usuario mediante sensores del dispositivo.
+ *
+ * Esta clase implementa un sistema de conteo de pasos que utiliza
+ * los sensores de hardware del dispositivo Android. Intenta usar
+ * TYPE_STEP_COUNTER (más preciso) y si no está disponible, usa
+ * TYPE_STEP_DETECTOR como alternativa.
+ *
+ * Funcionalidades principales:
+ * - Detección automática de sensores disponibles
+ * - Conteo de pasos por sesión
+ * - Reset de sesión para iniciar nuevo conteo
+ * - Notificación de cambios mediante listener
+ *
+ * @author Adenor Buret
+ * @version 1.0
+ */
 public class StepCounterTracker implements SensorEventListener {
-
+    //Definición de variables
     private static final String TAG = "StepCounterTracker";
 
     private SensorManager sensorManager;
@@ -24,20 +42,30 @@ public class StepCounterTracker implements SensorEventListener {
 
     private StepListener listener;
 
+    // -----------------------------------------------------------------
+    // Listener para notificar cambios en el conteo de pasos
+    // -----------------------------------------------------------------
     public interface StepListener {
         void onStepCountChanged(int steps);
     }
 
+    // --------------------------------------------------------------
+    // Constructor
+    // Descripción: Inicializa el gestor de sensores y detecta los sensores
+    //              de pasos disponibles en el dispositivo.
+    // Diseño: Context -> new StepCounterTracker() -> configura sensores
+    // Parámetros: context : contexto de la aplicación para acceder a los sensores
+    // --------------------------------------------------------------
     public StepCounterTracker(Context context) {
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 
-        // TYPE_STEP_COUNTER: Total steps since last reboot (more accurate)
+        // TYPE_STEP_COUNTER: Total de pasos desde el último reinicio (más preciso)
         stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
 
-        // TYPE_STEP_DETECTOR: Triggers event for each step detected
+        // TYPE_STEP_DETECTOR: Dispara evento por cada paso detectado
         stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
 
-        // Log sensor availability
+        // Registra disponibilidad de sensores en el log
         if (stepCounterSensor != null) {
             Log.d(TAG, "TYPE_STEP_COUNTER disponible");
         } else {
@@ -51,10 +79,24 @@ public class StepCounterTracker implements SensorEventListener {
         }
     }
 
+    // --------------------------------------------------------------
+    // setStepListener()
+    // Descripción: Establece el listener que será notificado cuando cambie
+    //              el conteo de pasos.
+    // Diseño: StepListener -> setStepListener() -> listener configurado
+    // Parámetros: listener : callback para recibir actualizaciones de pasos
+    // --------------------------------------------------------------
     public void setStepListener(StepListener listener) {
         this.listener = listener;
     }
 
+    // --------------------------------------------------------------
+    // startTracking()
+    // Descripción: Inicia el rastreo de pasos registrando el sensor apropiado.
+    //              Intenta usar TYPE_STEP_COUNTER primero y si no está disponible
+    //              usa TYPE_STEP_DETECTOR como alternativa.
+    // Diseño: startTracking() -> registra sensor -> isTracking = true
+    // --------------------------------------------------------------
     public void startTracking() {
         if (isTracking) {
             Log.w(TAG, "Ya está rastreando pasos");
@@ -63,18 +105,18 @@ public class StepCounterTracker implements SensorEventListener {
 
         boolean registered = false;
 
-        // Try STEP_COUNTER first (more accurate)
+        // Intenta primero STEP_COUNTER (más preciso)
         if (stepCounterSensor != null) {
             registered = sensorManager.registerListener(
                     this,
                     stepCounterSensor,
-                    SensorManager.SENSOR_DELAY_UI  // Changed to UI for better responsiveness
+                    SensorManager.SENSOR_DELAY_UI
             );
             useFallbackDetector = false;
             Log.d(TAG, "Intentando registrar TYPE_STEP_COUNTER: " + registered);
         }
 
-        // Fallback to STEP_DETECTOR if counter not available or registration failed
+        // Usa STEP_DETECTOR como alternativa si el contador no está disponible
         if (!registered && stepDetectorSensor != null) {
             registered = sensorManager.registerListener(
                     this,
@@ -93,6 +135,12 @@ public class StepCounterTracker implements SensorEventListener {
         }
     }
 
+    // --------------------------------------------------------------
+    // stopTracking()
+    // Descripción: Detiene el rastreo de pasos desregistrando el listener
+    //              del sensor activo.
+    // Diseño: stopTracking() -> desregistra sensor -> isTracking = false
+    // --------------------------------------------------------------
     public void stopTracking() {
         if (!isTracking) {
             return;
@@ -103,11 +151,17 @@ public class StepCounterTracker implements SensorEventListener {
         Log.d(TAG, "Step tracking detenido");
     }
 
+    // --------------------------------------------------------------
+    // resetSession()
+    // Descripción: Reinicia el conteo de pasos de la sesión actual a cero.
+    //              Establece el punto de referencia para el contador acumulativo.
+    // Diseño: resetSession() -> previousSteps = totalSteps -> sessionSteps = 0
+    // --------------------------------------------------------------
     public void resetSession() {
         Log.d(TAG, "Reseteando sesión - previousSteps=" + previousSteps +
                 ", totalSteps=" + totalSteps);
 
-        // If using step counter, set the baseline
+        // Si usa step counter, establece la línea base
         if (!useFallbackDetector) {
             previousSteps = totalSteps;
         }
@@ -121,6 +175,13 @@ public class StepCounterTracker implements SensorEventListener {
         Log.d(TAG, "Sesión reseteada - sessionSteps=0");
     }
 
+    // --------------------------------------------------------------
+    // onSensorChanged()
+    // Descripción: Callback invocado cuando el sensor detecta un cambio.
+    //              Calcula los pasos de la sesión según el tipo de sensor usado.
+    // Diseño: SensorEvent -> onSensorChanged() -> actualiza sessionSteps -> notifica listener
+    // Parámetros: event : evento del sensor con los datos actualizados
+    // --------------------------------------------------------------
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
@@ -129,7 +190,7 @@ public class StepCounterTracker implements SensorEventListener {
             Log.v(TAG, "STEP_COUNTER evento: totalSteps=" + totalSteps +
                     ", previousSteps=" + previousSteps);
 
-            // First time initialization
+            // Inicialización en la primera lectura
             if (previousSteps == 0) {
                 previousSteps = totalSteps;
                 Log.d(TAG, "Inicializando previousSteps=" + previousSteps);
@@ -148,6 +209,14 @@ public class StepCounterTracker implements SensorEventListener {
         }
     }
 
+    // --------------------------------------------------------------
+    // onAccuracyChanged()
+    // Descripción: Callback invocado cuando cambia la precisión del sensor.
+    //              Registra el cambio de precisión en el log.
+    // Diseño: Sensor + accuracy -> onAccuracyChanged() -> log de precisión
+    // Parámetros: - sensor : sensor cuya precisión ha cambiado
+    //             - accuracy : nuevo nivel de precisión
+    // --------------------------------------------------------------
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         String sensorName = sensor.getType() == Sensor.TYPE_STEP_COUNTER
@@ -174,18 +243,42 @@ public class StepCounterTracker implements SensorEventListener {
         Log.d(TAG, sensorName + " precisión cambió a: " + accuracyStr);
     }
 
+    // --------------------------------------------------------------
+    // getSteps()
+    // Descripción: Obtiene el número de pasos contados en la sesión actual.
+    // Diseño: getSteps() -> sessionSteps
+    // Retorno: número de pasos de la sesión actual
+    // --------------------------------------------------------------
     public int getSteps() {
         return sessionSteps;
     }
 
+    // --------------------------------------------------------------
+    // isStepCounterAvailable()
+    // Descripción: Verifica si hay algún sensor de pasos disponible en el dispositivo.
+    // Diseño: isStepCounterAvailable() -> true/false
+    // Retorno: true si hay sensor disponible, false en caso contrario
+    // --------------------------------------------------------------
     public boolean isStepCounterAvailable() {
         return stepCounterSensor != null || stepDetectorSensor != null;
     }
 
+    // --------------------------------------------------------------
+    // isTracking()
+    // Descripción: Indica si el rastreo de pasos está actualmente activo.
+    // Diseño: isTracking() -> true/false
+    // Retorno: true si está rastreando, false en caso contrario
+    // --------------------------------------------------------------
     public boolean isTracking() {
         return isTracking;
     }
 
+    // --------------------------------------------------------------
+    // getSensorInfo()
+    // Descripción: Obtiene información sobre el sensor de pasos que se está utilizando.
+    // Diseño: getSensorInfo() -> String con información del sensor
+    // Retorno: cadena descriptiva del sensor activo o su ausencia
+    // --------------------------------------------------------------
     public String getSensorInfo() {
         if (stepCounterSensor != null) {
             return "Usando TYPE_STEP_COUNTER";
