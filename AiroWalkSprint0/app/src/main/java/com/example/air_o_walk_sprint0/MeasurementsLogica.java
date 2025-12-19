@@ -22,7 +22,7 @@ import android.util.Log;
  *   → callback HTTP
  *   → OnFinishedListener.onFinished(success)
  *
- * @author Adenor Buret
+ * @author Santiago Aguirre
  * @version 1.0
  */
 
