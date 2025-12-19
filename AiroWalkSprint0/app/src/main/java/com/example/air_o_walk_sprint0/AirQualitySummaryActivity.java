@@ -17,18 +17,25 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
-// --------------------------------------------------------------
-// AirQualitySummaryActivity.java
-// Autor: Meryame Ait Boumlik
-// Descripción: Pantalla que muestra el resumen de calidad del aire paraun usuario concreto.
-//      - Emoji de calidad del aire
-//      - Tiempo activo
-//      - Distancia recorrida
-//      - Puntos obtenidos
-//      - Resumen textual
-//      - Gráfica de O3 / NO2 / CO en las últimas 8 horas
-// --------------------------------------------------------------
-public class AirQualitySummaryActivity extends AppCompatActivity {
+/**
+ * @class AirQualitySummaryActivity
+ * @brief Pantalla que muestra el resumen de calidad del aire de un usuario.
+ *
+ * Esta actividad presenta al usuario un resumen visual y textual de su
+ * exposición a la calidad del aire, incluyendo:
+ * - Emoji representativo del estado de la calidad del aire
+ * - Tiempo activo
+ * - Distancia recorrida
+ * - Puntos obtenidos
+ * - Resumen textual
+ * - Gráfica del índice de calidad del aire normalizado en las últimas 8 horas
+ *
+ * Los datos se obtienen del backend de forma asíncrona.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
+public class AirQualitySummaryActivity extends BaseActivity {
 
     private static final String TAG = "AirQualitySummary";
 
@@ -38,17 +45,24 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
     private TextView textPuntos;
     private TextView textResumen;
     private int idUsuario;
-    // --------------------------------------------------------------
-    // onCreate()
-    // Descripción: Inicializa la UI, recupera el USER_ID recibido desde la Activity anterior y lanza la petición al backend.
-    // Diseño: UI + USER_ID -> obtenerResumen -> actualizar pantalla
-    // Parámetros:
-    //      - savedInstanceState : estado previo (Android)
-    // --------------------------------------------------------------
+    /**
+     * onCreate()
+     *
+     * Descripción: Inicializa la UI, recupera el USER_ID recibido desde la
+     * Activity anterior y lanza la petición al backend.
+     *
+     * @details
+     * Diseño:
+     * UI + USER_ID -> obtenerResumen -> actualizar pantalla
+     *
+     * @param savedInstanceState estado previo (Android)
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_air_quality_summary);
+        setupHeaderAndDrawer(true);   // true = has drawer
+        setupBackBehavior();
 
         Log.d(TAG, "onCreate(): Iniciando pantalla.");
 
@@ -122,73 +136,95 @@ public class AirQualitySummaryActivity extends AppCompatActivity {
         });
 
     }
-    // --------------------------------------------------------------
-    // dibujarGrafica()
-    // Descripción: Construye y configura una gráfica LineChart con MPAndroidChart
-    //               usando los arrays O3 / NO2 / CO y las etiquetas temporales.
-    // Diseño:
-    // LineChart chart, AirQualityData data → dibujarGrafica() → gráfico renderizado con O₃, NO₂, CO y eje X con horas
-    // Parámetros:- chart : el LineChart de la UI
-    //            - data  : datos recibidos del backend
-    //
-    // --------------------------------------------------------------
+    /**
+     * dibujarGrafica()
+     *
+     * Descripción: Gráfica del índice normalizado (0–1) con líneas de
+     * umbrales (buena / regular / mala).
+     *
+     * @details
+     * Diseño:
+     * LineChart chart, AirQualityData data
+     * → dibujarGrafica()
+     * → gráfica del índice normalizado y eje X con horas
+     *
+     * @param chart LineChart de la interfaz
+     * @param data datos recibidos del backend
+     */
     private void dibujarGrafica(LineChart chart, AirQualityResumen.AirQualityData data) {
 
         try {
-            List<Entry> o3Entries = new ArrayList<>();
-            List<Entry> no2Entries = new ArrayList<>();
-            List<Entry> coEntries = new ArrayList<>();
+            List<Entry> indexEntries = new ArrayList<>();
             List<String> etiquetasX = new ArrayList<>();
 
-            // Construcción de entradas
+            // 1. Construcción de puntos del índice normalizado
             for (int i = 0; i < data.timestamps.length(); i++) {
                 float x = i;
+                float idx = (float) data.index.getDouble(i);
 
-                o3Entries.add(new Entry(x, (float) data.o3.getDouble(i)));
-                no2Entries.add(new Entry(x, (float) data.no2.getDouble(i)));
-                coEntries.add(new Entry(x, (float) data.co.getDouble(i)));
-
-                // Etiqueta real de tiempo (ej: "14:30")
+                indexEntries.add(new Entry(x, idx));
                 etiquetasX.add(data.timestamps.getString(i));
             }
 
-            // Crear DataSets
-            LineDataSet setO3 = new LineDataSet(o3Entries, "O₃ (µg/m³)");
-            LineDataSet setNO2 = new LineDataSet(no2Entries, "NO₂ (µg/m³)");
-            LineDataSet setCO = new LineDataSet(coEntries, "CO (ppm)");
+            // 2. Dataset de la línea INDEX
+            LineDataSet setIndex = new LineDataSet(indexEntries, "Índice (0–1)");
+            setIndex.setColor(Color.BLUE);
+            setIndex.setLineWidth(2.5f);
+            setIndex.setCircleRadius(3f);
+            setIndex.setDrawValues(false);
 
-            setO3.setColor(Color.BLUE);
-            setNO2.setColor(Color.RED);
-            setCO.setColor(Color.GREEN);
+            // ---------- 3. Horizontal threshold lines ----------
+            List<Entry> buena = new ArrayList<>();
+            List<Entry> regular = new ArrayList<>();
+            List<Entry> mala = new ArrayList<>();
 
-            setO3.setCircleRadius(3f);
-            setNO2.setCircleRadius(3f);
-            setCO.setCircleRadius(3f);
+            float maxX = data.timestamps.length() - 1;
 
-            LineData lineData = new LineData(setO3, setNO2, setCO);
+            buena.add(new Entry(0, 0.3f));
+            buena.add(new Entry(maxX, 0.3f));
+
+            regular.add(new Entry(0, 0.5f));
+            regular.add(new Entry(maxX, 0.5f));
+
+            mala.add(new Entry(0, 0.8f));
+            mala.add(new Entry(maxX, 0.8f));
+
+            LineDataSet setBuena = new LineDataSet(buena, "Buena (<0.3)");
+            LineDataSet setRegular = new LineDataSet(regular, "Regular (<0.5)");
+            LineDataSet setMala = new LineDataSet(mala, "Mala (>0.8)");
+
+            setBuena.setColor(Color.GREEN);
+            setRegular.setColor(Color.YELLOW);
+            setMala.setColor(Color.RED);
+
+            setBuena.setDrawCircles(false);
+            setRegular.setDrawCircles(false);
+            setMala.setDrawCircles(false);
+
+            setBuena.setLineWidth(1.5f);
+            setRegular.setLineWidth(1.5f);
+            setMala.setLineWidth(1.5f);
+
+            // ---------- 4. Add EVERYTHING into chart ----------
+            LineData lineData = new LineData(setIndex, setBuena, setRegular, setMala);
             chart.setData(lineData);
 
-            // ======== CONFIGURAR EJE X ========
+            // 5. Eje X con horas
             XAxis xAxis = chart.getXAxis();
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setGranularity(1f);
-            xAxis.setGranularityEnabled(true);
-
-            // Aplica las etiquetas reales de tiempo
             xAxis.setValueFormatter(new IndexAxisValueFormatter(etiquetasX));
 
+            // Description text
             Description desc = new Description();
-            desc.setText("Tiempo (últimas 8 horas)");
+            desc.setText("Índice normalizado (8h)");
             desc.setTextSize(9f);
             chart.setDescription(desc);
 
-
-            // Refresh
             chart.invalidate();
 
         } catch (Exception e) {
             Log.e("AirQualitySummary", "Error dibujando gráfica", e);
         }
     }
-
 }

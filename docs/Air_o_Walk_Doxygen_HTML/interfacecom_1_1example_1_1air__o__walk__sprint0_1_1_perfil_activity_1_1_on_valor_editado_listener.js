@@ -1,0 +1,4 @@
+var interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_perfil_activity_1_1_on_valor_editado_listener =
+[
+    [ "onValorEditado", "interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_perfil_activity_1_1_on_valor_editado_listener.html#af230f8ae3e2a623ec7905b8cc5cfe3cd", null ]
+];

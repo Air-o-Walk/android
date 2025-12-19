@@ -24,6 +24,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -34,11 +35,43 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-// ------------------------------------------------------------------
-// Clase principal de la actividad Android
-// ------------------------------------------------------------------
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.core.view.GravityCompat;
+import com.google.android.material.navigation.NavigationView;
 
-public class MainActivity extends AppCompatActivity {
+/**
+ * @class MainActivity
+ * @brief Actividad principal de la aplicación Air-o-Walk.
+ *
+ * Esta actividad centraliza la mayor parte de la funcionalidad de la app:
+ * - Gestión y escaneo de dispositivos BLE (beacons)
+ * - Vinculación y desvinculación de nodos sensores
+ * - Recepción y procesamiento de mediciones ambientales (O3, CO, NO2)
+ * - Control del estado de conexión del beacon
+ * - Tracking de recorridos (pasos, tiempo y ubicación GPS)
+ * - Envío de mediciones completas al backend
+ * - Integración con gamificación, canjeos y resumen de calidad del aire
+ *
+ * Además, gestiona:
+ * - Permisos dinámicos (Bluetooth, localización, actividad física, notificaciones)
+ * - Manejo de desconexiones abruptas del beacon
+ *
+ * Diseño general:
+ * onCreate()
+ *  → inicializarBlueTooth()
+ *  → inicializarVinculador()
+ *  → inicializar trackers (pasos, tiempo, GPS)
+ *  → escaneo BLE y recepción de mediciones
+ *  → startTracking() / stopTracking()
+ *  → envío de datos al backend
+ *
+ * @author
+ * Equipo Air-o-Walk
+ * @version 1.0
+ */
+
+
+public class MainActivity extends BaseActivity  {
 
     // Etiqueta para los logs
     private static final String ETIQUETA_LOG = ">>>>";
@@ -70,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView iconoVincular;
     private boolean yaVinculado = false;
     private String nombreNodoVinculado = null;
+    private int nodeId = 153;
 
     // Trackers para pasos, tiempo y GPS
     private StepCounterTracker stepTracker;
@@ -81,6 +115,27 @@ public class MainActivity extends AppCompatActivity {
 
     // Estado del tracking
     private boolean isTracking = false;
+
+    // NUEVO: Estado de conexión del beacon
+    private boolean beaconConectado = false;
+
+    // NUEVO: Última ubicación conocida del nodo
+    private Location ultimaUbicacionNodo = null;
+
+    // NUEVO: Últimas mediciones de gases
+    private float ultimaMedicionO3 = 0f;
+    private float ultimaMedicionCO = 0f;
+    private float ultimaMedicionNO2 = 0f;
+
+    // Drawer / Navigation
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ImageView btnMenu;
+
+    private TextView textVinculacion;
+    private View btnVincular;
+
+
 
     // ------------------------------------------------------------------
     // Escanea todos los dispositivos BLE cercanos y muestra su información
@@ -190,8 +245,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
 
                 mostrarInformacionDispositivoBTLE( resultado );
-                //guardarMedicion( resultado ); // Envía la medición al backend
                 mostrarMedicion(resultado);
+
+
             }
 
             @Override
@@ -237,50 +293,6 @@ public class MainActivity extends AppCompatActivity {
 
     } // ()
 
-    // ------------------------------------------------------------------
-    // Procesa la trama recibida y envía la medición al backend si es nueva
-    // Evita duplicados usando el contador y banderas
-    // ------------------------------------------------------------------
-    private void guardarMedicion( ScanResult resultado ){
-
-        CompletableFuture.runAsync(() -> {
-            byte[] bytes = resultado.getScanRecord().getBytes();
-            TramaIBeacon tib = new TramaIBeacon(bytes);
-
-            byte[] major = tib.getMajor();
-            int tipoMedicion = major[0] & 0xFF;
-            int contadorArduino = major[1] & 0xFF;
-            int valorMedicion = Utilidades.bytesToInt(tib.getMinor());
-
-            // Si es un nuevo contador, reinicia banderas
-            if (contadorArduino != this.contadorAndroid) {
-                Log.d("ETIQUETA_LOG", "Nuevo contador, se reinician banderas");
-                this.contadorAndroid = contadorArduino;
-                this.recibioGas = false;
-                this.recibioTemperatura = false;
-            }
-
-            // Verificamos qué tipo de medición llegó y si ya se envió
-            if (tipoMedicion == 11 && !recibioGas) {
-                this.recibioGas = true;
-                Log.d("ETIQUETA_LOG", "Enviando medición tipo: " + tipoMedicion + " (contador " + contadorArduino + ")");
-                Logica logica = new Logica(tipoMedicion, valorMedicion);
-                logica.guardarMedcion();
-            }
-            else if (tipoMedicion == 12 && !recibioTemperatura) {
-                this.recibioTemperatura = true;
-                Log.d("ETIQUETA_LOG", "Enviando medición tipo: " + tipoMedicion + " (contador " + contadorArduino + ")");
-                Logica logica = new Logica(tipoMedicion, valorMedicion);
-                logica.guardarMedcion();
-            }
-            else {
-                Log.d("ETIQUETA_LOG", "Medición duplicada ignorada (tipo=" + tipoMedicion + ", contador=" + contadorArduino + ")");
-            }
-
-        });
-    }
-
-
     private void mostrarMedicion( ScanResult resultado){
 
         // Obtiene los bytes crudos del advertising packet
@@ -314,6 +326,32 @@ public class MainActivity extends AppCompatActivity {
         // Actualizamos nuestro contador local para futuras comparaciones
         this.contadorAndroid = contadorArduino;
 
+        // NUEVO: Marcar beacon como conectado
+        if (!beaconConectado) {
+            beaconConectado = true;
+            Log.d(ETIQUETA_LOG, " Beacon CONECTADO - Funcionalidades habilitadas");
+        }
+
+        // NUEVO: Guardar últimas mediciones de gases
+        // Asumiendo que medicionGas es O3 (ozono)
+        ultimaMedicionO3 = medicionGas;
+        // TODO: Si tienes sensores para CO y NO2, actualízalos aquí
+        // ultimaMedicionCO = ...;
+        // ultimaMedicionNO2 = ...;
+        // Por ahora usamos valores simulados para CO y NO2
+        ultimaMedicionCO = medicionGas * 700;  // Reemplazar con valor real si está disponible
+        ultimaMedicionNO2 = medicionGas * 700; // Reemplazar con valor real si está disponible
+
+        // NUEVO: Actualizar última ubicación conocida del nodo
+        if (gpsTracker != null) {
+            Location ubicacionActual = gpsTracker.getCurrentLocation();
+            if (ubicacionActual != null) {
+                ultimaUbicacionNodo = ubicacionActual;
+                Log.d(ETIQUETA_LOG, " Última ubicación nodo actualizada: " +
+                        ubicacionActual.getLatitude() + ", " + ubicacionActual.getLongitude());
+            }
+        }
+
         // -----------------------------------------------------------
         // Llamamos al monitor del nodo (conectado / desconectado / incoherente)
         // -----------------------------------------------------------
@@ -321,13 +359,75 @@ public class MainActivity extends AppCompatActivity {
             monitorEstadoNodo.onBeaconRecibido(medicionGas, medicionTemperatura);
         }
 
+        enviarUltimaUbicacionNodo();
 
         // Llamamos a la notificación desde el hilo principal (UI thread)
         runOnUiThread(() -> {
             AdminNotificaciones.revisarYNotificar(this, medicionGas);
-            textMajor.setText("03(ppm): " + medicionGas);
+            textMajor.setText("O3(ppm): " + medicionGas);
             textMinor.setText("Temperatura(ºC): " + medicionTemperatura);
         });
+    }
+
+    // ------------------------------------------------------------------
+    // MODIFICADO: Envía las 3 mediciones completas (ubicación, pasos, tiempo)
+    // ------------------------------------------------------------------
+    private void enviarUltimaUbicacionNodo() {
+        if (ultimaUbicacionNodo == null) {
+            Log.w(ETIQUETA_LOG, " enviarMedicionesCompletas(): No hay última ubicación disponible");
+            return;
+        }
+
+        if (nombreNodoVinculado == null || nombreNodoVinculado.isEmpty()) {
+            Log.e(ETIQUETA_LOG, " enviarMedicionesCompletas(): No hay nodo vinculado");
+            return;
+        }
+
+        // Obtener pasos totales de la sesión
+        int pasosTotal = 0;
+        if (stepTracker != null) {
+            pasosTotal = stepTracker.getSteps();
+        }
+
+        // Obtener tiempo total en segundos
+        long tiempoTotalSegundos = 0;
+        if (timeTracker != null) {
+            tiempoTotalSegundos = timeTracker.getElapsedTimeSeconds();
+        }
+
+        Log.d(ETIQUETA_LOG, " ===============================================");
+        Log.d(ETIQUETA_LOG, " Preparando envío de mediciones completas:");
+        Log.d(ETIQUETA_LOG, " - Nodo: " + nombreNodoVinculado);
+        Log.d(ETIQUETA_LOG, " - Pasos: " + pasosTotal);
+        Log.d(ETIQUETA_LOG, " - Tiempo: " + tiempoTotalSegundos + " segundos");
+        Log.d(ETIQUETA_LOG, " - Ubicación: " + ultimaUbicacionNodo.getLatitude() +
+                ", " + ultimaUbicacionNodo.getLongitude());
+        Log.d(ETIQUETA_LOG, " ===============================================");
+
+        // Usar MeasurementsSender para enviar todas las mediciones
+        MeasurementsSender.enviarMedicionCompleta(
+                nodeId,
+                ultimaMedicionO3,
+                ultimaMedicionCO,
+                ultimaMedicionNO2,
+                ultimaUbicacionNodo,
+                new MeasurementsSender.MeasurementCallback() {
+                    @Override
+                    public void onSuccess(String respuesta) {
+                        Log.d(ETIQUETA_LOG, " Mediciones completas enviadas exitosamente");
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.e(ETIQUETA_LOG, " Error enviando mediciones: " + error);
+                        runOnUiThread(() -> {
+                            Toast.makeText(MainActivity.this,
+                                    "Error al enviar mediciones: " + error,
+                                    Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }
+        );
     }
 
     // ------------------------------------------------------------------
@@ -340,46 +440,71 @@ public class MainActivity extends AppCompatActivity {
 
     public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
         Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
-        this.buscarEsteDispositivoBTLE( "GTI");
+        // MODIFICADO: Solo permitir si hay beacon vinculado
+        if (!yaVinculado) {
+            Toast.makeText(this, "Primero vincula un beacon", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        this.buscarEsteDispositivoBTLE(nombreNodoVinculado);
     } // ()
 
     public void botonDetenerBusquedaDispositivosBTLEPulsado( View v ) {
         Log.d(ETIQUETA_LOG, " boton detener busqueda dispositivos BTLE Pulsado" );
         this.detenerBusquedaDispositivosBTLE();
+
+        // NUEVO: Al detener búsqueda, marcar beacon como desconectado
+        if (beaconConectado) {
+            beaconConectado = false;
+            enviarUltimaUbicacionNodo();
+            Log.d(ETIQUETA_LOG, " Beacon DESCONECTADO - Funcionalidades pausadas");
+        }
     } // ()
 
 
     public void abrirPantallaGamificacion(View v) {
-        // Crear el Intent para abrir GamificacionActivity
+        // MODIFICADO: Solo permitir si beacon está conectado
+        if (!beaconConectado) {
+            Toast.makeText(this, "Necesitas estar conectado al beacon para acceder a gamificación",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent intent = new Intent(MainActivity.this, GamificacionActivity.class);
-
-        // Pasar el user_id (reemplaza 'user_id' con el nombre de tu variable)
         intent.putExtra("USER_ID", idUsuario);
-
-        // Iniciar la nueva Activity
         startActivity(intent);
     }
 
     public void abrirPantallaCanjeos(View v) {
-        // Crear el Intent para abrir GamificacionActivity
+        // MODIFICADO: Solo permitir si beacon está conectado
+        if (!beaconConectado) {
+            Toast.makeText(this, "Necesitas estar conectado al beacon para acceder a canjeos",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent intent = new Intent(MainActivity.this, CanjeoActivity.class);
-
-        // Pasar el user_id (reemplaza 'user_id' con el nombre de tu variable)
         intent.putExtra("USER_ID", idUsuario);
-
-        // Iniciar la nueva Activity
         startActivity(intent);
     }
 
     // ------------------------------------------------------------------
-    // NUEVO: Método para controlar el tracking de pasos, tiempo y GPS
+    // MODIFICADO: Control de tracking ahora depende de la conexión del beacon
     // ------------------------------------------------------------------
     public void botonDistanceTrackerPulsado(View v) {
+        // NUEVO: Verificar que el beacon esté conectado antes de iniciar tracking
+        if (!beaconConectado && !isTracking) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Beacon no conectado")
+                    .setMessage("Necesitas estar conectado al beacon para iniciar una recorrida.\n\n" +
+                            "Por favor, espera a que se detecte el beacon o verifica que esté encendido.")
+                    .setPositiveButton("Aceptar", null)
+                    .show();
+            return;
+        }
+
         if (!isTracking) {
-            // Iniciar tracking
             startTracking();
         } else {
-            // Detener tracking
             stopTracking();
         }
     }
@@ -401,6 +526,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // NUEVO: Verificar conexión del beacon
+        if (!beaconConectado) {
+            Log.e(ETIQUETA_LOG, " startTracking(): Error - beacon no conectado");
+            Toast.makeText(this, "Beacon no conectado. Esperando señal...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         isTracking = true;
         trackButton.setText("Detener Recorrida");
 
@@ -418,10 +550,10 @@ public class MainActivity extends AppCompatActivity {
         // Iniciar GPS tracker
         gpsTracker.startTracking();
 
-
-
         Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado (steps + time + GPS)");
         Log.d(ETIQUETA_LOG, " startTracking(): " + stepTracker.getSensorInfo());
+
+        Toast.makeText(this, "Recorrida iniciada - Beacon conectado", Toast.LENGTH_SHORT).show();
     }
 
     private void stopTracking() {
@@ -436,33 +568,69 @@ public class MainActivity extends AppCompatActivity {
         isTracking = false;
         trackButton.setText("Activar Recorrida");
 
-        // Detener trackers (pero mantener los valores actuales)
+        // Obtener valores finales ANTES de detener
+        int pasos = stepTracker.getSteps();
+        long tiempoSegundos = timeTracker.getElapsedTimeSeconds();
+        Location ubicacionFinal = gpsTracker.getCurrentLocation();
+
+        // Detener trackers
         stepTracker.stopTracking();
         timeTracker.stopTracking();
         gpsTracker.stopTracking();
 
-        int pasos = stepTracker.getSteps();
-
+        // Calcular puntos de gamificación
         Gamificacion game = new Gamificacion(idUsuario);
         int puntos = game.calcularPuntosMedianteDistancia(pasos);
         game.setUltimosPuntosObtenidos(puntos);
 
+        // Guardar estadísticas diarias
         MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
-
         medidas.guardarDailyStats();
 
+        // ====================================================================
+        // NUEVO: Enviar TODAS las mediciones al servidor (pasos, tiempo, GPS)
+        // usando el endpoint /measurements del backend
+        // ====================================================================
+        if (ubicacionFinal != null && nombreNodoVinculado != null) {
+            Log.d(ETIQUETA_LOG, " ENVIANDO MEDICIONES FINALES DE RECORRIDA");
+            Log.d(ETIQUETA_LOG, "  Pasos: " + pasos);
+            Log.d(ETIQUETA_LOG, "  Tiempo: " + tiempoSegundos + " seg (" + (tiempoSegundos/60) + " min)");
+            Log.d(ETIQUETA_LOG, "  Ubicación: " + ubicacionFinal.getLatitude() + ", " + ubicacionFinal.getLongitude());
+            Log.d(ETIQUETA_LOG, "  Tipo: MANUAL (usuario detuvo recorrida)");
 
 
+            MeasurementsSender.enviarMedicionConDesconexion(
+                    nombreNodoVinculado,
+                    ultimaMedicionO3,
+                    ultimaMedicionCO,
+                    ultimaMedicionNO2,
+                    ubicacionFinal,
+                    pasos,
+                    tiempoSegundos,
+                    "manual", // El usuario detuvo manualmente
+                    new MeasurementsSender.MeasurementCallback() {
+                        @Override
+                        public void onSuccess(String respuesta) {
+                            Log.d(ETIQUETA_LOG, " Mediciones finales enviadas correctamente");
+                        }
 
+                        @Override
+                        public void onError(String error) {
+                            Log.e(ETIQUETA_LOG, " Error enviando mediciones finales: " + error);
+                        }
+                    }
+            );
+        } else {
+            Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - ubicación o nodo no disponible");
+        }
+        // ====================================================================
 
-        // --------------------------------------------------------------
-        // ---- Abrir resumen de calidad del aire (se envía USER_ID) ----
+        // Abrir resumen de calidad del aire
         Intent intent = new Intent(MainActivity.this, AirQualitySummaryActivity.class);
         intent.putExtra("USER_ID", idUsuario);
-        intent.putExtra("PASOS", stepTracker.getSteps() );
+        intent.putExtra("PASOS", pasos);
         intent.putExtra("TIEMPO", timeTracker.getElapsedTimeMinutes());
         startActivity(intent);
-        // --------------------------------------------------------------
 
         Log.d(ETIQUETA_LOG, " stopTracking(): tracking detenido - valores congelados");
     }
@@ -485,7 +653,6 @@ public class MainActivity extends AppCompatActivity {
 
     // ------------------------------------------------------------------
     // Inicializa el adaptador Bluetooth y solicita permisos si es necesario
-    // MODIFICADO: Ahora solicita TODOS los permisos juntos incluyendo ACTIVITY_RECOGNITION
     // ------------------------------------------------------------------
     private void inicializarBlueTooth() {
         Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): obtenemos adaptador BT ");
@@ -544,7 +711,6 @@ public class MainActivity extends AppCompatActivity {
         }
         else {
             Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): parece que YA tengo los permisos necesarios !!!!");
-            // Solo después de tener permisos, intentar habilitar Bluetooth
             habilitarBluetoothSiEsNecesario(bta);
         }
     } // ()
@@ -558,7 +724,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Verificar que tenemos el permiso BLUETOOTH_CONNECT
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): No tenemos permiso BLUETOOTH_CONNECT aún");
@@ -576,12 +741,10 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): habilitado =  " + bta.isEnabled() );
         Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): estado =  " + bta.getState() );
 
-        // Obtener el scanner después de habilitar Bluetooth
         if (this.elEscanner == null) {
             this.elEscanner = bta.getBluetoothLeScanner();
             if (this.elEscanner != null) {
                 Log.d(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): Scanner BLE obtenido correctamente");
-                // Ahora inicializar el vinculador
                 inicializarVinculador();
             } else {
                 Log.e(ETIQUETA_LOG, " habilitarBluetoothSiEsNecesario(): No se pudo obtener scanner BLE");
@@ -589,36 +752,21 @@ public class MainActivity extends AppCompatActivity {
         }
     } // ()
 
-    // ------------------------------------------------------------------
-    // ELIMINADO: solicitarPermisosTracking() ya no es necesario
-    // Ahora todos los permisos se solicitan juntos en inicializarBlueTooth()
-    // ------------------------------------------------------------------
-
-    //Funcion para activar boton de inicio de recorrido
     private void estadoBotonRecorrido(boolean estadoDispotivoVinculado){
         trackButton.setEnabled(estadoDispotivoVinculado);
     }
 
-    // ------------------------------------------------------------------
-    // Inicializa el vinculador BLE
-    // ------------------------------------------------------------------
     private void inicializarVinculador() {
         if (this.elEscanner == null) {
             Log.e(ETIQUETA_LOG, " inicializarVinculador(): Scanner BLE no disponible aún");
-            // Reintentaremos cuando tengamos permisos
             return;
         }
-        // ==============================
-        // VERIFICAR SI EL USUARIO YA TIENE NODO VINCULADO
-        // ==============================
-            verificarNodoVinculado();
-        // ==============================
 
-// Configurar botón para ir al perfil (esto debe estar en un onClickListener, no ejecutarse automáticamente)
+        verificarNodoVinculado();
+
         findViewById(R.id.boton_perfil).setOnClickListener(v -> {
             abrirPerfilActivity();
         });
-
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -631,55 +779,117 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-// ==============================================================================================================
-// CONFIGURACIÓN DEL SISTEMA DE VINCULACIÓN
-// - Se inicializa el icono (rojo = no vinculado)
-// - Se crea el VinculadorBLE que gestiona el escaneo por nombre del beacon
-// - Cuando el beacon se encuentra => estado VINCULADO => registramos en backend => refrescamos MainActivity
-// ==============================================================================================================
-        iconoVincular = findViewById(R.id.iconoVincular);
-        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+
         estadoBotonRecorrido(false);
+
         vinculador = new VinculadorBLE(this.elEscanner, new VinculadorBLE.Listener() {
-            @Override public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {
+            @Override
+            public void onEstadoCambio(VinculadorBLE.Estado nuevoEstado) {
                 Log.d(">>>>", "UI onEstadoCambio = " + nuevoEstado);
                 switch (nuevoEstado) {
                     case VINCULADO:
-                        //REGISTRO NODO: enviar userId + nombre del beacon al backend
                         String userId = Integer.toString((idUsuario));
                         String nombreNodo = vinculador.getNombreNodoActual();
-                        // Enviar vinculación al backend
+
                         RegistroNodo registro = new RegistroNodo(userId, nombreNodo);
                         registro.registrarNodo();
-                        // Actualizar estado local
+
                         yaVinculado = true;
                         nombreNodoVinculado = nombreNodo;
-                        // Detener escaneos activos
+
                         vinculador.detener();
                         detenerBusquedaDispositivosBTLE();
-                        // Recargamos MainActivity para que empiece lectura BLE automática
+
                         runOnUiThread(() -> refrescarActividad());
                         buscarEsteDispositivoBTLE(nombreNodo);
                         estadoBotonRecorrido(true);
 
-                        // ===================================================
-                        // Iniciar el monitor de estado del nodo
-                        // ===================================================
                         monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this, nombreNodo);
                         monitorEstadoNodo.iniciarMonitor();
-                        // ===================================================
 
-                        // ===================================================================
+                        // NUEVO: Configurar listener para desconexión del nodo
+                        monitorEstadoNodo.setDesconexionListener(() -> {
+                            beaconConectado = false;
+
+                            // Si estaba haciendo tracking, enviar mediciones antes de detener
+                            if (isTracking) {
+                                Log.d(ETIQUETA_LOG, "DESCONEXIÓN ABRUPTA DETECTADA");
+
+                                runOnUiThread(() -> {
+                                    Toast.makeText(MainActivity.this,
+                                            "Beacon desconectado - Enviando mediciones",
+                                            Toast.LENGTH_LONG).show();
+                                });
+
+                                // Obtener valores actuales
+                                int pasosActuales = stepTracker != null ? stepTracker.getSteps() : 0;
+                                long tiempoActual = timeTracker != null ? timeTracker.getElapsedTimeSeconds() : 0;
+                                Location ubicacionActual = gpsTracker != null ? gpsTracker.getCurrentLocation() : null;
+
+                                // Enviar mediciones con tipo "abrupta"
+                                if (ubicacionActual != null && nombreNodoVinculado != null) {
+                                    Log.d(ETIQUETA_LOG, " Enviando mediciones por desconexión abrupta:");
+                                    Log.d(ETIQUETA_LOG, " - Pasos: " + pasosActuales);
+                                    Log.d(ETIQUETA_LOG, " - Tiempo: " + tiempoActual + " seg");
+
+                                    MeasurementsSender.enviarMedicionConDesconexion(
+                                            nombreNodoVinculado,
+                                            ultimaMedicionO3,
+                                            ultimaMedicionCO,
+                                            ultimaMedicionNO2,
+                                            ubicacionActual,
+                                            pasosActuales,
+                                            tiempoActual,
+                                            "abrupta", // Desconexión no planificada
+                                            new MeasurementsSender.MeasurementCallback() {
+                                                @Override
+                                                public void onSuccess(String respuesta) {
+                                                    Log.d(ETIQUETA_LOG, " Mediciones de desconexión abrupta enviadas");
+                                                    runOnUiThread(() -> {
+                                                        Toast.makeText(MainActivity.this,
+                                                                "Mediciones guardadas antes de desconexión",
+                                                                Toast.LENGTH_SHORT).show();
+                                                    });
+                                                }
+
+                                                @Override
+                                                public void onError(String error) {
+                                                    Log.e(ETIQUETA_LOG, " Error enviando mediciones: " + error);
+                                                }
+                                            }
+                                    );
+                                } else {
+                                    Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - datos incompletos");
+                                }
+
+                                // Opcional: detener tracking automáticamente
+                                // runOnUiThread(() -> stopTracking());
+                            }
+                        });
+
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
+                        // Mostrar botón "Encontrar mi sensor"
+                        Button btnFind = findViewById(R.id.btnFindSensor);
+                        btnFind.setVisibility(View.VISIBLE);
+
+                        btnFind.setOnClickListener(v -> {
+                            Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                            i.putExtra("NODE_NAME", nombreNodoVinculado);
+                            startActivity(i);
+                        });
+
                         break;
                 }
             }
 
-            @Override public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
+            @Override
+            public void onDispositivoEncontrado(BluetoothDevice device, ScanResult result) {
                 Log.d(">>>>", "Encontrado: " + device.getName() + " addr=" + device.getAddress()
                         + " rssi=" + result.getRssi());
             }
-            @Override public void onError(int errorCode) {
+
+            @Override
+            public void onError(int errorCode) {
                 Log.d(">>>>", "Listener onError: code=" + errorCode);
             }
         });
@@ -687,10 +897,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " inicializarVinculador(): Vinculador BLE inicializado correctamente");
     }
 
-    // ------------------------------------------------------------------
-    // NUEVO: Verifica la disponibilidad de sensores de pasos
-    // NUEVO: Verifica la disponibilidad de sensores de pasos
-    // ------------------------------------------------------------------
     private void verificarSensores() {
         if (stepTracker != null) {
             boolean disponible = stepTracker.isStepCounterAvailable();
@@ -711,9 +917,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Método principal de ciclo de vida: inicializa la actividad y Bluetooth
-    // ------------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -721,70 +924,161 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
-        // Inicializar vistas
-        textMajor = findViewById(R.id.textMajor);
-        textMinor = findViewById(R.id.textMinor);
-        textSteps = findViewById(R.id.distanciaTotal); // Ahora muestra pasos
-        tiempoTotal = findViewById(R.id.tiempoTotal);
-        trackButton = findViewById(R.id.track);
-
-        // Inicializar Bluetooth
-        inicializarBlueTooth();
-
-        // Recuperar datos del Intent
+        // =====================================================
+        // 1️⃣ READ INTENT FIRST (CRITICAL)
+        // =====================================================
         Intent intent = getIntent();
         if (intent != null) {
-            idUsuario = intent.getIntExtra("USER_ID", -1); // -1 es valor por defecto
+            idUsuario = intent.getIntExtra("USER_ID", -1);
             token = intent.getStringExtra("TOKEN");
         }
 
-// ==============================================================================================================
-// VINCULAR
-// Descripción: Inicializa el icono de vinculación y crea el VinculadorBLE para gestionar el enlace
-// con el beacon. Si se vincula correctamente, registra el nodo en el backend.
-// ==============================================================================================================
-        iconoVincular = findViewById(R.id.iconoVincular);
-        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
+        if (idUsuario == -1 || token == null) {
+            Log.e(ETIQUETA_LOG, "ERROR: USER_ID o TOKEN no recibidos");
+            Toast.makeText(this,
+                    "Error de sesión. Vuelve a iniciar sesión.",
+                    Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        // =====================================================
+        // 2️⃣ BIND MAIN UI
+        // =====================================================
+        textMajor = findViewById(R.id.textMajor);
+        textMinor = findViewById(R.id.textMinor);
+        // IMPORTANTE: Los IDs de los TextViews parecen ser diferentes en tu código anterior y nuevo.
+        // Usa los IDs que realmente están en tu activity_main.xml.
+        // Asumiré que quieres usar los IDs del código nuevo (distanciaTotal y tiempoTotal)
+        textSteps = findViewById(R.id.distanciaTotal);
+        tiempoTotal = findViewById(R.id.tiempoTotal);
+        trackButton = findViewById(R.id.track);
+
+        // Nuevas vistas en el código
+        textVinculacion = findViewById(R.id.textVinculacion);
+        btnVincular = findViewById(R.id.botonBuscarNuestroDispositivoBTLE);
+
+
+        // =====================================================
+        // 3️⃣ DRAWER + HEADER (¡Verifica el layout del header!)
+        // =====================================================
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        btnMenu = findViewById(R.id.btnMenu); // El botón de menú/hamburguesa está en el activity_main
+
+        // OBTENER ICONO DEL HEADER: Esta es la parte crítica
+        try {
+            iconoVincular = findViewById(R.id.iconoVincular);
+
+            // Configurar listener para iconoVincular (en el header)
+            if (iconoVincular != null) {
+                iconoVincular.setOnClickListener(v -> {
+                    if (yaVinculado) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Dispositivo conectado")
+                                .setMessage(
+                                        "Tu dispositivo está conectado y midiendo la calidad del aire.\n\n" +
+                                                "¿Deseas desvincularlo?"
+                                )
+                                .setPositiveButton("Desvincular", (d, w) -> desvincularNodo())
+                                .setNegativeButton("Cancelar", null)
+                                .show();
+                    } else {
+                        // Llama a la lógica de vinculación al hacer clic en el icono
+                        botonVincularPulsado(v);
+                    }
+                });
+            } else {
+                Log.w(ETIQUETA_LOG, "AVISO: iconoVincular no se encontró en el header del Navigation View.");
+            }
+        } catch (Exception e) {
+            Log.e(ETIQUETA_LOG, "Error al inicializar Drawer/Header: " + e.getMessage(), e);
+            // Podrías lanzar un Toast aquí si es un error crítico
+        }
+
+        // Configurar listener para btnMenu (en el toolbar/layout principal)
+        if (btnMenu != null && drawerLayout != null) {
+            btnMenu.setOnClickListener(v ->
+                    drawerLayout.openDrawer(GravityCompat.START)
+            );
+        } else {
+            Log.w(ETIQUETA_LOG, "AVISO: btnMenu o drawerLayout no se encontraron.");
+        }
+
+        // Configurar listener para los elementos del Navigation View
+        navigationView.setNavigationItemSelectedListener(item -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+
+            if (item.getItemId() == R.id.nav_perfil) {
+                abrirPerfilActivity();
+            } else {
+                Toast.makeText(this,
+                        "Pantalla aún no implementada",
+                        Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        });
+
+        // Configuración del botón de retroceso
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                } else {
+                    setEnabled(false);
+                    MainActivity.super.onBackPressed();
+                }
+            }
+        });
+
+        // =====================================================
+        // 4️⃣ INITIAL UI STATE
+        // =====================================================
+        // Solo si iconoVincular no es null
+        if (iconoVincular != null) {
+            iconoVincular.setImageResource(R.drawable.ic_link_off); // Usando el nuevo icono
+        }
         estadoBotonRecorrido(false);
 
-        // Inicializar vinculador solo si tenemos el scanner BLE
-        inicializarVinculador();
-// ==============================================================================================================
 
-        // Inicializar trackers con comprobación de nulidad
+        // Solo si las vistas principales no son null
+        if (textSteps != null) textSteps.setText("0 pasos");
+        if (tiempoTotal != null) tiempoTotal.setText("00:00:00");
+
+        // =====================================================
+        // 5️⃣ BLUETOOTH + VINCULADOR (SAFE NOW)
+        // =====================================================
+        inicializarBlueTooth();
+        inicializarVinculador();
+
+        // =====================================================
+        // 6️⃣ TRACKERS
+        // =====================================================
         try {
             stepTracker = new StepCounterTracker(this);
             timeTracker = new WalkingTimeTracker();
             gpsTracker = new GPSFondo(this);
 
-            // Configurar listener para step counter (ahora solo pasos)
-            stepTracker.setStepListener((steps) -> {
-                if (isTracking) {
-                    WalkingTimeTracker.TimeComponents time = timeTracker.getTimeComponents();
-                    updateTrackingUI(steps, time.hours, time.minutes, time.seconds);
+            // Listeners
+            stepTracker.setStepListener(steps -> {
+                if (isTracking && beaconConectado) {
+                    WalkingTimeTracker.TimeComponents t = timeTracker.getTimeComponents();
+                    updateTrackingUI(steps, t.hours, t.minutes, t.seconds);
                 }
             });
 
-            // Configurar listener para time tracker
-            timeTracker.setTimeUpdateListener((hours, minutes, seconds, totalSeconds) -> {
-                if (isTracking) {
-                    int steps = stepTracker.getSteps();
-                    updateTrackingUI(steps, hours, minutes, seconds);
+            timeTracker.setTimeUpdateListener((h, m, s, total) -> {
+                if (isTracking && beaconConectado) {
+                    updateTrackingUI(stepTracker.getSteps(), h, m, s);
                 }
             });
 
-            // Configurar listener para GPS tracker
             gpsTracker.setLocationUpdateListener(new GPSFondo.LocationUpdateListener() {
                 @Override
                 public void onLocationUpdate(Location location) {
-                    if (isTracking) {
-                        Log.d(ETIQUETA_LOG, String.format(" GPS Update: Lat=%.6f, Lon=%.6f, Accuracy=%.1fm",
-                                location.getLatitude(),
-                                location.getLongitude(),
-                                location.getAccuracy()));
-
-                        // Aquí puedes guardar la ubicación en tu backend si lo necesitas
-                        // Por ejemplo: enviarUbicacionABackend(location);
+                    if (isTracking && beaconConectado) {
+                        ultimaUbicacionNodo = location;
                     }
                 }
 
@@ -794,34 +1088,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            // Valores iniciales
-            textSteps.setText("0 pasos");
-            tiempoTotal.setText("00:00:00");
-
-            Log.d(ETIQUETA_LOG, " Trackers inicializados correctamente");
-
-            // IMPORTANTE: Verificar sensores después de inicializar
             verificarSensores();
 
         } catch (Exception e) {
-            Log.e(ETIQUETA_LOG, " Error al inicializar trackers: " + e.getMessage());
-            e.printStackTrace();
+            Log.e(ETIQUETA_LOG, " Error inicializando trackers", e);
+            // Manejo de error más visible para el usuario si es crítico
+            Toast.makeText(this, "Error de sensores: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+    }
 
-    } // onCreate()
 
-    // ------------------------------------------------------------------
-    // Callback para el resultado de la petición de permisos
-    // MODIFICADO: Ahora maneja todos los permisos juntos
-    // ------------------------------------------------------------------
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult( requestCode, permissions, grantResults);
 
         if (requestCode == CODIGO_PETICION_PERMISOS) {
-            // Revisar qué permisos fueron concedidos
             boolean bluetoothGranted = true;
             boolean locationGranted = false;
             boolean activityRecognitionGranted = false;
@@ -842,7 +1125,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // Si se concedieron los permisos de Bluetooth, continuar
             if (bluetoothGranted && locationGranted) {
                 Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos BT y Location concedidos !!!!");
                 BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
@@ -851,7 +1133,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos BT/Location NO concedidos !!!!");
             }
 
-            // Verificar permiso de ACTIVITY_RECOGNITION
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 if (activityRecognitionGranted) {
                     Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION concedido");
@@ -860,20 +1141,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else {
                     Log.w(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION DENEGADO");
-                    Log.w(ETIQUETA_LOG, " ¡La funcionalidad de contador de pasos no funcionará!");
                     Toast.makeText(this,
                             "Permiso de actividad física denegado. El contador de pasos no funcionará.",
                             Toast.LENGTH_LONG).show();
                 }
             }
         }
-    } // ()
+    }
 
-    // ==============================================================================================================
-    /**
-     * Método para abrir la actividad de perfil
-     */
-    private void abrirPerfilActivity() {
+    public void abrirPerfilActivity() {
         if (idUsuario == -1 || token == null) {
             Toast.makeText(this, "Error: No hay datos de usuario disponibles", Toast.LENGTH_SHORT).show();
             return;
@@ -887,109 +1163,69 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, "Abriendo PerfilActivity con USER_ID: " + idUsuario);
     }
 
-// ==============================================================================================================
-// botonVincularPulsado()
-// Mostrar diálogo para introducir el nombre del beacon (ej: "GTI")
-// Si ya está vinculado → mostrar opciones ( aceptar/desvincular )
-// Si no → iniciar VinculadorBLE.vincularPorNombre()
-// ==============================================================================================================
     public void botonVincularPulsado(View v) {
-        // Si YA hay beacon vinculado => mostrar opciones ( aceptar/desvincular )
+
+        // 🔒 EXTRA SAFETY: if already linked, DO NOTHING
         if (yaVinculado) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Nodo ya vinculado")
-                    .setMessage(
-                            "Actualmente estás vinculado al beacon:\n\n" +
-                                    "📡 " + nombreNodoVinculado +
-                                    "\n\nPuedes conservarlo o desvincularlo."
-                    )
-                    .setPositiveButton("Aceptar", null)
-                    .setNegativeButton("Desvincular nodo", (dialog, which) -> {
-                        // Llamamos a la función de desvincular
-                        desvincularNodo();
-                    })
-                    .show();
             return;
         }
-        // Si NO hay beacon vinculado => pedir el nombre para vincular
+
         EditText input = new EditText(this);
         input.setHint("Ej: GTI");
 
         new AlertDialog.Builder(this)
-                .setTitle("Vincular Beacon")
-                .setMessage("Introduce el código (nombre del beacon):")
+                .setTitle("Conectar dispositivo")
+                .setMessage("Introduce el nombre del dispositivo para empezar a medir la calidad del aire.")
                 .setView(input)
                 .setPositiveButton("Vincular", (dlg, which) -> {
                     String codigo = input.getText().toString().trim();
-                    if (codigo.isEmpty()) {
-                        Log.d(">>>>", "Código vacío");
-                        return;
-                    }
-                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                    vinculador.vincularPorNombre(codigo, 10_000);// timeout 10 s
+                    if (codigo.isEmpty()) return;
+
+                    iconoVincular.setImageResource(R.drawable.ic_link_off);
+                    vinculador.vincularPorNombre(codigo, 10_000);
                 })
-                .setNegativeButton("Cancelar", (d, w) -> {})
+                .setNegativeButton("Cancelar", null)
                 .show();
-    } //()
-// ========================================================================
-
-// ============================================================================
-// verificarNodoVinculado()
-// Descripción: consulta al backend si este usuario ya tiene un nodo vinculado.
-// Si existe, actualiza icono, habilita recorrido y comienza a escanear.
-// Diseño: userId -> GET /node/ofUser/:id -> actualizar UI
-// ============================================================================
-private void verificarNodoVinculado() {
-    String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
-
-    PeticionarioREST peticion = new PeticionarioREST();
-    peticion.hacerPeticionREST("GET", url, null, new PeticionarioREST.RespuestaREST() {
-        @Override
-        public void callback(int codigo, String cuerpo) {
-            Log.d(">>>>", "Verificar nodo, código=" + codigo + " cuerpo=" + cuerpo);
-
-            try {
-                JSONObject json = new JSONObject(cuerpo);
-
-                if (json.getBoolean("success")) {
-                    // Ya tiene nodo
-                    String nombreNodo = json.getJSONObject("node").getString("name");
+    }
 
 
-                    yaVinculado = true;
-                    nombreNodoVinculado = nombreNodo;
+    private void verificarNodoVinculado() {
+        String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
+
+        PeticionarioREST peticion = new PeticionarioREST();
+        peticion.hacerPeticionREST("GET", url, null, new PeticionarioREST.RespuestaREST() {
+            @Override
+            public void callback(int codigo, String cuerpo) {
+                Log.d(">>>>", "Verificar nodo, código=" + codigo + " cuerpo=" + cuerpo);
+
+                try {
+                    JSONObject json = new JSONObject(cuerpo);
+
+                    if (json.getBoolean("success")) {
+                        nombreNodoVinculado = json.getJSONObject("node").getString("name");
+                        yaVinculado = true;
+                    } else {
+                        yaVinculado = false;
+                        nombreNodoVinculado = null;
+                    }
 
                     runOnUiThread(() -> {
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
-                        estadoBotonRecorrido(true);
+                        actualizarEstadoVinculacionUI();
 
-                        // Empieza a leer del beacon automáticamente
-                        buscarEsteDispositivoBTLE(nombreNodo);
+                        // Start scan only if linked
+                        if (yaVinculado) {
+                            buscarEsteDispositivoBTLE(nombreNodoVinculado);
+                        }
                     });
 
-
-
-                } else {
-                    // No tiene nodo
-                    runOnUiThread(() -> {
-                        iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                        estadoBotonRecorrido(false);
-                    });
+                } catch (Exception e) {
+                    Log.e(">>>>", "Error procesando verificación nodo", e);
                 }
-
-            } catch (Exception e) {
-                Log.e(">>>>", "Error procesando verificación nodo: " + e.getMessage());
             }
-        }
-    });
-}
-// ========================================================================
+        });
+    }
 
-// ========================================================================
-// desvincularNodo()
-// Descripción: Borra del backend el nodo vinculado al usuario y reinicia el estado.
-// Diseño: DELETE /node/ofUser/:id -> limpiar flags -> parar BLE/tracking -> actualizar UI.
-// ========================================================================
+
     private void desvincularNodo() {
         String url = "http://api.sagucre.upv.edu.es/node/ofUser/" + idUsuario;
 
@@ -1002,55 +1238,46 @@ private void verificarNodoVinculado() {
                 Log.d(">>>>", "Desvincular nodo, código=" + codigo + " cuerpo=" + cuerpo);
 
                 runOnUiThread(() -> {
-
                     yaVinculado = false;
                     nombreNodoVinculado = null;
-
-                    iconoVincular.setImageResource(R.drawable.ic_vincular_rojo);
-                    estadoBotonRecorrido(false);
+                    beaconConectado = false;
 
                     detenerBusquedaDispositivosBTLE();
-                    stopTracking();
+
+                    actualizarEstadoVinculacionUI();
+
+                    if (isTracking) stopTracking();
 
                     textSteps.setText("---");
                     tiempoTotal.setText("---");
 
                     new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Nodo desvinculado")
-                            .setMessage("El beacon ha sido desvinculado correctamente.")
+                            .setTitle("Dispositivo desvinculado")
+                            .setMessage("El sensor ha dejado de medir la calidad del aire.")
                             .setPositiveButton("Aceptar", null)
                             .show();
                 });
 
+
             }
         });
     }
-// ========================================================================
 
-// ========================================================================
-// refrescarActividad()
-// Se llama DESPUÉS de vincular un nodo para que MainActivity
-// se reinicie y comience a leer el beacon automáticamente.
-// ========================================================================
-private void refrescarActividad() {
-    Intent intent = getIntent();
-    contadorAndroid = -1;
-    finish();
-    startActivity(intent);
-}
-
-
+    private void refrescarActividad() {
+        Intent intent = getIntent();
+        contadorAndroid = -1;
+        finish();
+        startActivity(intent);
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        // Detener monitor del nodo
         if (monitorEstadoNodo != null) {
             monitorEstadoNodo.detenerMonitor();
         }
 
-        // Limpiar recursos de trackers
         if (timeTracker != null) {
             timeTracker.destroy();
         }
@@ -1060,12 +1287,41 @@ private void refrescarActividad() {
         if (gpsTracker != null) {
             gpsTracker.stopTracking();
         }
+
+        // NUEVO: Enviar última ubicación si estaba conectado
+        if (beaconConectado && ultimaUbicacionNodo != null) {
+            enviarUltimaUbicacionNodo();
+        }
+    }
+    private void actualizarUIVinculacion() {
+        if (yaVinculado) {
+            textVinculacion.setVisibility(View.GONE);
+            btnVincular.setVisibility(View.GONE);
+        } else {
+            textVinculacion.setVisibility(View.VISIBLE);
+            btnVincular.setVisibility(View.VISIBLE);
+        }
+    }
+    private void actualizarEstadoVinculacionUI() {
+
+        if (iconoVincular != null) {
+            iconoVincular.setImageResource(
+                    yaVinculado ? R.drawable.ic_link : R.drawable.ic_link_off
+            );
+            iconoVincular.setEnabled(true);
+            iconoVincular.setAlpha(1f);
+        }
+
+        actualizarUIVinculacion();
+        estadoBotonRecorrido(yaVinculado);
+
+        Button btnFind = findViewById(R.id.btnFindSensor);
+        if (btnFind != null) {
+            btnFind.setVisibility(yaVinculado ? View.VISIBLE : View.GONE);
+        }
     }
 
 
 
-} // class
-// --------------------------------------------------------------
-// --------------------------------------------------------------
-// --------------------------------------------------------------
-// --------------------------------------------------------------
+
+}

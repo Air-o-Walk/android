@@ -1,0 +1,4 @@
+var interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_walking_time_tracker_1_1_time_update_listener =
+[
+    [ "onTimeUpdate", "interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_walking_time_tracker_1_1_time_update_listener.html#af7ae4c227c7fe0e3f2efaa7e1d05a3a7", null ]
+];

@@ -1,0 +1,4 @@
+var interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_premio_adapter_1_1_on_premio_click_listener =
+[
+    [ "onCanjearClick", "interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_premio_adapter_1_1_on_premio_click_listener.html#af80d5bfd25491d046e2f08318a138b65", null ]
+];

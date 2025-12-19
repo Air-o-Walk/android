@@ -9,6 +9,26 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import androidx.core.app.ActivityCompat;
+/**
+ * @class GPSFondo
+ * @brief Gestiona la obtención de la ubicación GPS en segundo plano.
+ *
+ * Esta clase encapsula la lógica necesaria para iniciar y detener
+ * el seguimiento de la localización del usuario utilizando los
+ * proveedores GPS y de red del sistema Android.
+ *
+ * Proporciona:
+ * - Actualizaciones periódicas de ubicación
+ * - Filtrado de localizaciones con baja precisión
+ * - Notificación de cambios mediante una interfaz listener
+ * - Métodos de consulta del estado y la última ubicación conocida
+ *
+ * Está pensada para ser utilizada por otros componentes de la
+ * aplicación que requieran localización continua o en segundo plano.
+ *
+ * @author Adenor Buret
+ * @version 1.0
+ */
 
 public class GPSFondo implements LocationListener {
 

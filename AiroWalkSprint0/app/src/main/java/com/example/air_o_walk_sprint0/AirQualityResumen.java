@@ -5,17 +5,26 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-// --------------------------------------------------------------
-// AirQualityResumen.java
-// Autor: Meryame Ait Boumlik
-// Descripción: Clase responsable de consultar al backend el resumen de calidad del aire de un usuario, incluyendo:
-//- Estado (buena / regular / picos / mala)
-//- Mensaje resumen
-//- Tiempo activo (h)
-//- Distancia recorrida (km)
-//- Puntos obtenidos
-//- Datos para la gráfica (timestamps, O3, NO2, CO)
-// --------------------------------------------------------------
+/**
+ * @class AirQualityResumen
+ * @brief Gestiona la obtención del resumen de calidad del aire de un usuario.
+ *
+ * Esta clase se encarga de comunicarse con la API del backend
+ * para obtener una vista resumida de la exposición del usuario
+ * a la calidad del aire, incluyendo:
+ * - Estado de la calidad del aire
+ * - Mensaje resumen
+ * - Tiempo activo y distancia recorrida
+ * - Pasos y puntos obtenidos
+ * - Datos para la gráfica (timestamps, O3, NO2, CO, índice)
+ *
+ * Los resultados se devuelven de forma asíncrona mediante una
+ * interfaz de tipo listener.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
+
 public class AirQualityResumen {
     private static final String TAG = "AirQualityResumen";
     private int userId;
@@ -43,24 +52,37 @@ public class AirQualityResumen {
         public JSONArray o3;
         public JSONArray no2;
         public JSONArray co;
+        public JSONArray index;
+
     }
 
-    // --------------------------------------------------------------
-    // Constructor
-    // Descripción: Guarda el ID del usuario cuyos datos se van a consultar.
-    // Parámetros: userId : identificador del usuario.
-    // Diseño: userId -> new AirQualityResumen()
-    // --------------------------------------------------------------
+    /**
+     * Constructor.
+     *
+     * Descripción: Guarda el ID del usuario cuyos datos se van a consultar.
+     *
+     * @details
+     * Diseño:
+     * userId -> new AirQualityResumen()
+     *
+     * @param userId identificador del usuario
+     */
     public AirQualityResumen(int userId) {
         this.userId = userId;
     }
 
-    // --------------------------------------------------------------
-    // obtenerResumen()
-    // Descripción: Hace una llamada REST al backend: GET /usuario/calidad-aire-resumen?userId=...
-    // Diseño:  userId -> obtenerResumen() -> AirQualityData | error
-    // Parámetros: - listener : callbacks de éxito o error
-    // --------------------------------------------------------------
+    /**
+     * obtenerResumen()
+     *
+     * Descripción: Hace una llamada REST al backend:
+     * GET /usuario/calidad-aire-resumen?userId=...
+     *
+     * @details
+     * Diseño:
+     * userId -> obtenerResumen() -> AirQualityData | error
+     *
+     * @param listener callbacks de éxito o error
+     */
     public void obtenerResumen(Listener listener) {
 
         String url = "http://api.sagucre.upv.edu.es/usuario/calidad-aire-resumen?userId=" + userId;
@@ -98,11 +120,20 @@ public class AirQualityResumen {
         );
     }
 
-    // --------------------------------------------------------------
-    // parsearRespuesta()
-    // Descripción: Convierte el JSON recibido del backend en un objeto AirQualityData listo para usar en la Activity.
-    // Diseño: JSON -> parsearRespuesta() -> AirQualityData
-    // --------------------------------------------------------------
+    /**
+     * parsearRespuesta()
+     *
+     * Descripción: Convierte el JSON recibido del backend en un objeto
+     * AirQualityData listo para usar en la Activity.
+     *
+     * @details
+     * Diseño:
+     * JSON -> parsearRespuesta() -> AirQualityData
+     *
+     * @param cuerpoJson JSON recibido del backend
+     * @return objeto AirQualityData parseado
+     * @throws Exception si el JSON es inválido
+     */
     private AirQualityData parsearRespuesta(String cuerpoJson) throws Exception {
 
         JSONObject root = new JSONObject(cuerpoJson);
@@ -112,10 +143,14 @@ public class AirQualityResumen {
         data.status = root.getString("status");
         data.summaryText = root.getString("summaryText");
 
-        data.timeHours = root.getDouble("timeHours");
-        data.distanceKm = root.getDouble("distanceKm");
-        data.steps = root.getInt("steps");
-        data.points = root.getInt("points");
+        data.timeHours = root.optDouble("timeHours", 0);
+        data.distanceKm = root.optDouble("distanceKm", 0);
+
+        // steps unknown → safe fallback
+        data.steps = root.optInt("steps", 0);
+
+        // Backend returns points sometimes as "0" (string)
+        data.points = root.optInt("points", 0);
 
         JSONObject graph = root.getJSONObject("graph");
 
@@ -124,6 +159,13 @@ public class AirQualityResumen {
         data.no2 = graph.getJSONArray("no2");
         data.co = graph.getJSONArray("co");
 
+        // NEW: index might not exist on server yet
+        data.index = graph.optJSONArray("index");
+        if (data.index == null) {
+            data.index = new JSONArray(); // Avoid crash
+        }
+
         return data;
     }
+
 }

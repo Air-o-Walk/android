@@ -14,10 +14,21 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-// ------------------------------------------------------------------------
-// Clase que gestiona peticiones HTTP REST de forma asíncrona usando AsyncTask
-// Permite enviar datos al backend y recibir respuestas sin bloquear la UI
-// ------------------------------------------------------------------------
+/**
+ * @class PeticionarioREST
+ * @brief Gestiona peticiones HTTP REST de forma asíncrona usando AsyncTask.
+ *
+ * Esta clase permite realizar peticiones HTTP (GET, POST, PUT, DELETE, etc.)
+ * al backend sin bloquear el hilo principal de la interfaz de usuario.
+ * Las características principales incluyen:
+ * - Ejecución asíncrona de peticiones HTTP
+ * - Envío de cuerpos JSON en las peticiones
+ * - Recepción de respuestas con código HTTP y cuerpo
+ * - Callback para manejar las respuestas de forma asíncrona
+ *
+ * @author Jordi Bataller i Mascarell y Santiago Aguirre
+ * @version 1.0
+ */
 public class PeticionarioREST extends AsyncTask<Void, Void, Boolean> {
 
     // Método HTTP (GET, POST, etc.)
@@ -33,18 +44,26 @@ public class PeticionarioREST extends AsyncTask<Void, Void, Boolean> {
     // Cuerpo de la respuesta recibido del servidor
     private String cuerpoRespuesta = "";
 
-    // Constructor: solo muestra log de creación
+    // --------------------------------------------------------------
+    // Constructor
+    // Descripción: Inicializa el peticionario REST.
+    // Diseño: new PeticionarioREST()
+    // --------------------------------------------------------------
     public PeticionarioREST() {
         Log.d("clienterestandroid", "constructor()");
     }
 
-    /**
-     * Método principal para lanzar una petición REST.
-     * @param metodo Método HTTP (ej: "POST", "GET")
-     * @param urlDestino URL destino de la petición
-     * @param cuerpo Cuerpo JSON para la petición (solo si no es GET)
-     * @param laRespuesta Callback para manejar la respuesta
-     */
+    // --------------------------------------------------------------
+    // hacerPeticionREST()
+    // Descripción: Configura y lanza una petición HTTP REST de forma asíncrona.
+    //              Ejecuta la petición en un hilo secundario y devuelve la respuesta
+    //              mediante un callback.
+    // Parámetros: - metodo : método HTTP (GET, POST, PUT, DELETE, etc.)
+    //             - urlDestino : URL completa del endpoint
+    //             - cuerpo : cuerpo JSON de la petición (null para GET)
+    //             - laRespuesta : callback para recibir la respuesta
+    // Diseño: (metodo, url, cuerpo, callback) -> hacerPeticionREST() -> execute() -> doInBackground()
+    // --------------------------------------------------------------
     public void hacerPeticionREST(String metodo, String urlDestino, String cuerpo, RespuestaREST laRespuesta) {
         this.elMetodo = metodo;
         this.urlDestino = urlDestino;
@@ -54,10 +73,14 @@ public class PeticionarioREST extends AsyncTask<Void, Void, Boolean> {
         this.execute(); // otro thread ejecutará doInBackground()
     }
 
-    /**
-     * Método que se ejecuta en segundo plano (hilo aparte).
-     * Realiza la conexión HTTP, envía la petición y recibe la respuesta.
-     */
+    // --------------------------------------------------------------
+    // doInBackground()
+    // Descripción: Método que se ejecuta en segundo plano (hilo aparte).
+    //              Realiza la conexión HTTP, envía la petición y recibe la respuesta.
+    //              Maneja el envío de cuerpos JSON para métodos POST, PUT, etc.
+    // Parámetros: params : parámetros vacíos (no se usan)
+    // Diseño: doInBackground() -> HttpURLConnection -> codigoRespuesta + cuerpoRespuesta
+    // --------------------------------------------------------------
     @Override
     protected Boolean doInBackground(Void... params) {
         Log.d("clienterestandroid", "doInBackground()");
@@ -144,23 +167,30 @@ public class PeticionarioREST extends AsyncTask<Void, Void, Boolean> {
         return false; // doInBackground() NO termina bien
     } // ()
 
-    /**
-     * Método que se ejecuta en el hilo principal tras doInBackground().
-     * Llama al callback con el código y cuerpo de la respuesta.
-     */
+    // --------------------------------------------------------------
+    // onPostExecute()
+    // Descripción: Método que se ejecuta en el hilo principal después de doInBackground().
+    //              Invoca el callback con el código y cuerpo de la respuesta HTTP.
+    // Parámetros: comoFue : indica si doInBackground() terminó correctamente
+    // Diseño: comoFue -> onPostExecute() -> laRespuesta.callback()
+    // --------------------------------------------------------------
     protected void onPostExecute(Boolean comoFue) {
         Log.d("clienterestandroid", "onPostExecute() comoFue = " + comoFue);
         this.laRespuesta.callback(this.codigoRespuesta, this.cuerpoRespuesta);
     }
 
+    // -----------------------------------------------------------------
+    // Interface para manejar la respuesta REST
+    // -----------------------------------------------------------------
     /**
-     * Interfaz para manejar la respuesta REST de forma asíncrona.
-     * Implementa el método callback para recibir código y cuerpo.
+     * @interface RespuestaREST
+     * @brief Interfaz para recibir la respuesta de una petición REST de forma asíncrona.
+     *
+     * Implementa el método callback para procesar el código HTTP y el cuerpo
+     * de la respuesta en el hilo principal.
      */
     public interface RespuestaREST {
         void callback(int codigo, String cuerpo);
     }
 
 } // class
-
-

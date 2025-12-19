@@ -1,0 +1,4 @@
+var interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_notif_estado_nodo_1_1_desconexion_listener =
+[
+    [ "onNodoDesconectado", "interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_notif_estado_nodo_1_1_desconexion_listener.html#afddda6f007d7cff88ed4a5048517e6d6", null ]
+];

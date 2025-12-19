@@ -1,6 +1,5 @@
 package com.example.air_o_walk_sprint0;
 
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,40 +14,83 @@ import java.util.List;
 
 import com.example.air_o_walk_sprint0.R;
 
+/**
+ * @class PremioAdapter
+ * @brief Adaptador para mostrar la lista de premios canjeables en un RecyclerView.
+ *
+ * Esta clase se encarga de:
+ * - Mostrar los premios disponibles con su información (nombre, descripción, puntos, stock)
+ * - Gestionar el estado del botón "Canjear" según los puntos del usuario y disponibilidad
+ * - Notificar clicks en los botones mediante un listener
+ * - Actualizar dinámicamente la lista de premios y puntos del usuario
+ *
+ * @author Santiago Aguirre
+ * @version 1.0
+ */
 public class PremioAdapter extends RecyclerView.Adapter<PremioAdapter.PremioViewHolder> {
 
     private List<Premio> listaPremios;
     private int puntosUsuario;
     private OnPremioClickListener listener;
 
+    // -----------------------------------------------------------------
     // Constructor
+    // Descripción: Inicializa el adaptador con los puntos del usuario.
+    // Parámetros: puntosUsuario : puntos disponibles del usuario para canjear.
+    // Diseño: puntosUsuario -> new PremioAdapter()
+    // -----------------------------------------------------------------
     public PremioAdapter(int puntosUsuario) {
         this.listaPremios = new ArrayList<>();
         this.puntosUsuario = puntosUsuario;
     }
 
+    // -----------------------------------------------------------------
     // Interface para manejar clicks en el botón canjear
+    // -----------------------------------------------------------------
     public interface OnPremioClickListener {
         void onCanjearClick(Premio premio, int posicion);
     }
 
-    // Setter para el listener
+    // --------------------------------------------------------------
+    // setOnPremioClickListener()
+    // Descripción: Establece el listener para recibir eventos de click en los premios.
+    // Parámetros: listener : callback que se ejecuta al pulsar "Canjear".
+    // Diseño: listener -> setOnPremioClickListener()
+    // --------------------------------------------------------------
     public void setOnPremioClickListener(OnPremioClickListener listener) {
         this.listener = listener;
     }
 
-    // Actualizar lista de premios
+    // --------------------------------------------------------------
+    // setPremios()
+    // Descripción: Actualiza la lista de premios y notifica al RecyclerView para refrescar la vista.
+    // Parámetros: premios : lista de objetos Premio a mostrar.
+    // Diseño: List<Premio> -> setPremios() -> notifyDataSetChanged()
+    // --------------------------------------------------------------
     public void setPremios(List<Premio> premios) {
         this.listaPremios = premios;
         notifyDataSetChanged();
     }
 
-    // Actualizar puntos del usuario
+    // --------------------------------------------------------------
+    // setPuntosUsuario()
+    // Descripción: Actualiza los puntos del usuario y refresca la vista para actualizar
+    //              el estado de los botones de canje.
+    // Parámetros: puntos : puntos actuales del usuario.
+    // Diseño: puntos -> setPuntosUsuario() -> notifyDataSetChanged()
+    // --------------------------------------------------------------
     public void setPuntosUsuario(int puntos) {
         this.puntosUsuario = puntos;
         notifyDataSetChanged();
     }
 
+    // --------------------------------------------------------------
+    // onCreateViewHolder()
+    // Descripción: Crea una nueva instancia de ViewHolder inflando el layout del item.
+    // Parámetros: - parent : contenedor padre
+    //             - viewType : tipo de vista (no usado en este caso)
+    // Diseño: parent -> onCreateViewHolder() -> PremioViewHolder
+    // --------------------------------------------------------------
     @NonNull
     @Override
     public PremioViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -57,18 +99,36 @@ public class PremioAdapter extends RecyclerView.Adapter<PremioAdapter.PremioView
         return new PremioViewHolder(view);
     }
 
+    // --------------------------------------------------------------
+    // onBindViewHolder()
+    // Descripción: Vincula los datos de un premio con las vistas del ViewHolder.
+    // Parámetros: - holder : ViewHolder que contiene las vistas
+    //             - position : posición del item en la lista
+    // Diseño: (holder, position) -> onBindViewHolder() -> bind()
+    // --------------------------------------------------------------
     @Override
     public void onBindViewHolder(@NonNull PremioViewHolder holder, int position) {
         Premio premio = listaPremios.get(position);
         holder.bind(premio);
     }
 
+    // --------------------------------------------------------------
+    // getItemCount()
+    // Descripción: Devuelve el número total de premios en la lista.
+    // Diseño: getItemCount() -> int (tamaño de listaPremios)
+    // --------------------------------------------------------------
     @Override
     public int getItemCount() {
         return listaPremios.size();
     }
 
-    // ViewHolder
+    // -----------------------------------------------------------------
+    // @class PremioViewHolder
+    // @brief ViewHolder que representa cada item de premio en el RecyclerView.
+    //
+    // Contiene las referencias a las vistas del layout y la lógica
+    // para vincular los datos del premio con dichas vistas.
+    // -----------------------------------------------------------------
     class PremioViewHolder extends RecyclerView.ViewHolder {
 
         private TextView txtNombrePremio;
@@ -77,6 +137,12 @@ public class PremioAdapter extends RecyclerView.Adapter<PremioAdapter.PremioView
         private TextView txtStock;
         private Button btnCanjear;
 
+        // --------------------------------------------------------------
+        // Constructor del ViewHolder
+        // Descripción: Inicializa las referencias a las vistas del item.
+        // Parámetros: itemView : vista del item inflada.
+        // Diseño: itemView -> new PremioViewHolder()
+        // --------------------------------------------------------------
         public PremioViewHolder(@NonNull View itemView) {
             super(itemView);
 
@@ -87,6 +153,16 @@ public class PremioAdapter extends RecyclerView.Adapter<PremioAdapter.PremioView
             btnCanjear = itemView.findViewById(R.id.btnCanjear);
         }
 
+        // --------------------------------------------------------------
+        // bind()
+        // Descripción: Vincula los datos de un premio con las vistas del item.
+        //              Configura el texto, visibilidad y estado del botón según:
+        //              - Los puntos del usuario
+        //              - La disponibilidad del premio
+        //              - El stock disponible
+        // Parámetros: premio : objeto Premio con los datos a mostrar.
+        // Diseño: Premio -> bind() -> actualización de vistas
+        // --------------------------------------------------------------
         public void bind(Premio premio) {
             // Nombre del premio
             txtNombrePremio.setText(premio.getNombre());

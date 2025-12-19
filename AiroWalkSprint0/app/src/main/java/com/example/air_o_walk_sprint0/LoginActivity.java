@@ -1,23 +1,42 @@
 package com.example.air_o_walk_sprint0;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * María Algora
- * Clase que implementa la interfaz del login y conecta con la lógica de negocio.
- * Gestiona los campos del formulario, valida los datos introducidos y llama a la logica.
- * Recibe los campos del usuario y la contraseña; y el botón de login
+ * @class LoginActivity
+ * @brief Pantalla de inicio de sesión de la aplicación.
+ *
+ * Esta actividad implementa la interfaz gráfica del login y actúa
+ * como puente entre la interfaz de usuario y la lógica de negocio.
+ * Gestiona:
+ * - Los campos del formulario de usuario y contraseña
+ * - La validación de los datos introducidos
+ * - La llamada a la clase LogicaLogin para autenticar al usuario
+ *
+ * Además, gestiona la persistencia de la sesión mediante
+ * SharedPreferences y redirige al usuario a la pantalla principal
+ * cuando el login es exitoso.
+ *
+ * @author María Algora
+ * @version 1.0
  */
 public class LoginActivity extends AppCompatActivity {
 
@@ -47,6 +66,16 @@ public class LoginActivity extends AppCompatActivity {
         editTextUsuario = findViewById(R.id.editTextUsuario);
         editTextContrasena = findViewById(R.id.editTextContrasena);
         buttonLogin = findViewById(R.id.buttonLogin);
+        TextView forgotPassword = findViewById(R.id.textForgotPassword);
+
+        forgotPassword.setOnClickListener(v -> showForgotPasswordPopup());
+        MaterialButton buttonRegister = findViewById(R.id.buttonRegister);
+
+        buttonRegister.setOnClickListener(v -> {
+            Intent intent = new Intent(LoginActivity.this, RegistroActivity.class);
+            startActivity(intent);
+        });
+
 
         buttonLogin.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -127,4 +156,40 @@ public class LoginActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
+    /*
+    POP UP PARA RECUPERAR CONTRASENA
+     */
+    private void showForgotPasswordPopup() {
+
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_forgot_password);
+
+        dialog.getWindow().setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.getWindow().setDimAmount(0.5f); // dark background
+        dialog.setCancelable(true);
+
+        EditText emailField = dialog.findViewById(R.id.editTextPopupEmail);
+        MaterialButton recoverButton = dialog.findViewById(R.id.buttonPopupRecover);
+        MaterialButton loginButton = dialog.findViewById(R.id.buttonPopupLogin);
+
+        recoverButton.setOnClickListener(v -> {
+            String email = emailField.getText().toString().trim();
+            if (email.isEmpty()) {
+                Toast.makeText(this, "Introduce un correo", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Correo enviado (simulado)", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
+        });
+
+        loginButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
 }

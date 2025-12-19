@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/bg_panel_green">
+
+        <!-- VOLVER -->
+        <TextView
+            android:id="@+id/btnVolverPrivacidad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="&lt; Volver"
+            android:textColor="#F1642E"
+            android:textSize="15sp" />
+
+        <!-- TITLE -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Política y Privacidad"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <!-- POLICY TEXT -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:text="
+1. Datos que recopilamos\n
+- Nombre y correo electrónico\n
+- Ubicación en recorridos\n
+- Datos del sensor de contaminación\n
+- Información técnica básica\n\n
+2. Cómo usamos tus datos\n
+- Mostrar estadísticas\n
+- Calcular puntos y recompensas\n
+- Crear mapas anónimos para el Ayuntamiento\n
+- Mejorar la app\n\n
+3. Con quién compartimos tus datos\n
+- Solo datos anónimos\n
+- Nunca vendemos tu información\n\n
+4. Tus derechos\n
+- Consultar o eliminar datos\n
+- Desvincular tu sensor\n
+- Borrar tu cuenta\n\n
+5. Contacto\n
+soporte@airowalk.com\n\n
+Al crear tu cuenta aceptas la Política de Privacidad.
+" />
+
+    </LinearLayout>
+</ScrollView>

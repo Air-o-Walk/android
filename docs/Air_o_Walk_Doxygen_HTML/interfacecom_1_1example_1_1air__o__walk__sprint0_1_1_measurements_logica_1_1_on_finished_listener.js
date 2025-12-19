@@ -1,0 +1,4 @@
+var interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_measurements_logica_1_1_on_finished_listener =
+[
+    [ "onFinished", "interfacecom_1_1example_1_1air__o__walk__sprint0_1_1_measurements_logica_1_1_on_finished_listener.html#a5318c1e41e52fb88b2fe8b3d2c434756", null ]
+];
