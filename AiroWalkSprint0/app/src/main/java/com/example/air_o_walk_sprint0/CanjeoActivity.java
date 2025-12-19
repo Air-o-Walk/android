@@ -11,7 +11,20 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+/**
+ * @class CanjeoActivity
+ * @brief Pantalla de canjeo de premios mediante puntos de gamificación.
+ *
+ * Esta actividad permite al usuario consultar sus puntos disponibles,
+ * visualizar la lista de premios canjeables y realizar el canje de
+ * premios mediante confirmación.
+ *
+ * La información de premios y puntos se obtiene de forma asíncrona
+ * desde el backend, y la interfaz se actualiza dinámicamente.
+ *
+ * @author Santiago Aguirre
+ * @version 1.0
+ */
 public class CanjeoActivity extends AppCompatActivity {
 
     // Vistas
@@ -27,8 +40,12 @@ public class CanjeoActivity extends AppCompatActivity {
     private PremioAdapter adapter;
     private LogicaCanjeos logicaCanjeos;
     private Gamificacion gamificacion; // ✅ Usar tu clase
-
-    @Override
+    /**
+     * Inicializa la actividad, carga los datos del usuario
+     * y configura la interfaz gráfica.
+     *
+     * @param savedInstanceState estado previo de la actividad
+     */    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_canjeo);

@@ -4,9 +4,23 @@ import android.util.Log;
 import org.json.JSONObject;
 
 /**
- * Clase que encapsula la lógica de negocio para editar el perfil de usuario.
- * Permite actualizar username, email y password.
+ * @class LogicaEditarPerfil
+ * @brief Encapsula la lógica de negocio para la edición del perfil de usuario.
+ *
+ * Esta clase gestiona las operaciones necesarias para actualizar los
+ * datos básicos del perfil de un usuario autenticado, incluyendo:
+ * - Nombre de usuario
+ * - Correo electrónico
+ * - Contraseña (con verificación previa)
+ *
+ * La comunicación con el backend se realiza mediante peticiones REST
+ * y los resultados se notifican de forma asíncrona a través de
+ * interfaces de callback.
+ *
+ * @author Maria Algora
+ * @version 1.0
  */
+
 public class LogicaEditarPerfil {
 
     private String token;

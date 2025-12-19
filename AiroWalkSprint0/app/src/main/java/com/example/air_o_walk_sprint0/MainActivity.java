@@ -39,10 +39,37 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.core.view.GravityCompat;
 import com.google.android.material.navigation.NavigationView;
 
+/**
+ * @class MainActivity
+ * @brief Actividad principal de la aplicación Air-o-Walk.
+ *
+ * Esta actividad centraliza la mayor parte de la funcionalidad de la app:
+ * - Gestión y escaneo de dispositivos BLE (beacons)
+ * - Vinculación y desvinculación de nodos sensores
+ * - Recepción y procesamiento de mediciones ambientales (O3, CO, NO2)
+ * - Control del estado de conexión del beacon
+ * - Tracking de recorridos (pasos, tiempo y ubicación GPS)
+ * - Envío de mediciones completas al backend
+ * - Integración con gamificación, canjeos y resumen de calidad del aire
+ *
+ * Además, gestiona:
+ * - Permisos dinámicos (Bluetooth, localización, actividad física, notificaciones)
+ * - Manejo de desconexiones abruptas del beacon
+ *
+ * Diseño general:
+ * onCreate()
+ *  → inicializarBlueTooth()
+ *  → inicializarVinculador()
+ *  → inicializar trackers (pasos, tiempo, GPS)
+ *  → escaneo BLE y recepción de mediciones
+ *  → startTracking() / stopTracking()
+ *  → envío de datos al backend
+ *
+ * @author
+ * Equipo Air-o-Walk
+ * @version 1.0
+ */
 
-// ------------------------------------------------------------------
-// Clase principal de la actividad Android
-// ------------------------------------------------------------------
 
 public class MainActivity extends BaseActivity  {
 

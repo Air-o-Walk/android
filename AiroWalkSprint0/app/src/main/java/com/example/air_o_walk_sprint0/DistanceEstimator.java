@@ -1,19 +1,32 @@
 package com.example.air_o_walk_sprint0;
-// --------------------------------------------------------------
-// DistanceEstimator.java
-// Autor: Meryame Ait Boumlik
-// Descripción:
-//   Clase auxiliar que suaviza lecturas RSSI mediante ventana deslizante
-//   y clasifica la distancia aproximada del beacon. También asigna un
-//   nivel de señal (0–5) para la UI.
-// --------------------------------------------------------------
+/**
+ * @class DistanceEstimator
+ * @brief Estima la distancia aproximada a un beacon BLE a partir del RSSI.
+ *
+ * Esta clase actúa como un componente auxiliar que suaviza las lecturas
+ * de intensidad de señal (RSSI) mediante una ventana deslizante y
+ * clasifica la distancia aproximada al beacon.
+ *
+ * Además, asigna un nivel de señal (0–5) que se utiliza para
+ * la representación gráfica en la interfaz de usuario.
+ *
+ * No depende de componentes Android, por lo que puede reutilizarse
+ * fácilmente en otras partes de la aplicación.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public class DistanceEstimator {
 
     private static final int WINDOW_SIZE = 5;
     private final float[] window = new float[WINDOW_SIZE];
     private int index = 0;
     private boolean filled = false;
-
+    /**
+     * Añade una nueva lectura RSSI a la ventana deslizante.
+     *
+     * @param rssi valor RSSI recibido del beacon
+     */
     public void addReading(float rssi) {
         window[index] = rssi;
         index = (index + 1) % WINDOW_SIZE;

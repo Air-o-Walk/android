@@ -17,17 +17,24 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
-// --------------------------------------------------------------
-// AirQualitySummaryActivity.java
-// Autor: Meryame Ait Boumlik
-// Descripción: Pantalla que muestra el resumen de calidad del aire paraun usuario concreto.
-//      - Emoji de calidad del aire
-//      - Tiempo activo
-//      - Distancia recorrida
-//      - Puntos obtenidos
-//      - Resumen textual
-//      - Gráfica de indice normalizado en las últimas 8 horas
-// --------------------------------------------------------------
+/**
+ * @class AirQualitySummaryActivity
+ * @brief Pantalla que muestra el resumen de calidad del aire de un usuario.
+ *
+ * Esta actividad presenta al usuario un resumen visual y textual de su
+ * exposición a la calidad del aire, incluyendo:
+ * - Emoji representativo del estado de la calidad del aire
+ * - Tiempo activo
+ * - Distancia recorrida
+ * - Puntos obtenidos
+ * - Resumen textual
+ * - Gráfica del índice de calidad del aire normalizado en las últimas 8 horas
+ *
+ * Los datos se obtienen del backend de forma asíncrona.
+ *
+ * @author Meryame Ait Boumlik
+ * @version 1.0
+ */
 public class AirQualitySummaryActivity extends BaseActivity {
 
     private static final String TAG = "AirQualitySummary";
@@ -38,13 +45,18 @@ public class AirQualitySummaryActivity extends BaseActivity {
     private TextView textPuntos;
     private TextView textResumen;
     private int idUsuario;
-    // --------------------------------------------------------------
-    // onCreate()
-    // Descripción: Inicializa la UI, recupera el USER_ID recibido desde la Activity anterior y lanza la petición al backend.
-    // Diseño: UI + USER_ID -> obtenerResumen -> actualizar pantalla
-    // Parámetros:
-    //      - savedInstanceState : estado previo (Android)
-    // --------------------------------------------------------------
+    /**
+     * onCreate()
+     *
+     * Descripción: Inicializa la UI, recupera el USER_ID recibido desde la
+     * Activity anterior y lanza la petición al backend.
+     *
+     * @details
+     * Diseño:
+     * UI + USER_ID -> obtenerResumen -> actualizar pantalla
+     *
+     * @param savedInstanceState estado previo (Android)
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,15 +136,21 @@ public class AirQualitySummaryActivity extends BaseActivity {
         });
 
     }
-    // --------------------------------------------------------------
-    // dibujarGrafica()
-    // Descripción: // gráfica del índice normalizado (0–1) con líneas de umbrales (buena / regular / mala)
-    // Diseño:
-    // LineChart chart, AirQualityData data → dibujarGrafica() → gráfica del índice normalizado y eje X con horas
-    // Parámetros:- chart : el LineChart de la UI
-    //            - data  : datos recibidos del backend
-    //
-    // --------------------------------------------------------------
+    /**
+     * dibujarGrafica()
+     *
+     * Descripción: Gráfica del índice normalizado (0–1) con líneas de
+     * umbrales (buena / regular / mala).
+     *
+     * @details
+     * Diseño:
+     * LineChart chart, AirQualityData data
+     * → dibujarGrafica()
+     * → gráfica del índice normalizado y eje X con horas
+     *
+     * @param chart LineChart de la interfaz
+     * @param data datos recibidos del backend
+     */
     private void dibujarGrafica(LineChart chart, AirQualityResumen.AirQualityData data) {
 
         try {

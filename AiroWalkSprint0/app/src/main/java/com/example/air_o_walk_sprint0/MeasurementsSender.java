@@ -6,18 +6,28 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
-/*
- * Autor : Adenor Buret
- * Clase responsable de enviar todas las mediciones de la recorrida al servidor:
- * - Ubicación GPS (latitud, longitud)
- * - Tiempo total caminado
- * - Pasos totales caminados
- * - Mediciones de gas (O3, CO, NO2)
+/**
+ * @class MeasurementsSender
+ * @brief Envía las mediciones completas de una recorrida al backend.
  *
- * Se envía cuando:
- * 1. El usuario termina/pausa la recorrida manualmente
- * 2. Se pierde la conexión con el beacon (desconexión abrupta)
+ * Clase responsable de enviar todas las mediciones generadas durante
+ * una recorrida al servidor, incluyendo:
+ * - Ubicación GPS (latitud, longitud)
+ * - Mediciones de gases (O3, CO, NO2)
+ * - Pasos totales caminados
+ * - Tiempo total caminado
+ *
+ * Las mediciones se envían en dos situaciones:
+ * 1. Cuando el usuario finaliza o pausa la recorrida manualmente
+ * 2. Cuando se pierde la conexión con el beacon (desconexión abrupta)
+ *
+ * Utiliza peticiones REST al endpoint /measurements y notifica
+ * el resultado mediante un callback.
+ *
+ * @author Adenor Buret
+ * @version 1.0
  */
+
 public class MeasurementsSender {
 
     private static final String ETIQUETA_LOG = ">>>>";

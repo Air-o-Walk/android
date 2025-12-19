@@ -11,14 +11,20 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 
 /**
- * Clase encargada de mostrar notificaciones locales
- * cuando se detecta un valor alto (>= 670) proveniente del sensor.
- * El valor es solo de prueba a futuro se utilizara un umbral de valores para
- * cada tipo de medicion.
+ * @class AdminNotificaciones
+ * @brief Gestiona el envío de notificaciones locales de alerta.
  *
- * No requiere modificar otras partes del proyecto.
- * Solo hay que llamarla desde cualquier sitio con:
- *     AdminNotificaciones.revisarYNotificar(context, valorMedicion);
+ * Esta clase se encarga de mostrar notificaciones locales cuando se detecta
+ * un valor elevado proveniente de un sensor. Actualmente se utiliza un
+ * umbral fijo de prueba, aunque en futuras versiones se prevé el uso de
+ * umbrales dinámicos específicos para cada tipo de medición.
+ *
+ *
+ * Uso:
+ * AdminNotificaciones.revisarYNotificar(context, valorMedicion);
+ *
+ * @author Christopher Yoris Pulgar
+ * @version 1.0
  */
 public class AdminNotificaciones {
 
@@ -29,12 +35,14 @@ public class AdminNotificaciones {
     private static final int NOTIFICACION_ID = 1001;
 
     /**
-     * Revisa si el valor supera el umbral fijo (5)
-     * y, si es así, muestra una notificación en pantalla.
-     * Incluye comprobación de permiso POST_NOTIFICATIONS para Android 13+.
+     * Comprueba si el valor recibido supera el umbral definido y,
+     * en caso afirmativo, muestra una notificación de alerta.
      *
-     * @param context        Contexto de la app (por ejemplo: "this" desde MainActivity)
-     * @param valorMedicion  Valor numérico recibido del sensor
+     * En dispositivos con Android 13 o superior, se verifica previamente
+     * que el permiso POST_NOTIFICATIONS haya sido concedido.
+     *
+     * @param context Contexto de la aplicación
+     * @param valorMedicion Valor numérico recibido desde el sensor
      */
     public static void revisarYNotificar(Context context, float valorMedicion) {
 
@@ -72,9 +80,12 @@ public class AdminNotificaciones {
     }
 
     /**
-     * Crea el canal de notificaciones (solo Android 8 o superior).
-     * Los canales permiten que el usuario gestione las preferencias
-     * de sonido, vibración, etc., de este tipo de alertas.
+     * Crea el canal de notificaciones requerido por Android 8 o superior.
+     *
+     * Los canales permiten al usuario configurar las preferencias
+     * de sonido, vibración y visibilidad de este tipo de alertas.
+     *
+     * @param context Contexto de la aplicación
      */
     private static void crearCanal(Context context) {
 
