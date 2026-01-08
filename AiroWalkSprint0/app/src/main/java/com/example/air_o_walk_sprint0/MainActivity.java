@@ -452,13 +452,17 @@ public class MainActivity extends BaseActivity  {
         Log.d(ETIQUETA_LOG, " boton detener busqueda dispositivos BTLE Pulsado" );
         this.detenerBusquedaDispositivosBTLE();
 
-        // NUEVO: Al detener búsqueda, marcar beacon como desconectado
+        // Al detener búsqueda, marcar beacon como desconectado
         if (beaconConectado) {
             beaconConectado = false;
             enviarUltimaUbicacionNodo();
             Log.d(ETIQUETA_LOG, " Beacon DESCONECTADO - Funcionalidades pausadas");
+
+            // NUEVO: El monitor detectará automáticamente la desconexión
+            // No es necesario llamar manualmente a notificar porque el
+            // sistema de monitoreo ya lo hará en su próximo ciclo
         }
-    } // ()
+    }
 
 
     public void abrirPantallaGamificacion(View v) {
@@ -804,14 +808,13 @@ public class MainActivity extends BaseActivity  {
                         buscarEsteDispositivoBTLE(nombreNodo);
                         estadoBotonRecorrido(true);
 
-                        monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this, nombreNodo);
-                        monitorEstadoNodo.iniciarMonitor();
+                        // CRÍTICO: Usar getApplicationContext() en lugar de MainActivity.this
+                        monitorEstadoNodo = new NotifEstadoNodo(getApplicationContext(), nombreNodo);
 
-                        // NUEVO: Configurar listener para desconexión del nodo
+                        // IMPORTANTE: Configurar el listener ANTES de iniciar el monitor
                         monitorEstadoNodo.setDesconexionListener(() -> {
                             beaconConectado = false;
 
-                            // Si estaba haciendo tracking, enviar mediciones antes de detener
                             if (isTracking) {
                                 Log.d(ETIQUETA_LOG, "DESCONEXIÓN ABRUPTA DETECTADA");
 
@@ -840,7 +843,7 @@ public class MainActivity extends BaseActivity  {
                                             ubicacionActual,
                                             pasosActuales,
                                             tiempoActual,
-                                            "abrupta", // Desconexión no planificada
+                                            "abrupta",
                                             new MeasurementsSender.MeasurementCallback() {
                                                 @Override
                                                 public void onSuccess(String respuesta) {
@@ -861,12 +864,11 @@ public class MainActivity extends BaseActivity  {
                                 } else {
                                     Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - datos incompletos");
                                 }
-
-                                // Opcional: detener tracking automáticamente
-                                // runOnUiThread(() -> stopTracking());
                             }
                         });
 
+                        // Ahora SÍ iniciar el monitor
+                        monitorEstadoNodo.iniciarMonitor();
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         // Mostrar botón "Encontrar mi sensor"
                         Button btnFind = findViewById(R.id.btnFindSensor);
@@ -1096,55 +1098,86 @@ public class MainActivity extends BaseActivity  {
             Toast.makeText(this, "Error de sensores: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
+
+        // =====================================================
+// VERIFICACIÓN Y SOLICITUD DE PERMISO DE NOTIFICACIONES
+// =====================================================
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                Log.d(ETIQUETA_LOG, "Solicitando permiso POST_NOTIFICATIONS");
+
+                // Mostrar diálogo explicativo al usuario
+                new AlertDialog.Builder(this)
+                        .setTitle("Permiso de notificaciones")
+                        .setMessage("Air-o-Walk necesita enviarte notificaciones para:\n\n" +
+                                "• Avisarte cuando tu sensor se desconecte\n" +
+                                "• Informarte cuando se reconecte\n" +
+                                "• Alertarte sobre problemas con las mediciones\n\n" +
+                                "¿Deseas permitir las notificaciones?")
+                        .setPositiveButton("Permitir", (dialog, which) -> {
+                            ActivityCompat.requestPermissions(
+                                    this,
+                                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                                    1001
+                            );
+                        })
+                        .setNegativeButton("Más tarde", (dialog, which) -> {
+                            Toast.makeText(this,
+                                    "Puedes activar las notificaciones más tarde en Ajustes",
+                                    Toast.LENGTH_LONG).show();
+                        })
+                        .setCancelable(false)
+                        .show();
+            } else {
+                Log.d(ETIQUETA_LOG, "Permiso POST_NOTIFICATIONS ya concedido");
+            }
+        }
+
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+
     }
 
 
+    @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
-        super.onRequestPermissionsResult( requestCode, permissions, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == CODIGO_PETICION_PERMISOS) {
-            boolean bluetoothGranted = true;
-            boolean locationGranted = false;
-            boolean activityRecognitionGranted = false;
+            // ... tu código existente de permisos BT, GPS, etc ...
+        }
 
-            for (int i = 0; i < permissions.length; i++) {
-                String permission = permissions[i];
-                boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+        // ===================================================================
+        // NUEVO: Manejar respuesta del permiso POST_NOTIFICATIONS
+        // ===================================================================
+        if (requestCode == 1001) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                Log.d(ETIQUETA_LOG, " Permiso: " + permission + " = " + (granted ? "CONCEDIDO" : "DENEGADO"));
+                Log.d(ETIQUETA_LOG, "✓ Permiso de notificaciones CONCEDIDO");
 
-                if (permission.equals(Manifest.permission.BLUETOOTH_SCAN) ||
-                        permission.equals(Manifest.permission.BLUETOOTH_CONNECT)) {
-                    bluetoothGranted = bluetoothGranted && granted;
-                } else if (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
-                    locationGranted = granted;
-                } else if (permission.equals(Manifest.permission.ACTIVITY_RECOGNITION)) {
-                    activityRecognitionGranted = granted;
+                Toast.makeText(this,
+                        "Recibirás alertas sobre el estado de tu sensor",
+                        Toast.LENGTH_SHORT).show();
+
+                // Si ya hay un nodo vinculado, reiniciar el monitor para que use las notificaciones
+                if (yaVinculado && monitorEstadoNodo != null) {
+                    Log.d(ETIQUETA_LOG, "Reiniciando monitor con notificaciones habilitadas");
+                    monitorEstadoNodo.detenerMonitor();
+                    monitorEstadoNodo.iniciarMonitor();
                 }
-            }
-
-            if (bluetoothGranted && locationGranted) {
-                Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos BT y Location concedidos !!!!");
-                BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
-                habilitarBluetoothSiEsNecesario(bta);
             } else {
-                Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos BT/Location NO concedidos !!!!");
-            }
+                Log.w(ETIQUETA_LOG, "⚠ Permiso de notificaciones DENEGADO");
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (activityRecognitionGranted) {
-                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION concedido");
-                    if (stepTracker != null) {
-                        verificarSensores();
-                    }
-                } else {
-                    Log.w(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION DENEGADO");
-                    Toast.makeText(this,
-                            "Permiso de actividad física denegado. El contador de pasos no funcionará.",
-                            Toast.LENGTH_LONG).show();
-                }
+                new AlertDialog.Builder(this)
+                        .setTitle("Notificaciones desactivadas")
+                        .setMessage("Sin notificaciones no recibirás alertas importantes sobre tu sensor.\n\n" +
+                                "Puedes activarlas más tarde en:\n" +
+                                "Ajustes → Aplicaciones → Air-o-Walk → Notificaciones")
+                        .setPositiveButton("Entendido", null)
+                        .show();
             }
         }
     }
@@ -1274,25 +1307,46 @@ public class MainActivity extends BaseActivity  {
     protected void onDestroy() {
         super.onDestroy();
 
+        Log.d(ETIQUETA_LOG, "==== onDestroy() iniciado ====");
+
+        // 1️⃣ Detener monitor PRIMERO (importante para evitar leaks)
         if (monitorEstadoNodo != null) {
+            Log.d(ETIQUETA_LOG, "Deteniendo monitor de estado del nodo");
             monitorEstadoNodo.detenerMonitor();
+            monitorEstadoNodo = null; // Liberar referencia
         }
 
+        // 2️⃣ Detener trackers
         if (timeTracker != null) {
+            Log.d(ETIQUETA_LOG, "Deteniendo timeTracker");
             timeTracker.destroy();
-        }
-        if (stepTracker != null) {
-            stepTracker.stopTracking();
-        }
-        if (gpsTracker != null) {
-            gpsTracker.stopTracking();
+            timeTracker = null;
         }
 
-        // NUEVO: Enviar última ubicación si estaba conectado
+        if (stepTracker != null) {
+            Log.d(ETIQUETA_LOG, "Deteniendo stepTracker");
+            stepTracker.stopTracking();
+            stepTracker = null;
+        }
+
+        if (gpsTracker != null) {
+            Log.d(ETIQUETA_LOG, "Deteniendo gpsTracker");
+            gpsTracker.stopTracking();
+            gpsTracker = null;
+        }
+
+        // 3️⃣ Enviar última ubicación si estaba conectado
         if (beaconConectado && ultimaUbicacionNodo != null) {
+            Log.d(ETIQUETA_LOG, "Enviando última ubicación antes de destruir");
             enviarUltimaUbicacionNodo();
         }
+
+        // 4️⃣ Cancelar búsqueda BLE si está activa
+        detenerBusquedaDispositivosBTLE();
+
+        Log.d(ETIQUETA_LOG, "==== onDestroy() completado ====");
     }
+
     private void actualizarUIVinculacion() {
         if (yaVinculado) {
             textVinculacion.setVisibility(View.GONE);

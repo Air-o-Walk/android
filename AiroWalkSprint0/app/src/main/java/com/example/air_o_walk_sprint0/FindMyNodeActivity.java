@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
 
 import java.util.ArrayList;
+
 /**
  * @class FindMyNodeActivity
  * @brief Activity encargada de localizar un nodo BLE (iBeacon) en tiempo real.
@@ -39,13 +40,11 @@ import java.util.ArrayList;
  * Además, almacena la última ubicación GPS conocida y permite abrirla
  * en un visor de mapas cuando el nodo desaparece.
  *
- * Diseño general:
- * onCreate() → initGPS() → startScanning()
- * → onScanResult() → updateUI() | showOutOfRange()
- * → rangeCheckerThread detecta desaparición del nodo
+ * NUEVO: Integración con NotifEstadoNodo para mostrar notificaciones
+ * cuando el sensor está fuera de rango o desconectado.
  *
- * @author Meryame Ait Boumlik
- * @version 1.0
+ * @author Meryame Ait Boumlik y equipo Air-o-Walk
+ * @version 1.1
  */
 public class FindMyNodeActivity extends AppCompatActivity {
 
@@ -84,17 +83,17 @@ public class FindMyNodeActivity extends AppCompatActivity {
     private LocationManager locationManager;
     private LocationListener gpsListener;
     private Location lastLocation = null;
+
     // Thread que vigila si el nodo desaparece por timeout dinámico
     private Thread rangeCheckerThread;
 
-    // --------------------------------------------------------------
-    // onCreate()
-    // Descripción:
-    //   - Inicializa UI
-    //   - Obtiene nombre del nodo desde Intent
-    //   - Crea estimador de distancia
-    //   - Activa GPS y BLE scanning
-    // --------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // NUEVO: Sistema de notificaciones
+    // ------------------------------------------------------------------
+    private NotifEstadoNodo monitorEstadoNodo;
+    private boolean yaNotificoFueraDeRango = false;
+    private static final long TIMEOUT_INICIAL_MS = 10000; // 10 segundos para primera detección
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,7 +102,14 @@ public class FindMyNodeActivity extends AppCompatActivity {
         // Get beacon name
         nodeName = getIntent().getStringExtra("NODE_NAME");
 
+        Log.d(TAG, "Buscando nodo: " + nodeName);
+
         estimator = new DistanceEstimator();
+
+        // NUEVO: Inicializar monitor de notificaciones
+        if (nodeName != null && !nodeName.isEmpty()) {
+            monitorEstadoNodo = new NotifEstadoNodo(getApplicationContext(), nodeName);
+        }
 
         // Enlazar UI
         txtDistance = findViewById(R.id.txtDistance);
@@ -124,8 +130,9 @@ public class FindMyNodeActivity extends AppCompatActivity {
 
         // Inicializar escáner BLE
         BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (btAdapter != null)
+        if (btAdapter != null) {
             scanner = btAdapter.getBluetoothLeScanner();
+        }
 
         initGPS();
         startScanning();
@@ -151,8 +158,7 @@ public class FindMyNodeActivity extends AppCompatActivity {
                             android.Manifest.permission.ACCESS_FINE_LOCATION,
                             android.Manifest.permission.ACCESS_COARSE_LOCATION,
                             android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                    }
-                    ,
+                    },
                     GPS_PERMISSION_REQUEST
             );
             return;
@@ -180,10 +186,6 @@ public class FindMyNodeActivity extends AppCompatActivity {
         }
     }
 
-    // --------------------------------------------------------------
-    // onRequestPermissionsResult()
-    // Descripción: Reintenta inicializar GPS si el usuario lo permite
-    // --------------------------------------------------------------
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -197,7 +199,6 @@ public class FindMyNodeActivity extends AppCompatActivity {
         }
     }
 
-
     private void startScanning() {
 
         if (scanner == null) {
@@ -205,7 +206,9 @@ public class FindMyNodeActivity extends AppCompatActivity {
             txtDistance.setText("Bluetooth apagado");
             return;
         }
+
         nodeVisible = false;
+        yaNotificoFueraDeRango = false;
         showOutOfRange();
 
         scanCallback = new ScanCallback() {
@@ -217,7 +220,7 @@ public class FindMyNodeActivity extends AppCompatActivity {
                 byte[] scanData = result.getScanRecord().getBytes();
                 TramaIBeacon tib = new TramaIBeacon(scanData);
 
-                String uuidText = Utilidades.bytesToString(tib.getUUID());   // Gives EPSG-GTI-PROY-3A
+                String uuidText = Utilidades.bytesToString(tib.getUUID());
 
                 Log.d(TAG, "UUID recibido = " + uuidText + " buscando=" + nodeName);
 
@@ -229,13 +232,28 @@ public class FindMyNodeActivity extends AppCompatActivity {
                 int rssi = result.getRssi();
                 estimator.addReading(rssi);
 
+                // NUEVO: Si estaba fuera de rango y ahora lo detectamos, resetear flag
+                if (!nodeVisible) {
+                    Log.d(TAG, "¡Nodo ENCONTRADO! RSSI: " + rssi);
+                    yaNotificoFueraDeRango = false;
+                }
+
                 nodeVisible = true;
                 lastSeenTimestamp = System.currentTimeMillis();
 
                 updateUI();
             }
 
+            @Override
+            public void onScanFailed(int errorCode) {
+                super.onScanFailed(errorCode);
+                Log.e(TAG, "Error en escaneo BLE: " + errorCode);
 
+                // NUEVO: Notificar al usuario del error
+                runOnUiThread(() -> {
+                    txtDistance.setText("Error al buscar sensor");
+                });
+            }
         };
 
         ArrayList<ScanFilter> filters = new ArrayList<>();
@@ -244,8 +262,8 @@ public class FindMyNodeActivity extends AppCompatActivity {
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build();
-        scanner.startScan(null, settings, scanCallback);
 
+        scanner.startScan(null, settings, scanCallback);
 
         startRangeCheckerThread();
     }
@@ -256,9 +274,12 @@ public class FindMyNodeActivity extends AppCompatActivity {
     //   - Hilo secundario que evalúa cada 500ms si el nodo dejó de emitir
     //   - Timeout dinámico según la intensidad RSSI promedio
     //   - Si pasa el timeout → nodo considerado "Fuera de rango"
+    //   - NUEVO: Notifica después de TIMEOUT_INICIAL_MS si nunca se detectó
     // --------------------------------------------------------------
     private void startRangeCheckerThread() {
         rangeCheckerThread = new Thread(() -> {
+            long startTime = System.currentTimeMillis();
+
             while (!isFinishing()) {
 
                 long now = System.currentTimeMillis();
@@ -273,15 +294,39 @@ public class FindMyNodeActivity extends AppCompatActivity {
                 } else if (rssi > -78) {
                     timeout = 3000;    // 2–3m → weak reception
                 } else {
-                    timeout = 0;    // far → packets often lost
+                    timeout = 2000;    // far → packets often lost
                 }
 
-                if (now - lastSeenTimestamp > timeout) {
-                    if (nodeVisible) {
-                        nodeVisible = false;
-                        Log.d(TAG, "Node out of range — last known location saved");
-                        runOnUiThread(this::showOutOfRange);
+                // NUEVO: Si nunca se detectó el nodo y ya pasó el timeout inicial
+                if (!nodeVisible && !yaNotificoFueraDeRango) {
+                    long tiempoBuscando = now - startTime;
+
+                    if (tiempoBuscando > TIMEOUT_INICIAL_MS) {
+                        Log.w(TAG, "Nodo NO encontrado después de " + tiempoBuscando + "ms");
+                        yaNotificoFueraDeRango = true;
+
+                        // Notificar que está fuera de rango
+                        if (monitorEstadoNodo != null) {
+                            monitorEstadoNodo.notificarFueraDeRango();
+                            Log.d(TAG, "Notificación de 'fuera de rango' enviada");
+                        }
                     }
+                }
+
+                // Si el nodo estaba visible pero ahora desapareció
+                if (nodeVisible && (now - lastSeenTimestamp > timeout)) {
+                    nodeVisible = false;
+                    yaNotificoFueraDeRango = true;
+
+                    Log.w(TAG, "Nodo perdido — last known location saved");
+
+                    // NUEVO: Notificar que se perdió la conexión
+                    if (monitorEstadoNodo != null) {
+                        monitorEstadoNodo.notificarFueraDeRango();
+                        Log.d(TAG, "Notificación de 'fuera de rango' enviada por pérdida de señal");
+                    }
+
+                    runOnUiThread(this::showOutOfRange);
                 }
 
                 try {
@@ -293,7 +338,6 @@ public class FindMyNodeActivity extends AppCompatActivity {
         rangeCheckerThread.start();
     }
 
-
     // --------------------------------------------------------------
     // updateUI()
     // Descripción:
@@ -303,7 +347,9 @@ public class FindMyNodeActivity extends AppCompatActivity {
     private void updateUI() {
         String category = estimator.getDistanceCategory();
         int level = estimator.getSignalLevel();
-        Log.d("FIND_NODE", "UI updated with category: " + category + " | level: " + level);
+
+        Log.d(TAG, "UI actualizada - Distancia: " + category + " | Nivel: " + level);
+
         runOnUiThread(() -> {
 
             txtDistance.setText("Distancia: " + category);
@@ -328,41 +374,57 @@ public class FindMyNodeActivity extends AppCompatActivity {
     }
 
     // -----------------------------------------------------------
-    // NODE DISAPPEARED
+    // showOutOfRange() - NODE DISAPPEARED
+    // MODIFICADO: Añade logging para debugging
     // -----------------------------------------------------------
     private void showOutOfRange() {
-        txtDistance.setText("Fuera de rango");
-        circle.setBackgroundResource(R.drawable.circle_cold);
+        Log.w(TAG, "Mostrando 'Fuera de rango' en UI");
 
-        if (lastLocation != null) {
-            btnLastLocation.setVisibility(View.VISIBLE);
-        } else {
-            btnLastLocation.setVisibility(View.GONE);
-        }
+        runOnUiThread(() -> {
+            txtDistance.setText("Fuera de rango");
+            circle.setBackgroundResource(R.drawable.circle_cold);
 
-        imgBars.setImageResource(R.drawable.ic_signal_0);
+            if (lastLocation != null) {
+                btnLastLocation.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Botón de última ubicación visible");
+            } else {
+                btnLastLocation.setVisibility(View.GONE);
+                Log.d(TAG, "No hay última ubicación GPS disponible");
+            }
+
+            imgBars.setImageResource(R.drawable.ic_signal_0);
+        });
     }
-
 
     // --------------------------------------------------------------
     // onDestroy()
     // Descripción:
     //   - Limpia GPS, BLE scanning y el hilo vigía
+    //   - NUEVO: Limpia recursos de notificaciones
     // --------------------------------------------------------------
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
+        Log.d(TAG, "Destruyendo FindMyNodeActivity");
+
         if (scanner != null && scanCallback != null) {
             scanner.stopScan(scanCallback);
+            Log.d(TAG, "Escaneo BLE detenido");
         }
 
         if (locationManager != null && gpsListener != null) {
             locationManager.removeUpdates(gpsListener);
+            Log.d(TAG, "GPS detenido");
         }
 
         if (rangeCheckerThread != null) {
             rangeCheckerThread.interrupt();
+            Log.d(TAG, "Thread de verificación detenido");
         }
+
+        // NUEVO: No detener el monitor aquí porque las notificaciones deben persistir
+        // El monitor se maneja desde MainActivity
+        monitorEstadoNodo = null;
     }
 }
