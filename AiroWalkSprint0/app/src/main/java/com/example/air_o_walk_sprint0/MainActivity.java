@@ -1145,15 +1145,8 @@ public class MainActivity extends BaseActivity  {
                         Toast.LENGTH_SHORT).show();
 
             } else if (itemId == R.id.nav_notificaciones) {
-                new AlertDialog.Builder(this)
-                        .setTitle("Notificaciones")
-                        .setMessage("Gestiona tus notificaciones de calidad del aire.\n\n" +
-                                "Recibirás alertas cuando:\n" +
-                                "• Los niveles de O3 sean peligrosos\n" +
-                                "• Tu dispositivo se desconecte\n" +
-                                "• Completes logros")
-                        .setPositiveButton("Aceptar", null)
-                        .show();
+                Intent i = new Intent(this, NotificationsActivity.class);
+                startActivity(i);
 
             } else if (itemId == R.id.nav_info) {
 

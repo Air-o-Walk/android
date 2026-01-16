@@ -166,10 +166,8 @@ public abstract class BaseActivity extends AppCompatActivity {
 
                     } else if (itemId == R.id.nav_notificaciones) {
                         // Mostrar información de notificaciones
-                        Toast.makeText(this,
-                                "Gestiona tus notificaciones desde Configuración",
-                                Toast.LENGTH_SHORT).show();
-                        // TODO: Implementar NotificacionesActivity
+                        Intent intent = new Intent(this, NotificationsActivity.class);
+                        startActivity(intent);
 
                     } else if (itemId == R.id.nav_info) {
                         // Mostrar información sobre gases
