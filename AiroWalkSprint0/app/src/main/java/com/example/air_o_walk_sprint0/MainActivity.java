@@ -12,12 +12,16 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Button;
@@ -135,6 +139,7 @@ public class MainActivity extends BaseActivity  {
     private TextView textVinculacion;
     private View btnVincular;
 
+    private WebView mapa;
 
 
     // ------------------------------------------------------------------
@@ -422,8 +427,8 @@ public class MainActivity extends BaseActivity  {
                         Log.e(ETIQUETA_LOG, " Error enviando mediciones: " + error);
                         runOnUiThread(() -> {
                             Toast.makeText(MainActivity.this,
-                                    "Error al enviar mediciones: " + error,
-                                    Toast.LENGTH_SHORT).show();
+                                    "No se pudieron enviar los datos.\n\nVerifica tu conexión a internet y vuelve a intentar.",
+                                    Toast.LENGTH_LONG).show();
                         });
                     }
                 }
@@ -442,7 +447,9 @@ public class MainActivity extends BaseActivity  {
         Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
         // MODIFICADO: Solo permitir si hay beacon vinculado
         if (!yaVinculado) {
-            Toast.makeText(this, "Primero vincula un beacon", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Necesitas vincular un sensor primero.\n\nToca el ícono de enlace en el menú superior para comenzar.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
         this.buscarEsteDispositivoBTLE(nombreNodoVinculado);
@@ -464,8 +471,9 @@ public class MainActivity extends BaseActivity  {
     public void abrirPantallaGamificacion(View v) {
         // MODIFICADO: Solo permitir si beacon está conectado
         if (!beaconConectado) {
-            Toast.makeText(this, "Necesitas estar conectado al beacon para acceder a gamificación",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "No hay sensor conectado.\n\nEspera a que se detecte tu sensor o enciéndelo para continuar.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -477,8 +485,9 @@ public class MainActivity extends BaseActivity  {
     public void abrirPantallaCanjeos(View v) {
         // MODIFICADO: Solo permitir si beacon está conectado
         if (!beaconConectado) {
-            Toast.makeText(this, "Necesitas estar conectado al beacon para acceder a canjeos",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "No hay sensor conectado.\n\nConecta tu sensor para acceder a los canjeos.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -515,21 +524,27 @@ public class MainActivity extends BaseActivity  {
         // Verificar que los trackers estén inicializados
         if (stepTracker == null || timeTracker == null || gpsTracker == null) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - trackers no inicializados");
-            Toast.makeText(this, "Error: trackers no inicializados", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Los sensores del dispositivo no están listos.\n\nReinicia la aplicación e intenta nuevamente.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
         // Verificar que el sensor de pasos esté disponible
         if (!stepTracker.isStepCounterAvailable()) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - no hay sensor de pasos disponible");
-            Toast.makeText(this, "Este dispositivo no tiene sensor de pasos", Toast.LENGTH_LONG).show();
+            Toast.makeText(this,
+                    "Tu dispositivo no tiene sensor de pasos.\n\nNo podrás registrar recorridos en este teléfono.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
         // NUEVO: Verificar conexión del beacon
         if (!beaconConectado) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - beacon no conectado");
-            Toast.makeText(this, "Beacon no conectado. Esperando señal...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Esperando conexión con el sensor...\n\nAsegúrate de que esté encendido y cerca de ti.",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -553,7 +568,9 @@ public class MainActivity extends BaseActivity  {
         Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado (steps + time + GPS)");
         Log.d(ETIQUETA_LOG, " startTracking(): " + stepTracker.getSensorInfo());
 
-        Toast.makeText(this, "Recorrida iniciada - Beacon conectado", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this,
+                "¡Recorrido iniciado! Tu sensor está midiendo la calidad del aire.",
+                Toast.LENGTH_SHORT).show();
     }
 
     private void stopTracking() {
@@ -582,6 +599,9 @@ public class MainActivity extends BaseActivity  {
         Gamificacion game = new Gamificacion(idUsuario);
         int puntos = game.calcularPuntosMedianteDistancia(pasos);
         game.setUltimosPuntosObtenidos(puntos);
+
+        // Sumar los puntos obtenidos en la BBDD
+        game.sumarPuntosDelaUltimaSesionBBDD();
 
         // Guardar estadísticas diarias
         MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
@@ -817,7 +837,7 @@ public class MainActivity extends BaseActivity  {
 
                                 runOnUiThread(() -> {
                                     Toast.makeText(MainActivity.this,
-                                            "Beacon desconectado - Enviando mediciones",
+                                            "Sensor desconectado.\n\nGuardando tus datos de recorrido...",
                                             Toast.LENGTH_LONG).show();
                                 });
 
@@ -847,7 +867,7 @@ public class MainActivity extends BaseActivity  {
                                                     Log.d(ETIQUETA_LOG, " Mediciones de desconexión abrupta enviadas");
                                                     runOnUiThread(() -> {
                                                         Toast.makeText(MainActivity.this,
-                                                                "Mediciones guardadas antes de desconexión",
+                                                                "Tus datos fueron guardados correctamente antes de la desconexión.",
                                                                 Toast.LENGTH_SHORT).show();
                                                     });
                                                 }
@@ -917,12 +937,38 @@ public class MainActivity extends BaseActivity  {
         }
     }
 
+    private boolean verificarSesionActiva() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int savedUserId = prefs.getInt("user_id", -1);
+        String savedToken = prefs.getString("token", null);
+        boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
+
+        // Si no hay sesión guardada, redirigir a Login
+        if (savedUserId == -1 || savedToken == null || savedToken.isEmpty() || !sesionActiva) {
+            Log.d(ETIQUETA_LOG, "No hay sesión activa - Redirigiendo a Login");
+
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+
+            return false;
+        }
+
+        return true;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
+
+        // ⭐ AGREGAR ESTA VERIFICACIÓN AL INICIO ⭐
+        if (!verificarSesionActiva()) {
+            return; // Detener ejecución si no hay sesión
+        }
 
         // =====================================================
         // 1️⃣ READ INTENT FIRST (CRITICAL)
@@ -933,10 +979,17 @@ public class MainActivity extends BaseActivity  {
             token = intent.getStringExtra("TOKEN");
         }
 
+        // ⭐ AGREGAR: Si no vienen del intent, cargar de SharedPreferences ⭐
         if (idUsuario == -1 || token == null) {
-            Log.e(ETIQUETA_LOG, "ERROR: USER_ID o TOKEN no recibidos");
+            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            idUsuario = prefs.getInt("user_id", -1);
+            token = prefs.getString("token", null);
+        }
+
+        if (idUsuario == -1 || token == null) {
+            Log.e(ETIQUETA_LOG, "ERROR: USER_ID o TOKEN no disponibles");
             Toast.makeText(this,
-                    "Error de sesión. Vuelve a iniciar sesión.",
+                    "Tu sesión ha expirado.\n\nVuelve a iniciar sesión para continuar.",
                     Toast.LENGTH_LONG).show();
             finish();
             return;
@@ -1006,16 +1059,72 @@ public class MainActivity extends BaseActivity  {
         }
 
         // Configurar listener para los elementos del Navigation View
+        //-----CAMBIOS ADE-----
+
         navigationView.setNavigationItemSelectedListener(item -> {
             drawerLayout.closeDrawer(GravityCompat.START);
 
-            if (item.getItemId() == R.id.nav_perfil) {
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.nav_perfil) {
                 abrirPerfilActivity();
+
+            } else if (itemId == R.id.nav_recorrido) {
+                // Solo permitir si beacon está conectado
+                if (!beaconConectado) {
+                    Toast.makeText(this,
+                            "Necesitas estar conectado al beacon para ver el resumen",
+                            Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+                startActivity(new Intent(this, AirQualitySummaryActivity.class));
+
+            } else if (itemId == R.id.nav_recompensa) {
+                // Usar el método existente que ya verifica la conexión
+                abrirPantallaGamificacion(null);
+
+            } else if (itemId == R.id.nav_mapa) {
+                // Ya estamos en MainActivity, no hacer nada
+                Toast.makeText(this,
+                        "Ya te encuentras en la pantalla de inicio.",
+                        Toast.LENGTH_SHORT).show();
+
+            } else if (itemId == R.id.nav_notificaciones) {
+                // Abrir configuración de notificaciones
+                new AlertDialog.Builder(this)
+                        .setTitle("Notificaciones")
+                        .setMessage("Gestiona tus notificaciones de calidad del aire.\n\n" +
+                                "Recibirás alertas cuando:\n" +
+                                "• Los niveles de O3 sean peligrosos\n" +
+                                "• Tu dispositivo se desconecte\n" +
+                                "• Completes logros")
+                        .setPositiveButton("Aceptar", null)
+                        .show();
+                // TODO: Implementar NotificacionesActivity
+
+            } else if (itemId == R.id.nav_info) {
+                // Mostrar información educativa sobre gases
+                new AlertDialog.Builder(this)
+                        .setTitle("Información sobre Gases")
+                        .setMessage("O3 (Ozono):\n" +
+                                "Gas irritante que afecta las vías respiratorias.\n" +
+                                "Límite seguro: < 0.06 ppm\n\n" +
+                                "CO (Monóxido de Carbono):\n" +
+                                "Gas tóxico sin olor ni color.\n" +
+                                "Límite seguro: < 9 ppm\n\n" +
+                                "NO2 (Dióxido de Nitrógeno):\n" +
+                                "Irritante producido por combustión.\n" +
+                                "Límite seguro: < 0.053 ppm")
+                        .setPositiveButton("Entendido", null)
+                        .show();
+                // TODO: Implementar InfoGasesActivity con información detallada
+
             } else {
                 Toast.makeText(this,
                         "Pantalla aún no implementada",
                         Toast.LENGTH_SHORT).show();
             }
+
             return true;
         });
 
@@ -1097,6 +1206,21 @@ public class MainActivity extends BaseActivity  {
         }
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+
+        mapa = findViewById(R.id.mapaWebView);
+
+        // Configuración crítica del WebView
+        WebSettings webSettings = mapa.getSettings();
+        webSettings.setJavaScriptEnabled(true); // Permite Leaflet y Turf
+        webSettings.setDomStorageEnabled(true); // Importante para cargar mapas pesados
+        webSettings.setAllowFileAccess(true);
+        webSettings.setGeolocationEnabled(true); // Por si quieres mostrar la ubicación del usuario
+
+        // Evita que el mapa se abra en el navegador externo (Chrome/Samsung Browser)
+        mapa.setWebViewClient(new WebViewClient());
+
+        // CARGA TU URL AQUÍ
+        mapa.loadUrl("https://sagucre.upv.edu.es/mapa_full");
     }
 
 
@@ -1142,7 +1266,7 @@ public class MainActivity extends BaseActivity  {
                 } else {
                     Log.w(ETIQUETA_LOG, " onRequestPermissionResult(): permiso ACTIVITY_RECOGNITION DENEGADO");
                     Toast.makeText(this,
-                            "Permiso de actividad física denegado. El contador de pasos no funcionará.",
+                            "Sin permiso de actividad física, no podemos contar tus pasos.\n\nActiva el permiso en Configuración > Aplicaciones > Air-o-Walk > Permisos.",
                             Toast.LENGTH_LONG).show();
                 }
             }
@@ -1151,7 +1275,9 @@ public class MainActivity extends BaseActivity  {
 
     public void abrirPerfilActivity() {
         if (idUsuario == -1 || token == null) {
-            Toast.makeText(this, "Error: No hay datos de usuario disponibles", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "No se encontraron tus datos de usuario.\n\nCierra sesión y vuelve a iniciar sesión.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 

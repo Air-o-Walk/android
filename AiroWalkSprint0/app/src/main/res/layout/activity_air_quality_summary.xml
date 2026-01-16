@@ -123,20 +123,20 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Distancia"
-                    android:textSize="16sp"
-                    android:textColor="#4C4360"/>
+                    android:text="Pasos"
+                    android:textColor="#4C4360"
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/textDistancia"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="-- Km"
-                    android:textSize="20sp"
-                    android:textColor="@android:color/black"
-                    android:padding="12dp"
+                    android:layout_marginTop="5dp"
                     android:background="@drawable/rounded_bg_blue"
-                    android:layout_marginTop="5dp"/>
+                    android:padding="12dp"
+                    android:text="--"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp" />
             </LinearLayout>
 
         </LinearLayout>
@@ -173,10 +173,10 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Puntos"
-                android:textSize="16sp"
+                android:layout_marginBottom="5dp"
+                android:text="Puntos obtenido hoy"
                 android:textColor="#4C4360"
-                android:layout_marginBottom="5dp"/>
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/textPuntos"
