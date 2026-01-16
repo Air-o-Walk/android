@@ -1070,7 +1070,7 @@ public class MainActivity extends BaseActivity  {
                 startActivity(intenT);
 
             } else if (itemId == R.id.nav_recompensa) {
-                abrirPantallaGamificacion(null);
+                abrirPantallaCanjeos(null);
 
             } else if (itemId == R.id.nav_mapa) {
                 Toast.makeText(this,
@@ -1089,17 +1089,69 @@ public class MainActivity extends BaseActivity  {
                         .show();
 
             } else if (itemId == R.id.nav_info) {
+
                 new AlertDialog.Builder(this)
-                        .setTitle("Información sobre Gases")
-                        .setMessage("O3 (Ozono):\n" +
-                                "Gas irritante que afecta las vías respiratorias.\n" +
-                                "Límite seguro: < 0.06 ppm\n\n" +
-                                "CO (Monóxido de Carbono):\n" +
-                                "Gas tóxico sin olor ni color.\n" +
-                                "Límite seguro: < 9 ppm\n\n" +
-                                "NO2 (Dióxido de Nitrógeno):\n" +
-                                "Irritante producido por combustión.\n" +
-                                "Límite seguro: < 0.053 ppm")
+                        .setTitle("Información sobre Calidad del Aire")
+                        .setMessage(
+                                "¿QUÉ ES EL AQI?\n" +
+                                        "El Índice de Calidad del Aire (AQI) mide qué tan limpio o contaminado está el aire. " +
+                                        "Va de 0 (excelente) a 500 (peligroso).\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "OZONO TROPOSFÉRICO (O₃)\n\n" +
+
+                                        "¿Qué es?\n" +
+                                        "Se forma cuando la luz solar reacciona con gases de vehículos e industrias. " +
+                                        "Es más común en verano y días soleados.\n\n" +
+
+                                        "✅ Nivel seguro: AQI 0-50 (Bueno)\n" +
+                                        "⚠️ Nivel alto: AQI 51-100 (Moderado)\n" +
+                                        "🚨 Nivel peligroso: AQI 101-150+ (Insalubre para grupos sensibles o superior)\n\n" +
+
+                                        "Efectos en la salud:\n" +
+                                        "Irritación de ojos y garganta, tos, dificultad para respirar, empeora el asma.\n\n" +
+
+                                        "Consejo: Evita ejercicio intenso entre 14:00-20:00 en días soleados.\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "MONÓXIDO DE CARBONO (CO)\n\n" +
+
+                                        "¿Qué es?\n" +
+                                        "Gas tóxico sin olor ni color producido por combustión incompleta en vehículos, " +
+                                        "estufas y calderas mal ventiladas.\n\n" +
+
+                                        "✅ Nivel seguro: AQI 0-50 (Bueno)\n" +
+                                        "⚠️ Nivel alto: AQI 51-100 (Moderado)\n" +
+                                        "🚨 Nivel peligroso: AQI 101+ (Insalubre para grupos sensibles o superior)\n\n" +
+
+                                        "Efectos en la salud:\n" +
+                                        "Impide que tu sangre transporte oxígeno. Causa dolor de cabeza, mareos, náuseas " +
+                                        "y en casos graves, pérdida de conciencia.\n\n" +
+
+                                        "Consejo: No hagas ejercicio cerca de carreteras con mucho tráfico.\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "DIÓXIDO DE NITRÓGENO (NO₂)\n\n" +
+
+                                        "¿Qué es?\n" +
+                                        "Proviene principalmente de vehículos diésel, calefacciones de gas y centrales térmicas.\n\n" +
+
+                                        "✅ Nivel seguro: AQI 0-50 (Bueno)\n" +
+                                        "⚠️ Nivel alto: AQI 51-100 (Moderado)\n" +
+                                        "🚨 Nivel peligroso: AQI 101+ (Insalubre para grupos sensibles o superior)\n\n" +
+
+                                        "Efectos en la salud:\n" +
+                                        "Irrita las vías respiratorias, empeora el asma, aumenta alergias y reduce la función pulmonar.\n\n" +
+
+                                        "Consejo: Evita avenidas con mucho tráfico y ventila tu casa en horas con menos coches.\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "💡 TIP: Usa esta app para conocer los niveles en tiempo real durante tus recorridos."
+                        )
                         .setPositiveButton("Entendido", null)
                         .show();
 
