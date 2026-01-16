@@ -175,7 +175,12 @@ public class RegistroActivity extends AppCompatActivity {
 
                     @Override
                     public void onRegistroFallido(String mensajeError) {
-                        Toast.makeText(RegistroActivity.this, "No se pudo completar el registro. Verifica tus datos o inténtalo más tarde.", Toast.LENGTH_LONG).show();
+                        if (mensajeError.contains("400")) {
+                            mensajeError = "El correo electrónico ya está registrado.";
+                        } else {
+                            mensajeError = "Error del servidor. Intenta más tarde.";
+                        }
+                        Toast.makeText(RegistroActivity.this, mensajeError, Toast.LENGTH_LONG).show();
                     }
                 });
     }
