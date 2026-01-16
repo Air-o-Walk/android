@@ -448,6 +448,7 @@ public class MainActivity extends BaseActivity  {
                     Toast.LENGTH_LONG).show();
             return;
         }
+
         this.buscarEsteDispositivoBTLE(nombreNodoVinculado);
     } // ()
 
@@ -499,10 +500,19 @@ public class MainActivity extends BaseActivity  {
         // NUEVO: Verificar que el beacon esté conectado antes de iniciar tracking
         if (!beaconConectado && !isTracking) {
             new AlertDialog.Builder(this)
-                    .setTitle("Beacon no conectado")
-                    .setMessage("Necesitas estar conectado al beacon para iniciar una recorrida.\n\n" +
-                            "Por favor, espera a que se detecte el beacon o verifica que esté encendido.")
-                    .setPositiveButton("Aceptar", null)
+                    .setTitle("Sensor no conectado")
+                    .setMessage(
+                            "Para iniciar un recorrido necesitas tener tu sensor conectado.\n\n" +
+                                    "¿Qué hacer?\n" +
+                                    "• Verifica que el sensor esté encendido\n" +
+                                    "• Acércate al sensor si estás lejos\n" +
+                                    "• Espera unos segundos a que se detecte"
+                    )
+                    .setPositiveButton("Entendido", null)
+                    .setNeutralButton("¿Cómo vincular?", (d, w) -> {
+                        // Mostrar tutorial de vinculación
+                        mostrarTutorialVinculacion();
+                    })
                     .show();
             return;
         }
@@ -514,30 +524,56 @@ public class MainActivity extends BaseActivity  {
         }
     }
 
+    // Nuevo método auxiliar para el tutorial
+    private void mostrarTutorialVinculacion() {
+        new AlertDialog.Builder(this)
+                .setTitle("¿Cómo vincular mi sensor?")
+                .setMessage(
+                        "1. Toca el ícono de enlace en el menú superior\n\n" +
+                                "2. Ingresa el nombre de tu sensor (ej: GTI)\n\n" +
+                                "3. Espera a que se detecte y se conecte\n\n" +
+                                "4. ¡Listo! Ya puedes iniciar recorridos"
+                )
+                .setPositiveButton("Entendido", null)
+                .show();
+    }
+
     private void startTracking() {
         Log.d(ETIQUETA_LOG, " startTracking(): iniciando tracking de pasos, tiempo y GPS");
 
-        // Verificar que los trackers estén inicializados
         if (stepTracker == null || timeTracker == null || gpsTracker == null) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - trackers no inicializados");
+
+            // ANTES:
+            // Toast.makeText(this, "Error: trackers no inicializados", Toast.LENGTH_SHORT).show();
+
+            // AHORA:
             Toast.makeText(this,
                     "Los sensores del dispositivo no están listos.\n\nReinicia la aplicación e intenta nuevamente.",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
-        // Verificar que el sensor de pasos esté disponible
         if (!stepTracker.isStepCounterAvailable()) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - no hay sensor de pasos disponible");
+
+            // ANTES:
+            // Toast.makeText(this, "Este dispositivo no tiene sensor de pasos", Toast.LENGTH_LONG).show();
+
+            // AHORA:
             Toast.makeText(this,
                     "Tu dispositivo no tiene sensor de pasos.\n\nNo podrás registrar recorridos en este teléfono.",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
-        // NUEVO: Verificar conexión del beacon
         if (!beaconConectado) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - beacon no conectado");
+
+            // ANTES:
+            // Toast.makeText(this, "Beacon no conectado. Esperando señal...", Toast.LENGTH_SHORT).show();
+
+            // AHORA:
             Toast.makeText(this,
                     "Esperando conexión con el sensor...\n\nAsegúrate de que esté encendido y cerca de ti.",
                     Toast.LENGTH_SHORT).show();
@@ -547,23 +583,21 @@ public class MainActivity extends BaseActivity  {
         isTracking = true;
         trackButton.setText("Detener Recorrida");
 
-        // Reiniciar trackers
         stepTracker.resetSession();
         timeTracker.reset();
         gpsTracker.resetTracking();
 
-        // Iniciar step counter
         stepTracker.startTracking();
-
-        // Iniciar time tracker
         timeTracker.startTracking();
-
-        // Iniciar GPS tracker
         gpsTracker.startTracking();
 
         Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado (steps + time + GPS)");
         Log.d(ETIQUETA_LOG, " startTracking(): " + stepTracker.getSensorInfo());
 
+        // ANTES:
+        // Toast.makeText(this, "Recorrida iniciada - Beacon conectado", Toast.LENGTH_SHORT).show();
+
+        // AHORA:
         Toast.makeText(this,
                 "¡Recorrido iniciado! Tu sensor está midiendo la calidad del aire.",
                 Toast.LENGTH_SHORT).show();
@@ -820,6 +854,20 @@ public class MainActivity extends BaseActivity  {
                         monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this, nombreNodo);
                         monitorEstadoNodo.iniciarMonitor();
 
+                        runOnUiThread(() -> {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("¡Sensor vinculado correctamente!")
+                                    .setMessage(
+                                            "Tu sensor está conectado y midiendo la calidad del aire.\n\n" +
+                                                    "Ahora puedes:\n" +
+                                                    "• Iniciar recorridos para ganar puntos\n" +
+                                                    "• Ver tus mediciones en tiempo real\n" +
+                                                    "• Canjear premios con tus puntos"
+                                    )
+                                    .setPositiveButton("¡Genial!", null)
+                                    .show();
+                        });
+
                         // NUEVO: Configurar listener para desconexión del nodo
                         monitorEstadoNodo.setDesconexionListener(() -> {
                             beaconConectado = false;
@@ -936,7 +984,6 @@ public class MainActivity extends BaseActivity  {
         String savedToken = prefs.getString("token", null);
         boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
 
-        // Si no hay sesión guardada, redirigir a Login
         if (savedUserId == -1 || savedToken == null || savedToken.isEmpty() || !sesionActiva) {
             Log.d(ETIQUETA_LOG, "No hay sesión activa - Redirigiendo a Login");
 
@@ -1066,7 +1113,7 @@ public class MainActivity extends BaseActivity  {
                 // Solo permitir si beacon está conectado
                 if (!beaconConectado) {
                     Toast.makeText(this,
-                            "Necesitas estar conectado al beacon para ver el resumen",
+                            "No hay sensor conectado.\n\nConecta tu sensor para ver tus recorridos.",
                             Toast.LENGTH_SHORT).show();
                     return true;
                 }
@@ -1356,9 +1403,12 @@ public class MainActivity extends BaseActivity  {
                     tiempoTotal.setText("---");
 
                     new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Dispositivo desvinculado")
-                            .setMessage("El sensor ha dejado de medir la calidad del aire.")
-                            .setPositiveButton("Aceptar", null)
+                            .setTitle("Sensor desvinculado")
+                            .setMessage(
+                                    "Tu sensor se ha desvinculado correctamente.\n\n" +
+                                            "Para volver a usarlo, toca el ícono de enlace en el menú superior."
+                            )
+                            .setPositiveButton("Entendido", null)
                             .show();
                 });
 
