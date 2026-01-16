@@ -133,8 +133,11 @@ public class MainActivity extends BaseActivity  {
     private NavigationView navigationView;
     private ImageView btnMenu;
 
+    //Variables del layout Home
     private TextView textVinculacion;
     private View btnVincular;
+    private Button btnFindSensor;
+
 
 
 
@@ -867,14 +870,7 @@ public class MainActivity extends BaseActivity  {
 
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         // Mostrar botón "Encontrar mi sensor"
-                        Button btnFind = findViewById(R.id.btnFindSensor);
-                        btnFind.setVisibility(View.VISIBLE);
-
-                        btnFind.setOnClickListener(v -> {
-                            Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
-                            i.putExtra("NODE_NAME", nombreNodoVinculado);
-                            startActivity(i);
-                        });
+                        runOnUiThread(() -> configurarBotonEncontrarSensor());
 
                         break;
                 }
@@ -987,6 +983,7 @@ public class MainActivity extends BaseActivity  {
         // Nuevas vistas en el código
         textVinculacion = findViewById(R.id.textVinculacion);
         btnVincular = findViewById(R.id.botonBuscarNuestroDispositivoBTLE);
+        btnFindSensor = findViewById(R.id.btnFindSensor);
 
 
         // =====================================================
@@ -1310,6 +1307,8 @@ public class MainActivity extends BaseActivity  {
                     runOnUiThread(() -> {
                         actualizarEstadoVinculacionUI();
 
+                        configurarBotonEncontrarSensor();
+
                         // Start scan only if linked
                         if (yaVinculado) {
                             buscarEsteDispositivoBTLE(nombreNodoVinculado);
@@ -1416,9 +1415,33 @@ public class MainActivity extends BaseActivity  {
         actualizarUIVinculacion();
         estadoBotonRecorrido(yaVinculado);
 
-        Button btnFind = findViewById(R.id.btnFindSensor);
-        if (btnFind != null) {
-            btnFind.setVisibility(yaVinculado ? View.VISIBLE : View.GONE);
+        configurarBotonEncontrarSensor();
+    }
+
+    // NUEVO MÉTODO: Configurar el botón "Encontrar mi sensor"
+    private void configurarBotonEncontrarSensor() {
+        if (btnFindSensor == null) {
+            Log.e(ETIQUETA_LOG, "btnFindSensor no encontrado en el layout");
+            return;
+        }
+
+        if (yaVinculado && nombreNodoVinculado != null) {
+            // Mostrar botón y configurar listener
+            btnFindSensor.setVisibility(View.VISIBLE);
+
+            btnFindSensor.setOnClickListener(v -> {
+                Log.d(ETIQUETA_LOG, "Botón 'Encontrar sensor' presionado - Nodo: " + nombreNodoVinculado);
+
+                Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                i.putExtra("NODE_NAME", nombreNodoVinculado);
+                startActivity(i);
+            });
+
+            Log.d(ETIQUETA_LOG, "Botón 'Encontrar sensor' configurado correctamente");
+        } else {
+            // Ocultar botón si no hay nodo vinculado
+            btnFindSensor.setVisibility(View.GONE);
+            Log.d(ETIQUETA_LOG, "Botón 'Encontrar sensor' ocultado (no hay nodo vinculado)");
         }
     }
 
