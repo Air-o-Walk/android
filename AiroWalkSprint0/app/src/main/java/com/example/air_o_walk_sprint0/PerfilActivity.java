@@ -70,8 +70,8 @@ public class PerfilActivity extends BaseActivity {
         if (userId == 0 || token == null) {
             Log.e(TAG, "Error: No se recibieron credenciales válidas");
             Toast.makeText(this,
-                    "Error: No se recibieron credenciales válidas. Por favor, vuelve a iniciar sesión.",
-                    Toast.LENGTH_SHORT).show();
+                    "No pudimos cargar tus datos de sesión.\n\nCierra sesión y vuelve a iniciar sesión.",
+                    Toast.LENGTH_LONG).show();
             cerrarSesionYRedirigir(); // Cerrar sesión y volver a Login
             return;
         }
@@ -109,8 +109,8 @@ public class PerfilActivity extends BaseActivity {
                 runOnUiThread(() -> {
                     Log.e(TAG, "Error al cargar datos: " + mensajeError);
                     Toast.makeText(PerfilActivity.this,
-                            "No se pudieron cargar tus datos. Inténtalo nuevamente más tarde.",
-                            Toast.LENGTH_SHORT).show();
+                            "No pudimos obtener tus datos de perfil.\n\nVerifica tu conexión a internet e intenta deslizar para actualizar.",
+                            Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -129,7 +129,7 @@ public class PerfilActivity extends BaseActivity {
                                 public void onEdicionExitosa(String campo, String mensaje) {
                                     runOnUiThread(() -> {
                                         Toast.makeText(PerfilActivity.this,
-                                                "Nombre de usuario actualizado exitosamente.",
+                                                "Nombre de usuario actualizado.\n\nTu nuevo nombre es: " + nuevoValor,
                                                 Toast.LENGTH_SHORT).show();
                                         ((TextView) findViewById(R.id.campo_username)).setText(nuevoValor);
                                     });
@@ -139,8 +139,8 @@ public class PerfilActivity extends BaseActivity {
                                 public void onEdicionFallida(String campo, String mensajeError) {
                                     runOnUiThread(() ->
                                             Toast.makeText(PerfilActivity.this,
-                                                    "No se pudo actualizar tu nombre de usuario. Inténtalo nuevamente.",
-                                                    Toast.LENGTH_SHORT).show());
+                                                    "No pudimos guardar tu nuevo nombre de usuario.\n\nVerifica tu conexión e intenta nuevamente.",
+                                                    Toast.LENGTH_LONG).show());
                                 }
                             })
             );
@@ -153,7 +153,7 @@ public class PerfilActivity extends BaseActivity {
                         if (!esEmailValido(nuevoValor)) {
                             runOnUiThread(() ->
                                     Toast.makeText(PerfilActivity.this,
-                                            "Formato de email inválido. Debe tener @ y dominio",
+                                            "El formato del correo no es válido.\n\nDebe tener formato: usuario@dominio.com",
                                             Toast.LENGTH_LONG).show());
                             return;
                         }
@@ -163,7 +163,7 @@ public class PerfilActivity extends BaseActivity {
                             public void onEdicionExitosa(String campo, String mensaje) {
                                 runOnUiThread(() -> {
                                     Toast.makeText(PerfilActivity.this,
-                                            "Correo electrónico actualizado correctamente.",
+                                            "Correo actualizado exitosamente.\n\nTu nuevo correo es: " + nuevoValor,
                                             Toast.LENGTH_SHORT).show();
                                     ((TextView) findViewById(R.id.campo_email)).setText(nuevoValor);
                                 });
@@ -173,8 +173,8 @@ public class PerfilActivity extends BaseActivity {
                             public void onEdicionFallida(String campo, String mensajeError) {
                                 runOnUiThread(() ->
                                         Toast.makeText(PerfilActivity.this,
-                                                "No se pudo actualizar el correo. Inténtalo de nuevo más tarde.",
-                                                Toast.LENGTH_SHORT).show());
+                                                "No pudimos guardar tu nuevo correo.\n\nVerifica tu conexión e intenta nuevamente.",
+                                                Toast.LENGTH_LONG).show());
                             }
                         });
                     }
@@ -262,7 +262,9 @@ public class PerfilActivity extends BaseActivity {
         finish();
 
         // 5. Mensaje de confirmación
-        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this,
+                "Has cerrado sesión correctamente.\n\n¡Hasta pronto!",
+                Toast.LENGTH_SHORT).show();
 
         Log.d(TAG, "Logout completado - Redirigido a LoginActivity");
     }
@@ -357,7 +359,7 @@ public class PerfilActivity extends BaseActivity {
         // DELETE request
 
         Toast.makeText(this,
-                "Función de eliminación de cuenta próximamente disponible",
+                "La eliminación de cuenta estará disponible próximamente.\n\nContacta con soporte si necesitas eliminar tu cuenta ahora.",
                 Toast.LENGTH_LONG).show();
 
         Log.d(TAG, "Solicitud de eliminación de cuenta para userId: " + userId);
@@ -399,7 +401,7 @@ public class PerfilActivity extends BaseActivity {
                             public void onEdicionExitosa(String campo, String mensaje) {
                                 runOnUiThread(() -> {
                                     Toast.makeText(PerfilActivity.this,
-                                            "Contraseña cambiada correctamente.",
+                                            "Contraseña actualizada correctamente.",
                                             Toast.LENGTH_SHORT).show();
                                     ((TextView) findViewById(R.id.campo_password)).setText("********");
                                 });
@@ -407,10 +409,22 @@ public class PerfilActivity extends BaseActivity {
 
                             @Override
                             public void onEdicionFallida(String campo, String mensajeError) {
-                                runOnUiThread(() ->
-                                        Toast.makeText(PerfilActivity.this,
-                                                "Hubo un problema al cambiar la contraseña. Intenta nuevamente.",
-                                                Toast.LENGTH_SHORT).show());
+                                runOnUiThread(() -> {
+                                    String mensaje = interpretarErrorPassword(mensajeError);
+                                    Toast.makeText(PerfilActivity.this, mensaje, Toast.LENGTH_LONG).show();
+                                });
+
+                            }
+                            private String interpretarErrorPassword(String error) {
+                                if (error.contains("401") || error.contains("incorrect") || error.contains("incorrecta")) {
+                                    return "La contraseña actual es incorrecta.\n\nVerifica e intenta nuevamente.";
+                                }
+
+                                if (error.contains("weak") || error.contains("débil")) {
+                                    return "La nueva contraseña es muy débil.\n\nUsa una combinación de letras, números y símbolos.";
+                                }
+
+                                return "No pudimos cambiar tu contraseña.\n\nVerifica tu conexión e intenta nuevamente.";
                             }
                         });
             }
@@ -445,12 +459,16 @@ public class PerfilActivity extends BaseActivity {
 
     private boolean validarPassword(String current, String newPass, String confirmPass) {
         if (current.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
-            Toast.makeText(this, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Debes completar todos los campos.\n\nIngresa tu contraseña actual y la nueva contraseña dos veces.",
+                    Toast.LENGTH_SHORT).show();
             return false;
         }
 
         if (!newPass.equals(confirmPass)) {
-            Toast.makeText(this, "Las nuevas contraseñas no coinciden", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Las contraseñas nuevas no coinciden.\n\nVerifica que hayas escrito la misma contraseña en ambos campos.",
+                    Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -498,7 +516,9 @@ public class PerfilActivity extends BaseActivity {
         dialog.findViewById(R.id.btnVolverQuejas).setOnClickListener(v -> dialog.dismiss());
 
         dialog.findViewById(R.id.btnEnviarQueja).setOnClickListener(v -> {
-            Toast.makeText(this, "Queja enviada", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Tu queja fue enviada correctamente.\n\nTe responderemos en un plazo de 24-48 horas.",
+                    Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 

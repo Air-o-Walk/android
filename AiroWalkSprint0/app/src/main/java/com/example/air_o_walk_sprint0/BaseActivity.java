@@ -259,7 +259,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         startActivity(intent);
 
         Toast.makeText(this,
-                "Sesión expirada. Por favor, inicia sesión nuevamente.",
+                "Tu sesión ha expirado por seguridad.\n\nVuelve a iniciar sesión para continuar.",
                 Toast.LENGTH_LONG).show();
 
         finish();
