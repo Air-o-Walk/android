@@ -606,77 +606,14 @@ public class MainActivity extends BaseActivity  {
     private void stopTracking() {
         Log.d(ETIQUETA_LOG, " stopTracking(): deteniendo tracking");
 
-        // Verificar que los trackers estén inicializados
-        if (stepTracker == null || timeTracker == null || gpsTracker == null) {
-            Log.e(ETIQUETA_LOG, " stopTracking(): Error - trackers no inicializados");
-            return;
-        }
-
-        isTracking = false;
-        trackButton.setText("Activar Recorrida");
-
-        // Obtener valores finales ANTES de detener
-        int pasos = stepTracker.getSteps();
-        long tiempoSegundos = timeTracker.getElapsedTimeSeconds();
-        Location ubicacionFinal = gpsTracker.getCurrentLocation();
-
-        // Detener trackers
-        stepTracker.stopTracking();
-        timeTracker.stopTracking();
-        gpsTracker.stopTracking();
-
-        // Calcular puntos de gamificación
-        Gamificacion game = new Gamificacion(idUsuario);
-        int puntos = game.calcularPuntosMedianteDistancia(pasos);
-        game.setUltimosPuntosObtenidos(puntos);
-
-        // Guardar estadísticas diarias
-        MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
-        medidas.guardarDailyStats();
-
-        // ====================================================================
-        // NUEVO: Enviar TODAS las mediciones al servidor (pasos, tiempo, GPS)
-        // usando el endpoint /measurements del backend
-        // ====================================================================
-        if (ubicacionFinal != null && nombreNodoVinculado != null) {
-            Log.d(ETIQUETA_LOG, " ENVIANDO MEDICIONES FINALES DE RECORRIDA");
-            Log.d(ETIQUETA_LOG, "  Pasos: " + pasos);
-            Log.d(ETIQUETA_LOG, "  Tiempo: " + tiempoSegundos + " seg (" + (tiempoSegundos/60) + " min)");
-            Log.d(ETIQUETA_LOG, "  Ubicación: " + ubicacionFinal.getLatitude() + ", " + ubicacionFinal.getLongitude());
-            Log.d(ETIQUETA_LOG, "  Tipo: MANUAL (usuario detuvo recorrida)");
-
-
-            MeasurementsSender.enviarMedicionConDesconexion(
-                    nombreNodoVinculado,
-                    ultimaMedicionO3,
-                    ultimaMedicionCO,
-                    ultimaMedicionNO2,
-                    ubicacionFinal,
-                    pasos,
-                    tiempoSegundos,
-                    "manual", // El usuario detuvo manualmente
-                    new MeasurementsSender.MeasurementCallback() {
-                        @Override
-                        public void onSuccess(String respuesta) {
-                            Log.d(ETIQUETA_LOG, " Mediciones finales enviadas correctamente");
-                        }
-
-                        @Override
-                        public void onError(String error) {
-                            Log.e(ETIQUETA_LOG, " Error enviando mediciones finales: " + error);
-                        }
-                    }
-            );
-        } else {
-            Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - ubicación o nodo no disponible");
-        }
-        // ====================================================================
+        // Ejecutar toda la lógica de finalización
+        finalizarYGuardarRecorrido();
 
         // Abrir resumen de calidad del aire
         Intent intent = new Intent(MainActivity.this, AirQualitySummaryActivity.class);
         intent.putExtra("USER_ID", idUsuario);
-        intent.putExtra("PASOS", pasos);
-        intent.putExtra("TIEMPO", timeTracker.getElapsedTimeMinutes());
+        intent.putExtra("PASOS", stepTracker != null ? stepTracker.getSteps() : 0);
+        intent.putExtra("TIEMPO", timeTracker != null ? timeTracker.getElapsedTimeMinutes() : 0);
         startActivity(intent);
 
         Log.d(ETIQUETA_LOG, " stopTracking(): tracking detenido - valores congelados");
@@ -1110,27 +1047,40 @@ public class MainActivity extends BaseActivity  {
                 abrirPerfilActivity();
 
             } else if (itemId == R.id.nav_recorrido) {
-                // Solo permitir si beacon está conectado
+                // NUEVO: Aplicar la misma lógica que stopTracking() antes de navegar
                 if (!beaconConectado) {
                     Toast.makeText(this,
                             "No hay sensor conectado.\n\nConecta tu sensor para ver tus recorridos.",
                             Toast.LENGTH_SHORT).show();
                     return true;
                 }
-                startActivity(new Intent(this, AirQualitySummaryActivity.class));
+
+                // Si hay tracking activo, aplicar toda la lógica de stopTracking
+                if (isTracking) {
+                    finalizarYGuardarRecorrido();
+                }
+
+                // Navegar a resumen con los datos más recientes
+                Intent intenT = new Intent(this, AirQualitySummaryActivity.class);
+                intenT.putExtra("USER_ID", idUsuario);
+
+                // Pasar datos del último recorrido si existen
+                if (stepTracker != null && timeTracker != null) {
+                    intenT.putExtra("PASOS", stepTracker.getSteps());
+                    intenT.putExtra("TIEMPO", timeTracker.getElapsedTimeMinutes());
+                }
+
+                startActivity(intenT);
 
             } else if (itemId == R.id.nav_recompensa) {
-                // Usar el método existente que ya verifica la conexión
                 abrirPantallaGamificacion(null);
 
             } else if (itemId == R.id.nav_mapa) {
-                // Ya estamos en MainActivity, no hacer nada
                 Toast.makeText(this,
                         "Ya te encuentras en la pantalla de inicio.",
                         Toast.LENGTH_SHORT).show();
 
             } else if (itemId == R.id.nav_notificaciones) {
-                // Abrir configuración de notificaciones
                 new AlertDialog.Builder(this)
                         .setTitle("Notificaciones")
                         .setMessage("Gestiona tus notificaciones de calidad del aire.\n\n" +
@@ -1140,10 +1090,8 @@ public class MainActivity extends BaseActivity  {
                                 "• Completes logros")
                         .setPositiveButton("Aceptar", null)
                         .show();
-                // TODO: Implementar NotificacionesActivity
 
             } else if (itemId == R.id.nav_info) {
-                // Mostrar información educativa sobre gases
                 new AlertDialog.Builder(this)
                         .setTitle("Información sobre Gases")
                         .setMessage("O3 (Ozono):\n" +
@@ -1157,7 +1105,6 @@ public class MainActivity extends BaseActivity  {
                                 "Límite seguro: < 0.053 ppm")
                         .setPositiveButton("Entendido", null)
                         .show();
-                // TODO: Implementar InfoGasesActivity con información detallada
 
             } else {
                 Toast.makeText(this,
@@ -1475,7 +1422,71 @@ public class MainActivity extends BaseActivity  {
         }
     }
 
+    private void finalizarYGuardarRecorrido() {
+        Log.d(ETIQUETA_LOG, " finalizarYGuardarRecorrido(): procesando datos del recorrido");
 
+        // Verificar que los trackers estén inicializados
+        if (stepTracker == null || timeTracker == null || gpsTracker == null) {
+            Log.e(ETIQUETA_LOG, " finalizarYGuardarRecorrido(): Error - trackers no inicializados");
+            return;
+        }
 
+        // Obtener valores finales ANTES de detener
+        int pasos = stepTracker.getSteps();
+        long tiempoSegundos = timeTracker.getElapsedTimeSeconds();
+        Location ubicacionFinal = gpsTracker.getCurrentLocation();
 
+        // Solo detener si tracking está activo
+        if (isTracking) {
+            isTracking = false;
+            trackButton.setText("Activar Recorrida");
+
+            stepTracker.stopTracking();
+            timeTracker.stopTracking();
+            gpsTracker.stopTracking();
+        }
+
+        // Calcular puntos de gamificación
+        Gamificacion game = new Gamificacion(idUsuario);
+        int puntos = game.calcularPuntosMedianteDistancia(pasos);
+        game.setUltimosPuntosObtenidos(puntos);
+
+        // Guardar estadísticas diarias
+        MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
+        medidas.guardarDailyStats();
+
+        // Enviar mediciones al servidor
+        if (ubicacionFinal != null && nombreNodoVinculado != null) {
+            Log.d(ETIQUETA_LOG, " ENVIANDO MEDICIONES FINALES DE RECORRIDA");
+            Log.d(ETIQUETA_LOG, "  Pasos: " + pasos);
+            Log.d(ETIQUETA_LOG, "  Tiempo: " + tiempoSegundos + " seg (" + (tiempoSegundos/60) + " min)");
+            Log.d(ETIQUETA_LOG, "  Ubicación: " + ubicacionFinal.getLatitude() + ", " + ubicacionFinal.getLongitude());
+
+            MeasurementsSender.enviarMedicionConDesconexion(
+                    nombreNodoVinculado,
+                    ultimaMedicionO3,
+                    ultimaMedicionCO,
+                    ultimaMedicionNO2,
+                    ubicacionFinal,
+                    pasos,
+                    tiempoSegundos,
+                    "manual", // Usuario detuvo manualmente
+                    new MeasurementsSender.MeasurementCallback() {
+                        @Override
+                        public void onSuccess(String respuesta) {
+                            Log.d(ETIQUETA_LOG, " Mediciones finales enviadas correctamente");
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            Log.e(ETIQUETA_LOG, " Error enviando mediciones finales: " + error);
+                        }
+                    }
+            );
+        } else {
+            Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - ubicación o nodo no disponible");
+        }
+
+        Log.d(ETIQUETA_LOG, " finalizarYGuardarRecorrido(): datos procesados y guardados");
+    }
 }
