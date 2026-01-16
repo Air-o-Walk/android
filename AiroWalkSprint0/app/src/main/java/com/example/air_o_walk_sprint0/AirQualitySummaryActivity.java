@@ -1,10 +1,13 @@
 package com.example.air_o_walk_sprint0;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import com.github.mikephil.charting.charts.LineChart;
@@ -60,7 +63,27 @@ public class AirQualitySummaryActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ⭐ VERIFICAR SESIÓN ACTIVA
+        if (!verificarSesionActiva()) {
+            return;
+        }
+
         setContentView(R.layout.activity_air_quality_summary);
+
+        // Obtener userId del Intent o SharedPreferences
+        userId = getIntent().getIntExtra("USER_ID", -1);
+
+        if (userId == -1) {
+            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            userId = prefs.getInt("user_id", -1);
+        }
+
+        if (userId == -1) {
+            Toast.makeText(this, "Error de sesión", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         setupHeaderAndDrawer(true);   // true = has drawer
         setupBackBehavior();
 
@@ -226,5 +249,21 @@ public class AirQualitySummaryActivity extends BaseActivity {
         } catch (Exception e) {
             Log.e("AirQualitySummary", "Error dibujando gráfica", e);
         }
+    }
+
+    private boolean verificarSesionActiva() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int savedUserId = prefs.getInt("user_id", -1);
+        String savedToken = prefs.getString("token", null);
+        boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
+
+        if (savedUserId == -1 || savedToken == null || !sesionActiva) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return false;
+        }
+        return true;
     }
 }

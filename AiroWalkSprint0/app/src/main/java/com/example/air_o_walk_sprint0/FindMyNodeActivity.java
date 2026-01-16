@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.*;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -98,6 +99,12 @@ public class FindMyNodeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ⭐ VERIFICAR SESIÓN ACTIVA
+        if (!verificarSesionActiva()) {
+            return;
+        }
+
         setContentView(R.layout.activity_find_node);
 
         // Get beacon name
@@ -364,5 +371,21 @@ public class FindMyNodeActivity extends AppCompatActivity {
         if (rangeCheckerThread != null) {
             rangeCheckerThread.interrupt();
         }
+    }
+
+    private boolean verificarSesionActiva() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int savedUserId = prefs.getInt("user_id", -1);
+        String savedToken = prefs.getString("token", null);
+        boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
+
+        if (savedUserId == -1 || savedToken == null || !sesionActiva) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return false;
+        }
+        return true;
     }
 }

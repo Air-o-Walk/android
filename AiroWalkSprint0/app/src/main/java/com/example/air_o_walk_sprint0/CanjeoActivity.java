@@ -1,6 +1,8 @@
 package com.example.air_o_walk_sprint0;
 
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -22,7 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
  * La información de premios y puntos se obtiene de forma asíncrona
  * desde el backend, y la interfaz se actualiza dinámicamente.
  *
- * @author Santiago Aguirre
+ * @author Santiago Aguirre y Adenor Buret
  * @version 1.0
  */
 public class CanjeoActivity extends AppCompatActivity {
@@ -45,15 +47,28 @@ public class CanjeoActivity extends AppCompatActivity {
      * y configura la interfaz gráfica.
      *
      * @param savedInstanceState estado previo de la actividad
-     */    @Override
+     */
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ⭐ VERIFICAR SESIÓN ACTIVA
+        if (!verificarSesionActiva()) {
+            return;
+        }
+
         setContentView(R.layout.activity_canjeo);
 
-        // Obtener userId del Intent
+        // Obtener userId del Intent o SharedPreferences
         userId = getIntent().getIntExtra("USER_ID", -1);
+
         if (userId == -1) {
-            Toast.makeText(this, "Error: Usuario no válido", Toast.LENGTH_SHORT).show();
+            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            userId = prefs.getInt("user_id", -1);
+        }
+
+        if (userId == -1) {
+            Toast.makeText(this, "Error de sesión", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -253,5 +268,21 @@ public class CanjeoActivity extends AppCompatActivity {
     private void mostrarCargando(boolean mostrar) {
         progressBar.setVisibility(mostrar ? View.VISIBLE : View.GONE);
         recyclerViewPremios.setVisibility(mostrar ? View.GONE : View.VISIBLE);
+    }
+
+    private boolean verificarSesionActiva() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int savedUserId = prefs.getInt("user_id", -1);
+        String savedToken = prefs.getString("token", null);
+        boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
+
+        if (savedUserId == -1 || savedToken == null || !sesionActiva) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return false;
+        }
+        return true;
     }
 }

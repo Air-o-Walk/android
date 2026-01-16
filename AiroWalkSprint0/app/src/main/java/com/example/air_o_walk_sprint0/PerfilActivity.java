@@ -1,19 +1,19 @@
 package com.example.air_o_walk_sprint0;
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import com.example.air_o_walk_sprint0.LogicaEditarPerfil;
 
 /**
  * @class PerfilActivity
@@ -25,56 +25,71 @@ import com.example.air_o_walk_sprint0.LogicaEditarPerfil;
  * - Cambiar su correo electrónico con validación de formato
  * - Actualizar su contraseña con verificación de contraseña actual
  * - Acceder a secciones de quejas y política de privacidad
+ * - Cerrar sesión de forma segura
+ * - Eliminar su cuenta (próximamente)
  *
  * La comunicación con el backend se realiza mediante la clase LogicaEditarPerfil.
  *
  * @author Maria Algora
- * @version 1.0
+ * @version 2.0
  */
 public class PerfilActivity extends BaseActivity {
+
+    private static final String TAG = "PerfilActivity";
+    private static final String PREFS_NAME = "app_prefs";
+
     private String token;
     private int userId;
     private LogicaEditarPerfil logicaEditar;
 
-    // --------------------------------------------------------------
-    // onCreate()
-    // Descripción: Inicializa la activity, obtiene las credenciales del usuario
-    //              (token y userId) y configura la interfaz de usuario.
-    //              Si no se reciben credenciales válidas, cierra la actividad.
-    // Parámetros: savedInstanceState : estado guardado de la actividad
-    // Diseño: onCreate() -> cargarDatosUsuario() + setupBotonesEdicion()
-    // --------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ⭐ VERIFICAR SESIÓN ANTES DE CARGAR LA ACTIVIDAD
+        if (!verificarSesionActivaBase()) {
+            return; // Si no hay sesión, BaseActivity redirige a Login
+        }
+
         setContentView(R.layout.activity_perfil);
         setupHeaderAndDrawer(true);
         setupBackBehavior();
 
-        // Obtener token y userId del Intent
+        // Obtener token y userId del Intent o SharedPreferences
         userId = getIntent().getIntExtra("USER_ID", 0);
         token = getIntent().getStringExtra("TOKEN");
 
+        // Si no vienen del Intent, cargar de SharedPreferences
         if (userId == 0 || token == null) {
-            Toast.makeText(this, "Error: No se recibieron credenciales válidas. Por favor, vuelve a iniciar sesión.", Toast.LENGTH_SHORT).show();
-            finish();
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            userId = prefs.getInt("user_id", 0);
+            token = prefs.getString("token", null);
+        }
+
+        // Validar que tenemos los datos necesarios
+        if (userId == 0 || token == null) {
+            Log.e(TAG, "Error: No se recibieron credenciales válidas");
+            Toast.makeText(this,
+                    "Error: No se recibieron credenciales válidas. Por favor, vuelve a iniciar sesión.",
+                    Toast.LENGTH_SHORT).show();
+            cerrarSesionYRedirigir(); // Cerrar sesión y volver a Login
             return;
         }
 
+        Log.d(TAG, "PerfilActivity iniciado - UserID: " + userId);
+
+        // Inicializar lógica de edición de perfil
         logicaEditar = new LogicaEditarPerfil(token, userId);
 
         // Cargar datos del usuario y configurar botones
         cargarDatosUsuario();
         setupBotonesEdicion();
+        setupLogoutButton(); // ⭐ NUEVO: Configurar botón de logout
     }
 
-    // --------------------------------------------------------------
-    // cargarDatosUsuario()
-    // Descripción: Solicita los datos básicos del usuario (username y email)
-    //              al backend mediante LogicaEditarPerfil y actualiza la interfaz
-    //              con la información recibida.
-    // Diseño: cargarDatosUsuario() -> LogicaEditarPerfil.obtenerDatosBasicosUsuario() -> actualizar UI
-    // --------------------------------------------------------------
+    /**
+     * Carga los datos básicos del usuario desde el backend y actualiza la UI.
+     */
     private void cargarDatosUsuario() {
         logicaEditar.obtenerDatosBasicosUsuario(new LogicaEditarPerfil.UsuarioBasicoCallback() {
             @Override
@@ -84,45 +99,50 @@ public class PerfilActivity extends BaseActivity {
                     TextView tvEmail = findViewById(R.id.campo_email);
                     tvUsername.setText(username);
                     tvEmail.setText(email);
+
+                    Log.d(TAG, "Datos de usuario cargados - Username: " + username);
                 });
             }
 
             @Override
             public void onError(String mensajeError) {
-                runOnUiThread(() ->
-                        Toast.makeText(PerfilActivity.this, "No se pudieron cargar tus datos. Inténtalo nuevamente más tarde.", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                    Log.e(TAG, "Error al cargar datos: " + mensajeError);
+                    Toast.makeText(PerfilActivity.this,
+                            "No se pudieron cargar tus datos. Inténtalo nuevamente más tarde.",
+                            Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
 
-    // --------------------------------------------------------------
-    // setupBotonesEdicion()
-    // Descripción: Configura los listeners de los botones de edición para:
-    //              - Editar nombre de usuario
-    //              - Editar email (con validación)
-    //              - Cambiar contraseña (con verificación)
-    //              - Acceder a quejas y política de privacidad
-    // Diseño: setupBotonesEdicion() -> listeners -> diálogos de edición
-    // --------------------------------------------------------------
+    /**
+     * Configura los listeners de los botones de edición de perfil.
+     */
     private void setupBotonesEdicion() {
         // Botón editar username
         findViewById(R.id.editar_username).setOnClickListener(v -> {
             mostrarDialogoEdicion("username", "Nuevo nombre de usuario",
-                    nuevoValor -> logicaEditar.actualizarUsername(nuevoValor, new LogicaEditarPerfil.EditarCallback() {
-                        @Override
-                        public void onEdicionExitosa(String campo, String mensaje) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(PerfilActivity.this, "Nombre de usuario actualizado exitosamente.", Toast.LENGTH_SHORT).show();
-                                ((TextView) findViewById(R.id.campo_username)).setText(nuevoValor);
-                            });
-                        }
+                    nuevoValor -> logicaEditar.actualizarUsername(nuevoValor,
+                            new LogicaEditarPerfil.EditarCallback() {
+                                @Override
+                                public void onEdicionExitosa(String campo, String mensaje) {
+                                    runOnUiThread(() -> {
+                                        Toast.makeText(PerfilActivity.this,
+                                                "Nombre de usuario actualizado exitosamente.",
+                                                Toast.LENGTH_SHORT).show();
+                                        ((TextView) findViewById(R.id.campo_username)).setText(nuevoValor);
+                                    });
+                                }
 
-                        @Override
-                        public void onEdicionFallida(String campo, String mensajeError) {
-                            runOnUiThread(() ->
-                                    Toast.makeText(PerfilActivity.this, "No se pudo actualizar tu nombre de usuario. Inténtalo nuevamente.", Toast.LENGTH_SHORT).show());
-                        }
-                    })
+                                @Override
+                                public void onEdicionFallida(String campo, String mensajeError) {
+                                    runOnUiThread(() ->
+                                            Toast.makeText(PerfilActivity.this,
+                                                    "No se pudo actualizar tu nombre de usuario. Inténtalo nuevamente.",
+                                                    Toast.LENGTH_SHORT).show());
+                                }
+                            })
             );
         });
 
@@ -130,7 +150,6 @@ public class PerfilActivity extends BaseActivity {
         findViewById(R.id.editar_email).setOnClickListener(v -> {
             mostrarDialogoEdicion("email", "Nuevo email",
                     nuevoValor -> {
-
                         if (!esEmailValido(nuevoValor)) {
                             runOnUiThread(() ->
                                     Toast.makeText(PerfilActivity.this,
@@ -143,7 +162,9 @@ public class PerfilActivity extends BaseActivity {
                             @Override
                             public void onEdicionExitosa(String campo, String mensaje) {
                                 runOnUiThread(() -> {
-                                    Toast.makeText(PerfilActivity.this, "Correo electrónico actualizado correctamente.", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(PerfilActivity.this,
+                                            "Correo electrónico actualizado correctamente.",
+                                            Toast.LENGTH_SHORT).show();
                                     ((TextView) findViewById(R.id.campo_email)).setText(nuevoValor);
                                 });
                             }
@@ -151,7 +172,9 @@ public class PerfilActivity extends BaseActivity {
                             @Override
                             public void onEdicionFallida(String campo, String mensajeError) {
                                 runOnUiThread(() ->
-                                        Toast.makeText(PerfilActivity.this, "No se pudo actualizar el correo. Inténtalo de nuevo más tarde.", Toast.LENGTH_SHORT).show());
+                                        Toast.makeText(PerfilActivity.this,
+                                                "No se pudo actualizar el correo. Inténtalo de nuevo más tarde.",
+                                                Toast.LENGTH_SHORT).show());
                             }
                         });
                     }
@@ -163,35 +186,200 @@ public class PerfilActivity extends BaseActivity {
             mostrarDialogoEdicionPassword();
         });
 
-        // QUEJAS + PRIVACIDAD
+        // Botones de quejas y privacidad
         findViewById(R.id.chevron_quejas).setOnClickListener(v -> showQuejasPopup());
         findViewById(R.id.chevron_privacidad).setOnClickListener(v -> showPrivacidadPopup());
     }
 
-    // --------------------------------------------------------------
-    // esEmailValido()
-    // Descripción: Valida el formato de un email usando expresiones regulares.
-    //              Verifica que contenga '@', dominio y extensión válida.
-    // Parámetros: email : dirección de correo a validar
-    // Diseño: email -> esEmailValido() -> boolean
-    // --------------------------------------------------------------
+    // ========================================================================
+    // MÉTODOS DE LOGOUT Y ELIMINACIÓN DE CUENTA
+    // ========================================================================
+
+    /**
+     * Configura los botones de logout y eliminación de cuenta.
+     */
+    private void setupLogoutButton() {
+        // Botón de Logout
+        findViewById(R.id.buttonLogout).setOnClickListener(v -> {
+            mostrarDialogoConfirmacionLogout();
+        });
+
+        // Botón de Eliminar Cuenta
+        findViewById(R.id.deleteAccount).setOnClickListener(v -> {
+            mostrarDialogoEliminarCuenta();
+        });
+    }
+
+    /**
+     * Muestra un diálogo de confirmación antes de cerrar sesión.
+     */
+    private void mostrarDialogoConfirmacionLogout() {
+        new AlertDialog.Builder(this)
+                .setTitle("Cerrar Sesión")
+                .setMessage("¿Estás seguro que deseas cerrar sesión?\n\n" +
+                        "Podrás volver a iniciar sesión en cualquier momento.")
+                .setPositiveButton("Sí, cerrar sesión", (dialog, which) -> {
+                    realizarLogout();
+                })
+                .setNegativeButton("Cancelar", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    /**
+     * Realiza el proceso completo de cierre de sesión:
+     * 1. Limpia SharedPreferences (sesión local)
+     * 2. Invalida el token en el backend (opcional)
+     * 3. Redirige a LoginActivity
+     * 4. Limpia el stack de actividades
+     */
+    private void realizarLogout() {
+        Log.d(TAG, "Iniciando proceso de logout para userId: " + userId);
+
+        // 1. Limpiar SharedPreferences (sesión local)
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear(); // Elimina TODOS los datos guardados
+        editor.apply();
+
+        Log.d(TAG, "SharedPreferences limpiado - Sesión local eliminada");
+
+        // 2. Opcional: Invalidar token en el backend
+        invalidarTokenEnBackend();
+
+        // 3. Redirigir a LoginActivity
+        Intent intent = new Intent(PerfilActivity.this, LoginActivity.class);
+
+        // ⭐ FLAGS IMPORTANTES:
+        // FLAG_ACTIVITY_NEW_TASK: Inicia una nueva tarea
+        // FLAG_ACTIVITY_CLEAR_TASK: Limpia la pila de actividades
+        // Esto previene que el usuario use el botón "atrás" para volver
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        startActivity(intent);
+
+        // 4. Finalizar esta actividad
+        finish();
+
+        // 5. Mensaje de confirmación
+        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+
+        Log.d(TAG, "Logout completado - Redirigido a LoginActivity");
+    }
+
+    /**
+     * Invalida el token de sesión en el backend (opcional).
+     * Esto previene que el token pueda ser usado nuevamente.
+     */
+    private void invalidarTokenEnBackend() {
+        // Solo si tu backend tiene un endpoint de logout
+        if (token == null || token.isEmpty()) {
+            Log.w(TAG, "No hay token para invalidar");
+            return;
+        }
+
+        String url = "http://api.sagucre.upv.edu.es/auth/logout";
+
+        PeticionarioREST peticion = new PeticionarioREST();
+        peticion.hacerPeticionREST("POST", url, null, new PeticionarioREST.RespuestaREST() {
+            @Override
+            public void callback(int codigo, String cuerpo) {
+                // El logout ya se completó en el frontend
+                // Esto es solo para invalidar el token en el backend
+                if (codigo == 200) {
+                    Log.d(TAG, "Token invalidado en backend correctamente");
+                } else {
+                    Log.w(TAG, "No se pudo invalidar token en backend - código: " + codigo);
+                }
+            }
+        });
+    }
+
+    /**
+     * Cierra la sesión sin confirmación y redirige a Login.
+     * Se usa cuando hay errores de autenticación.
+     */
+    private void cerrarSesionYRedirigir() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        prefs.edit().clear().apply();
+
+        Intent intent = new Intent(PerfilActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    /**
+     * Muestra un diálogo de confirmación para eliminar la cuenta.
+     * Advierte al usuario de que la acción es irreversible.
+     */
+    private void mostrarDialogoEliminarCuenta() {
+        new AlertDialog.Builder(this)
+                .setTitle("⚠️ Eliminar Cuenta")
+                .setMessage("ADVERTENCIA: Esta acción es irreversible.\n\n" +
+                        "Se eliminarán permanentemente:\n" +
+                        "• Todos tus datos personales\n" +
+                        "• Historial de recorridos\n" +
+                        "• Puntos y recompensas acumulados\n" +
+                        "• Vinculación de dispositivos\n\n" +
+                        "¿Estás completamente seguro de que deseas continuar?")
+                .setPositiveButton("Sí, eliminar permanentemente", (dialog, which) -> {
+                    // Mostrar segundo diálogo de confirmación
+                    mostrarSegundaConfirmacionEliminarCuenta();
+                })
+                .setNegativeButton("Cancelar", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    /**
+     * Segundo diálogo de confirmación para eliminar cuenta (doble verificación).
+     */
+    private void mostrarSegundaConfirmacionEliminarCuenta() {
+        new AlertDialog.Builder(this)
+                .setTitle("Confirmación Final")
+                .setMessage("Esta es tu última oportunidad para cancelar.\n\n" +
+                        "¿Confirmas que deseas eliminar tu cuenta de forma PERMANENTE?")
+                .setPositiveButton("Confirmar eliminación", (dialog, which) -> {
+                    eliminarCuenta();
+                })
+                .setNegativeButton("No, cancelar", null)
+                .show();
+    }
+
+    /**
+     * Elimina la cuenta del usuario llamando al backend.
+     * TODO: Implementar endpoint en el backend.
+     */
+    private void eliminarCuenta() {
+        // TODO: Implementar llamada al backend para eliminar cuenta
+        // String url = "http://api.sagucre.upv.edu.es/users/" + userId;
+        // DELETE request
+
+        Toast.makeText(this,
+                "Función de eliminación de cuenta próximamente disponible",
+                Toast.LENGTH_LONG).show();
+
+        Log.d(TAG, "Solicitud de eliminación de cuenta para userId: " + userId);
+
+        // Cuando se implemente:
+        // 1. Hacer DELETE al backend
+        // 2. Si es exitoso, hacer logout automáticamente
+        // 3. Mostrar mensaje de confirmación
+    }
+
+    // ========================================================================
+    // MÉTODOS DE EDICIÓN DE PERFIL (sin cambios significativos)
+    // ========================================================================
+
     private boolean esEmailValido(String email) {
         if (email == null || email.isEmpty()) {
             return false;
         }
-
-        // Patrón simple para validar email
         String patron = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         return email.matches(patron);
     }
 
-    // --------------------------------------------------------------
-    // mostrarDialogoEdicionPassword()
-    // Descripción: Muestra un diálogo para cambiar la contraseña del usuario.
-    //              Solicita: contraseña actual, nueva contraseña y confirmación.
-    //              Valida los campos y envía la petición al backend.
-    // Diseño: mostrarDialogoEdicionPassword() -> validarPassword() -> actualizarPassword()
-    // --------------------------------------------------------------
     private void mostrarDialogoEdicionPassword() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Cambiar contraseña");
@@ -210,7 +398,9 @@ public class PerfilActivity extends BaseActivity {
                             @Override
                             public void onEdicionExitosa(String campo, String mensaje) {
                                 runOnUiThread(() -> {
-                                    Toast.makeText(PerfilActivity.this, "Contraseña cambiada correctamente.", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(PerfilActivity.this,
+                                            "Contraseña cambiada correctamente.",
+                                            Toast.LENGTH_SHORT).show();
                                     ((TextView) findViewById(R.id.campo_password)).setText("********");
                                 });
                             }
@@ -218,7 +408,9 @@ public class PerfilActivity extends BaseActivity {
                             @Override
                             public void onEdicionFallida(String campo, String mensajeError) {
                                 runOnUiThread(() ->
-                                        Toast.makeText(PerfilActivity.this, "Hubo un problema al cambiar la contraseña. Intenta nuevamente.", Toast.LENGTH_SHORT).show());
+                                        Toast.makeText(PerfilActivity.this,
+                                                "Hubo un problema al cambiar la contraseña. Intenta nuevamente.",
+                                                Toast.LENGTH_SHORT).show());
                             }
                         });
             }
@@ -228,24 +420,13 @@ public class PerfilActivity extends BaseActivity {
         builder.show();
     }
 
-    // --------------------------------------------------------------
-    // crearLayoutDialogoPassword()
-    // Descripción: Crea el layout con los campos de entrada para el diálogo
-    //              de cambio de contraseña (actual, nueva, confirmar).
-    // Parámetros: modoPrueba : si es true, añade texto de ayuda para pruebas
-    // Diseño: modoPrueba -> crearLayoutDialogoPassword() -> LinearLayout
-    // --------------------------------------------------------------
     private LinearLayout crearLayoutDialogoPassword(boolean modoPrueba) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 0, 50, 0);
 
         final EditText inputCurrent = new EditText(this);
-        if (modoPrueba) {
-            inputCurrent.setHint("Contraseña actual (usar '123456' en pruebas)");
-        } else {
-            inputCurrent.setHint("Contraseña actual");
-        }
+        inputCurrent.setHint(modoPrueba ? "Contraseña actual (usar '123456' en pruebas)" : "Contraseña actual");
         inputCurrent.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         layout.addView(inputCurrent);
 
@@ -262,16 +443,6 @@ public class PerfilActivity extends BaseActivity {
         return layout;
     }
 
-    // --------------------------------------------------------------
-    // validarPassword()
-    // Descripción: Valida los campos de contraseña antes de enviar la solicitud.
-    //              Verifica que: no estén vacíos, coincidan entre sí,
-    //              y la nueva contraseña tenga al menos 6 caracteres.
-    // Parámetros: - current : contraseña actual
-    //             - newPass : nueva contraseña
-    //             - confirmPass : confirmación de nueva contraseña
-    // Diseño: (current, newPass, confirmPass) -> validarPassword() -> boolean
-    // --------------------------------------------------------------
     private boolean validarPassword(String current, String newPass, String confirmPass) {
         if (current.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
             Toast.makeText(this, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
@@ -291,15 +462,6 @@ public class PerfilActivity extends BaseActivity {
         return true;
     }
 
-    // --------------------------------------------------------------
-    // mostrarDialogoEdicion()
-    // Descripción: Muestra un diálogo genérico para editar un campo del perfil.
-    //              Configura el tipo de entrada según el campo (email, password, texto).
-    // Parámetros: - campo : nombre del campo a editar
-    //             - titulo : título del diálogo
-    //             - listener : callback que recibe el nuevo valor
-    // Diseño: (campo, titulo, listener) -> mostrarDialogoEdicion() -> listener.onValorEditado()
-    // --------------------------------------------------------------
     private void mostrarDialogoEdicion(String campo, String titulo, OnValorEditadoListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(titulo);
@@ -324,43 +486,10 @@ public class PerfilActivity extends BaseActivity {
         builder.show();
     }
 
-    // -----------------------------------------------------------------
-    // Interface para manejar valores editados
-    // -----------------------------------------------------------------
-    /**
-     * @interface OnValorEditadoListener
-     * @brief Interfaz callback para recibir el nuevo valor editado en un diálogo.
-     */
     interface OnValorEditadoListener {
         void onValorEditado(String nuevoValor);
     }
 
-    // --------------------------------------------------------------
-    // obtenerTokenDeSharedPreferences()
-    // Descripción: Recupera el token de autenticación almacenado en SharedPreferences.
-    // Diseño: obtenerTokenDeSharedPreferences() -> String (token)
-    // --------------------------------------------------------------
-    private String obtenerTokenDeSharedPreferences() {
-        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        return prefs.getString("token", "");
-    }
-
-    // --------------------------------------------------------------
-    // obtenerUserIdDeSharedPreferences()
-    // Descripción: Recupera el ID de usuario almacenado en SharedPreferences.
-    // Diseño: obtenerUserIdDeSharedPreferences() -> int (userId)
-    // --------------------------------------------------------------
-    private int obtenerUserIdDeSharedPreferences() {
-        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        return prefs.getInt("user_id", 0);
-    }
-
-    // --------------------------------------------------------------
-    // showQuejasPopup()
-    // Descripción: Muestra un diálogo modal con el formulario de quejas.
-    //              Permite al usuario enviar sugerencias o reportar problemas.
-    // Diseño: showQuejasPopup() -> Dialog -> dismiss/enviar
-    // --------------------------------------------------------------
     private void showQuejasPopup() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_quejas);
@@ -376,12 +505,6 @@ public class PerfilActivity extends BaseActivity {
         dialog.show();
     }
 
-    // --------------------------------------------------------------
-    // showPrivacidadPopup()
-    // Descripción: Muestra un diálogo modal con la política de privacidad
-    //              de la aplicación.
-    // Diseño: showPrivacidadPopup() -> Dialog -> dismiss
-    // --------------------------------------------------------------
     private void showPrivacidadPopup() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_privacidad);

@@ -1,5 +1,7 @@
 package com.example.air_o_walk_sprint0;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -7,6 +9,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import org.json.JSONObject;
@@ -25,7 +28,7 @@ import org.json.JSONObject;
  *
  * La comunicación con el backend se realiza de forma asíncrona.
  *
- * @author Santiago Aguirre
+ * @author Santiago Aguirre y Adenor Buret
  * @version 1.0
  */
 
@@ -46,13 +49,26 @@ public class GamificacionActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ⭐ VERIFICAR SESIÓN ACTIVA
+        if (!verificarSesionActiva()) {
+            return; // Si no hay sesión, redirige a Login y detiene ejecución
+        }
+
         setContentView(R.layout.activity_gamificacion);
 
-        // Obtener el user_id del Intent
+        // Obtener userId del Intent o SharedPreferences
         userId = getIntent().getIntExtra("USER_ID", -1);
 
         if (userId == -1) {
-            Toast.makeText(this, "Error: No se pudo obtener el ID de usuario", Toast.LENGTH_SHORT).show();
+            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            userId = prefs.getInt("user_id", -1);
+        }
+
+        if (userId == -1) {
+            Toast.makeText(this,
+                    "No pudimos identificar tu cuenta.\n\nVuelve a iniciar sesión para continuar.",
+                    Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -110,7 +126,9 @@ public class GamificacionActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 cargarPuntosTotales();
-                Toast.makeText(GamificacionActivity.this, "Actualizando puntos...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(GamificacionActivity.this,
+                        "Consultando tus puntos actuales...",
+                        Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -129,7 +147,6 @@ public class GamificacionActivity extends AppCompatActivity {
     private void cargarPuntosTotales() {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 
-        // Usar el método público de Gamificacion
         elPeticionario.hacerPeticionREST("GET", "http://api.sagucre.upv.edu.es/points/" + userId,
                 null,
                 new PeticionarioREST.RespuestaREST() {
@@ -150,6 +167,11 @@ public class GamificacionActivity extends AppCompatActivity {
                                         Toast.makeText(GamificacionActivity.this,
                                                 "Puntos actualizados correctamente",
                                                 Toast.LENGTH_SHORT).show();
+
+                                        // ✅ AGREGAR AQUÍ LA VERIFICACIÓN DE PUNTOS == 0:
+                                        if (puntosTotales == 0) {
+                                            mostrarMensajeSinPuntos();
+                                        }
                                     }
                                 });
 
@@ -196,6 +218,13 @@ public class GamificacionActivity extends AppCompatActivity {
                     // También actualizamos la UI manualmente
                     cargarPuntosTotales();
 
+                    // ✅ AGREGAR AQUÍ EL TOAST DE CONFIRMACIÓN:
+                    runOnUiThread(() ->
+                            Toast.makeText(GamificacionActivity.this,
+                                    "¡Puntos guardados exitosamente!\n\nTus " + puntosTemporales + " puntos ya están disponibles para canjear.",
+                                    Toast.LENGTH_LONG).show()
+                    );
+
                     // Reiniciar puntos temporales
                     puntosTemporales = 0;
                     tvUltimosPuntos.setText("0");
@@ -206,12 +235,71 @@ public class GamificacionActivity extends AppCompatActivity {
         }
     }
 
-    private void mostrarError(final String mensaje) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(GamificacionActivity.this, mensaje, Toast.LENGTH_LONG).show();
-            }
+    private void mostrarError(final String detalleError) {
+        runOnUiThread(() -> {
+            String mensajeAmigable = obtenerMensajeAmigable(detalleError);
+            Toast.makeText(GamificacionActivity.this,
+                    mensajeAmigable,
+                    Toast.LENGTH_LONG).show();
         });
+    }
+
+    private String obtenerMensajeAmigable(String errorTecnico) {
+        if (errorTecnico == null || errorTecnico.isEmpty()) {
+            return "Ocurrió un problema inesperado.\n\nIntenta nuevamente o contacta con soporte.";
+        }
+
+        if (errorTecnico.contains("timeout") || errorTecnico.contains("connection")) {
+            return "No pudimos conectar con el servidor.\n\nVerifica tu conexión a internet e intenta nuevamente.";
+        }
+
+        if (errorTecnico.contains("404") || errorTecnico.contains("not found")) {
+            return "No encontramos tus datos en el servidor.\n\nCierra sesión y vuelve a iniciar sesión.";
+        }
+
+        if (errorTecnico.contains("401") || errorTecnico.contains("unauthorized")) {
+            return "Tu sesión ha expirado.\n\nVuelve a iniciar sesión para continuar.";
+        }
+
+        if (errorTecnico.contains("500") || errorTecnico.contains("server")) {
+            return "El servidor está teniendo problemas.\n\nIntenta nuevamente en unos minutos.";
+        }
+
+        // Error genérico pero con contexto
+        return "Ocurrió un problema al procesar tu solicitud.\n\nIntenta nuevamente o contacta con soporte si persiste.";
+    }
+
+    private void mostrarMensajeSinPuntos() {
+        new AlertDialog.Builder(this)
+                .setTitle("¡Empieza a ganar puntos!")
+                .setMessage(
+                        "Aún no tienes puntos acumulados.\n\n" +
+                                "¿Cómo ganar puntos?\n" +
+                                "• Realiza recorridos con tu sensor\n" +
+                                "• Camina más distancia = más puntos\n" +
+                                "• Mantén tu sensor conectado\n\n" +
+                                "¡Comienza tu primera recorrida ahora!"
+                )
+                .setPositiveButton("Entendido", null)
+                .setNegativeButton("Ir a hacer un recorrido", (d, w) -> {
+                    finish(); // Volver a MainActivity
+                })
+                .show();
+    }
+
+    private boolean verificarSesionActiva() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int savedUserId = prefs.getInt("user_id", -1);
+        String savedToken = prefs.getString("token", null);
+        boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
+
+        if (savedUserId == -1 || savedToken == null || !sesionActiva) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return false;
+        }
+        return true;
     }
 }
