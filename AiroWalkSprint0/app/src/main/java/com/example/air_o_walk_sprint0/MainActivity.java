@@ -19,6 +19,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Button;
@@ -136,6 +139,7 @@ public class MainActivity extends BaseActivity  {
     private TextView textVinculacion;
     private View btnVincular;
 
+    private WebView mapa;
 
 
     // ------------------------------------------------------------------
@@ -595,7 +599,7 @@ public class MainActivity extends BaseActivity  {
         Gamificacion game = new Gamificacion(idUsuario);
         int puntos = game.calcularPuntosMedianteDistancia(pasos);
         game.setUltimosPuntosObtenidos(puntos);
-        
+
         // Sumar los puntos obtenidos en la BBDD
         game.sumarPuntosDelaUltimaSesionBBDD();
 
@@ -1202,6 +1206,21 @@ public class MainActivity extends BaseActivity  {
         }
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+
+        mapa = findViewById(R.id.mapaWebView);
+
+        // Configuración crítica del WebView
+        WebSettings webSettings = mapa.getSettings();
+        webSettings.setJavaScriptEnabled(true); // Permite Leaflet y Turf
+        webSettings.setDomStorageEnabled(true); // Importante para cargar mapas pesados
+        webSettings.setAllowFileAccess(true);
+        webSettings.setGeolocationEnabled(true); // Por si quieres mostrar la ubicación del usuario
+
+        // Evita que el mapa se abra en el navegador externo (Chrome/Samsung Browser)
+        mapa.setWebViewClient(new WebViewClient());
+
+        // CARGA TU URL AQUÍ
+        mapa.loadUrl("https://sagucre.upv.edu.es/mapa_full");
     }
 
 
