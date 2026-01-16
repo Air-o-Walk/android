@@ -16,11 +16,16 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.concurrent.Executor;
 
 /**
  * @class LoginActivity
@@ -62,6 +67,16 @@ public class LoginActivity extends AppCompatActivity {
 
         // ⭐ IMPORTANTE: Usar "app_prefs" en toda la aplicación para consistencia
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        // ADD THESE LINES AT THE TOP:
+        boolean biometricEnabled = prefs.getBoolean("biometric_enabled", false);
+        boolean hasToken = !prefs.getString("token", "").isEmpty();
+
+        if (biometricEnabled && hasToken) {
+            setContentView(R.layout.login_activity);
+            mostrarLoginBiometrico();
+            return;
+        }
+
 
         // ========================================================================
         // VERIFICAR SESIÓN ACTIVA ANTES DE MOSTRAR EL LOGIN
@@ -315,6 +330,69 @@ public class LoginActivity extends AppCompatActivity {
 
         // Finalizar LoginActivity
         finish();
+    }
+    private void mostrarLoginBiometrico() {
+        // 1. Check if the device is actually capable and has fingers enrolled
+        BiometricManager biometricManager = BiometricManager.from(this);
+        int canAuthenticate = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+
+        if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
+            Log.e(TAG, "Biometría no disponible. Código: " + canAuthenticate);
+            return; // Hardware not ready or no fingers registered
+        }
+
+        Executor executor = ContextCompat.getMainExecutor(this);
+
+        BiometricPrompt biometricPrompt = new BiometricPrompt(
+                this,
+                executor,
+                new BiometricPrompt.AuthenticationCallback() {
+
+                    @Override
+                    public void onAuthenticationSucceeded(
+                            BiometricPrompt.AuthenticationResult result) {
+                        super.onAuthenticationSucceeded(result);
+
+                        // ⭐ IMPORTANT: Reactivate the session so verifySesionActiva()
+                        // returns true inside navigateToMainActivity()
+                        prefs.edit().putBoolean("sesion_activa", true).apply();
+
+                        runOnUiThread(() -> {
+                            Toast.makeText(LoginActivity.this,
+                                    "Autenticación correcta",
+                                    Toast.LENGTH_SHORT).show();
+                            navigateToMainActivity();
+                        });
+                    }
+
+                    @Override
+                    public void onAuthenticationError(int errorCode, CharSequence errString) {
+                        super.onAuthenticationError(errorCode, errString);
+                        // If user cancels, we do nothing so they can use the password fields
+                        Log.d(TAG, "Error biometría: " + errString);
+                    }
+
+                    @Override
+                    public void onAuthenticationFailed() {
+                        super.onAuthenticationFailed();
+                        // Fingerprint scanned but not recognized
+                        runOnUiThread(() -> Toast.makeText(LoginActivity.this,
+                                "Huella no reconocida", Toast.LENGTH_SHORT).show());
+                    }
+                }
+        );
+
+        BiometricPrompt.PromptInfo promptInfo =
+                new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle("Login con huella")
+                        .setSubtitle("Autentícate para continuar")
+                        .setAllowedAuthenticators(
+                                BiometricManager.Authenticators.BIOMETRIC_STRONG
+                        )
+                        .setNegativeButtonText("Usar contraseña")
+                        .build();
+
+        biometricPrompt.authenticate(promptInfo);
     }
 
     /**
