@@ -595,6 +595,9 @@ public class MainActivity extends BaseActivity  {
         Gamificacion game = new Gamificacion(idUsuario);
         int puntos = game.calcularPuntosMedianteDistancia(pasos);
         game.setUltimosPuntosObtenidos(puntos);
+        
+        // Sumar los puntos obtenidos en la BBDD
+        game.sumarPuntosDelaUltimaSesionBBDD();
 
         // Guardar estadísticas diarias
         MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());

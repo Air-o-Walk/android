@@ -84,7 +84,10 @@ public class CanjeoActivity extends AppCompatActivity {
         configurarRecyclerView();
 
         // Cargar datos
-        cargarPuntosUsuario();  // ← Usa callback
+        //NO SE PORQUE, NO QUIERO SABER PORQUE, PERO PARA QUE CARGUE TODO BIEN Y A LA PRIMERA SE TIENE QUE LLAMAR DOS VECES
+        cargarPuntosUsuario();
+        cargarPuntosUsuario();
+          // ← Usa callback
         cargarPremios();
 
         // Botón volver
@@ -146,6 +149,51 @@ public class CanjeoActivity extends AppCompatActivity {
      * Cargar puntos del usuario usando Gamificacion con callback
      */
     private void cargarPuntosUsuario() {
+
+        // intento 1
+        /*new android.os.Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                 runOnUiThread(() ->{
+                     gamificacion.actualizarPuntosTotales();
+                     puntosUsuario = gamificacion.getPuntosTotales();
+                     Toast.makeText(CanjeoActivity.this,
+                             "¡Tus "+ puntosUsuario +" puntos ya están disponibles para canjear.",
+                             Toast.LENGTH_LONG).show();
+
+                 });
+                // Usar el método público de Gamificacion
+                gamificacion.actualizarPuntosTotales();
+
+                // ✅ AGREGAR AQUÍ EL TOAST DE CONFIRMACIÓN:
+                runOnUiThread(() ->
+                        Toast.makeText(CanjeoActivity.this,
+                                "¡Puntos guardados exitosamente!\n\nTus puntos ya están disponibles para canjear.",
+                                Toast.LENGTH_LONG).show()
+                );
+
+                runOnUiThread(() ->                // También actualizamos los puntos manualmente
+                        puntosUsuario = gamificacion.getPuntosTotales()
+                );
+            }
+        }, 1500); // Esperar 1.5 segundos antes de actualizar*/
+
+        /*gamificacion.actualizarPuntosTotales();
+
+        puntosUsuario = gamificacion.getPuntosTotales();*/
+
+        //intento 2
+        /*runOnUiThread(() -> {
+            gamificacion.actualizarPuntosTotales();
+            // También actualizamos los puntos manualmente
+            puntosUsuario = gamificacion.getPuntosTotales();
+
+            Toast.makeText(CanjeoActivity.this,
+                    "Tus "+ puntosUsuario + " puntos ya están disponibles para canjear.",
+                    Toast.LENGTH_LONG).show();
+        });*/
+
         gamificacion.actualizarPuntosTotales(new Gamificacion.CallbackPuntos() {
             @Override
             public void onPuntosObtenidos(int puntos) {
