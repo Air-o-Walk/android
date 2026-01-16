@@ -87,7 +87,7 @@ public class CanjeoActivity extends AppCompatActivity {
         //NO SE PORQUE, NO QUIERO SABER PORQUE, PERO PARA QUE CARGUE TODO BIEN Y A LA PRIMERA SE TIENE QUE LLAMAR DOS VECES
         cargarPuntosUsuario();
         cargarPuntosUsuario();
-          // ← Usa callback
+
         cargarPremios();
 
         // Botón volver
