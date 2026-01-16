@@ -136,10 +136,13 @@ public class MainActivity extends BaseActivity  {
     private NavigationView navigationView;
     private ImageView btnMenu;
 
+    //Variables del layout Home
     private TextView textVinculacion;
     private View btnVincular;
+    private Button btnFindSensor;
 
     private WebView mapa;
+
 
 
     // ------------------------------------------------------------------
@@ -452,6 +455,7 @@ public class MainActivity extends BaseActivity  {
                     Toast.LENGTH_LONG).show();
             return;
         }
+
         this.buscarEsteDispositivoBTLE(nombreNodoVinculado);
     } // ()
 
@@ -503,10 +507,19 @@ public class MainActivity extends BaseActivity  {
         // NUEVO: Verificar que el beacon esté conectado antes de iniciar tracking
         if (!beaconConectado && !isTracking) {
             new AlertDialog.Builder(this)
-                    .setTitle("Beacon no conectado")
-                    .setMessage("Necesitas estar conectado al beacon para iniciar una recorrida.\n\n" +
-                            "Por favor, espera a que se detecte el beacon o verifica que esté encendido.")
-                    .setPositiveButton("Aceptar", null)
+                    .setTitle("Sensor no conectado")
+                    .setMessage(
+                            "Para iniciar un recorrido necesitas tener tu sensor conectado.\n\n" +
+                                    "¿Qué hacer?\n" +
+                                    "• Verifica que el sensor esté encendido\n" +
+                                    "• Acércate al sensor si estás lejos\n" +
+                                    "• Espera unos segundos a que se detecte"
+                    )
+                    .setPositiveButton("Entendido", null)
+                    .setNeutralButton("¿Cómo vincular?", (d, w) -> {
+                        // Mostrar tutorial de vinculación
+                        mostrarTutorialVinculacion();
+                    })
                     .show();
             return;
         }
@@ -518,30 +531,56 @@ public class MainActivity extends BaseActivity  {
         }
     }
 
+    // Nuevo método auxiliar para el tutorial
+    private void mostrarTutorialVinculacion() {
+        new AlertDialog.Builder(this)
+                .setTitle("¿Cómo vincular mi sensor?")
+                .setMessage(
+                        "1. Toca el ícono de enlace en el menú superior\n\n" +
+                                "2. Ingresa el nombre de tu sensor (ej: GTI)\n\n" +
+                                "3. Espera a que se detecte y se conecte\n\n" +
+                                "4. ¡Listo! Ya puedes iniciar recorridos"
+                )
+                .setPositiveButton("Entendido", null)
+                .show();
+    }
+
     private void startTracking() {
         Log.d(ETIQUETA_LOG, " startTracking(): iniciando tracking de pasos, tiempo y GPS");
 
-        // Verificar que los trackers estén inicializados
         if (stepTracker == null || timeTracker == null || gpsTracker == null) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - trackers no inicializados");
+
+            // ANTES:
+            // Toast.makeText(this, "Error: trackers no inicializados", Toast.LENGTH_SHORT).show();
+
+            // AHORA:
             Toast.makeText(this,
                     "Los sensores del dispositivo no están listos.\n\nReinicia la aplicación e intenta nuevamente.",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
-        // Verificar que el sensor de pasos esté disponible
         if (!stepTracker.isStepCounterAvailable()) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - no hay sensor de pasos disponible");
+
+            // ANTES:
+            // Toast.makeText(this, "Este dispositivo no tiene sensor de pasos", Toast.LENGTH_LONG).show();
+
+            // AHORA:
             Toast.makeText(this,
                     "Tu dispositivo no tiene sensor de pasos.\n\nNo podrás registrar recorridos en este teléfono.",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
-        // NUEVO: Verificar conexión del beacon
         if (!beaconConectado) {
             Log.e(ETIQUETA_LOG, " startTracking(): Error - beacon no conectado");
+
+            // ANTES:
+            // Toast.makeText(this, "Beacon no conectado. Esperando señal...", Toast.LENGTH_SHORT).show();
+
+            // AHORA:
             Toast.makeText(this,
                     "Esperando conexión con el sensor...\n\nAsegúrate de que esté encendido y cerca de ti.",
                     Toast.LENGTH_SHORT).show();
@@ -551,23 +590,21 @@ public class MainActivity extends BaseActivity  {
         isTracking = true;
         trackButton.setText("Detener Recorrida");
 
-        // Reiniciar trackers
         stepTracker.resetSession();
         timeTracker.reset();
         gpsTracker.resetTracking();
 
-        // Iniciar step counter
         stepTracker.startTracking();
-
-        // Iniciar time tracker
         timeTracker.startTracking();
-
-        // Iniciar GPS tracker
         gpsTracker.startTracking();
 
         Log.d(ETIQUETA_LOG, " startTracking(): tracking iniciado (steps + time + GPS)");
         Log.d(ETIQUETA_LOG, " startTracking(): " + stepTracker.getSensorInfo());
 
+        // ANTES:
+        // Toast.makeText(this, "Recorrida iniciada - Beacon conectado", Toast.LENGTH_SHORT).show();
+
+        // AHORA:
         Toast.makeText(this,
                 "¡Recorrido iniciado! Tu sensor está midiendo la calidad del aire.",
                 Toast.LENGTH_SHORT).show();
@@ -576,11 +613,8 @@ public class MainActivity extends BaseActivity  {
     private void stopTracking() {
         Log.d(ETIQUETA_LOG, " stopTracking(): deteniendo tracking");
 
-        // Verificar que los trackers estén inicializados
-        if (stepTracker == null || timeTracker == null || gpsTracker == null) {
-            Log.e(ETIQUETA_LOG, " stopTracking(): Error - trackers no inicializados");
-            return;
-        }
+        // Ejecutar toda la lógica de finalización
+        finalizarYGuardarRecorrido();
 
         isTracking = false;
         trackButton.setText("Activar Recorrida");
@@ -648,8 +682,8 @@ public class MainActivity extends BaseActivity  {
         // Abrir resumen de calidad del aire
         Intent intent = new Intent(MainActivity.this, AirQualitySummaryActivity.class);
         intent.putExtra("USER_ID", idUsuario);
-        intent.putExtra("PASOS", pasos);
-        intent.putExtra("TIEMPO", timeTracker.getElapsedTimeMinutes());
+        intent.putExtra("PASOS", stepTracker != null ? stepTracker.getSteps() : 0);
+        intent.putExtra("TIEMPO", timeTracker != null ? timeTracker.getElapsedTimeMinutes() : 0);
         startActivity(intent);
 
         Log.d(ETIQUETA_LOG, " stopTracking(): tracking detenido - valores congelados");
@@ -827,6 +861,20 @@ public class MainActivity extends BaseActivity  {
                         monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this, nombreNodo);
                         monitorEstadoNodo.iniciarMonitor();
 
+                        runOnUiThread(() -> {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("¡Sensor vinculado correctamente!")
+                                    .setMessage(
+                                            "Tu sensor está conectado y midiendo la calidad del aire.\n\n" +
+                                                    "Ahora puedes:\n" +
+                                                    "• Iniciar recorridos para ganar puntos\n" +
+                                                    "• Ver tus mediciones en tiempo real\n" +
+                                                    "• Canjear premios con tus puntos"
+                                    )
+                                    .setPositiveButton("¡Genial!", null)
+                                    .show();
+                        });
+
                         // NUEVO: Configurar listener para desconexión del nodo
                         monitorEstadoNodo.setDesconexionListener(() -> {
                             beaconConectado = false;
@@ -889,14 +937,7 @@ public class MainActivity extends BaseActivity  {
 
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         // Mostrar botón "Encontrar mi sensor"
-                        Button btnFind = findViewById(R.id.btnFindSensor);
-                        btnFind.setVisibility(View.VISIBLE);
-
-                        btnFind.setOnClickListener(v -> {
-                            Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
-                            i.putExtra("NODE_NAME", nombreNodoVinculado);
-                            startActivity(i);
-                        });
+                        runOnUiThread(() -> configurarBotonEncontrarSensor());
 
                         break;
                 }
@@ -943,7 +984,6 @@ public class MainActivity extends BaseActivity  {
         String savedToken = prefs.getString("token", null);
         boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
 
-        // Si no hay sesión guardada, redirigir a Login
         if (savedUserId == -1 || savedToken == null || savedToken.isEmpty() || !sesionActiva) {
             Log.d(ETIQUETA_LOG, "No hay sesión activa - Redirigiendo a Login");
 
@@ -1010,6 +1050,7 @@ public class MainActivity extends BaseActivity  {
         // Nuevas vistas en el código
         textVinculacion = findViewById(R.id.textVinculacion);
         btnVincular = findViewById(R.id.botonBuscarNuestroDispositivoBTLE);
+        btnFindSensor = findViewById(R.id.btnFindSensor);
 
 
         // =====================================================
@@ -1070,27 +1111,40 @@ public class MainActivity extends BaseActivity  {
                 abrirPerfilActivity();
 
             } else if (itemId == R.id.nav_recorrido) {
-                // Solo permitir si beacon está conectado
+                // NUEVO: Aplicar la misma lógica que stopTracking() antes de navegar
                 if (!beaconConectado) {
                     Toast.makeText(this,
-                            "Necesitas estar conectado al beacon para ver el resumen",
+                            "No hay sensor conectado.\n\nConecta tu sensor para ver tus recorridos.",
                             Toast.LENGTH_SHORT).show();
                     return true;
                 }
-                startActivity(new Intent(this, AirQualitySummaryActivity.class));
+
+                // Si hay tracking activo, aplicar toda la lógica de stopTracking
+                if (isTracking) {
+                    finalizarYGuardarRecorrido();
+                }
+
+                // Navegar a resumen con los datos más recientes
+                Intent intenT = new Intent(this, AirQualitySummaryActivity.class);
+                intenT.putExtra("USER_ID", idUsuario);
+
+                // Pasar datos del último recorrido si existen
+                if (stepTracker != null && timeTracker != null) {
+                    intenT.putExtra("PASOS", stepTracker.getSteps());
+                    intenT.putExtra("TIEMPO", timeTracker.getElapsedTimeMinutes());
+                }
+
+                startActivity(intenT);
 
             } else if (itemId == R.id.nav_recompensa) {
-                // Usar el método existente que ya verifica la conexión
-                abrirPantallaGamificacion(null);
+                abrirPantallaCanjeos(null);
 
             } else if (itemId == R.id.nav_mapa) {
-                // Ya estamos en MainActivity, no hacer nada
                 Toast.makeText(this,
                         "Ya te encuentras en la pantalla de inicio.",
                         Toast.LENGTH_SHORT).show();
 
             } else if (itemId == R.id.nav_notificaciones) {
-                // Abrir configuración de notificaciones
                 new AlertDialog.Builder(this)
                         .setTitle("Notificaciones")
                         .setMessage("Gestiona tus notificaciones de calidad del aire.\n\n" +
@@ -1100,24 +1154,73 @@ public class MainActivity extends BaseActivity  {
                                 "• Completes logros")
                         .setPositiveButton("Aceptar", null)
                         .show();
-                // TODO: Implementar NotificacionesActivity
 
             } else if (itemId == R.id.nav_info) {
-                // Mostrar información educativa sobre gases
+
                 new AlertDialog.Builder(this)
-                        .setTitle("Información sobre Gases")
-                        .setMessage("O3 (Ozono):\n" +
-                                "Gas irritante que afecta las vías respiratorias.\n" +
-                                "Límite seguro: < 0.06 ppm\n\n" +
-                                "CO (Monóxido de Carbono):\n" +
-                                "Gas tóxico sin olor ni color.\n" +
-                                "Límite seguro: < 9 ppm\n\n" +
-                                "NO2 (Dióxido de Nitrógeno):\n" +
-                                "Irritante producido por combustión.\n" +
-                                "Límite seguro: < 0.053 ppm")
+                        .setTitle("Información sobre Calidad del Aire")
+                        .setMessage(
+                                "¿QUÉ ES EL AQI?\n" +
+                                        "El Índice de Calidad del Aire (AQI) mide qué tan limpio o contaminado está el aire. " +
+                                        "Va de 0 (excelente) a 500 (peligroso).\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "OZONO TROPOSFÉRICO (O₃)\n\n" +
+
+                                        "¿Qué es?\n" +
+                                        "Se forma cuando la luz solar reacciona con gases de vehículos e industrias. " +
+                                        "Es más común en verano y días soleados.\n\n" +
+
+                                        "✅ Nivel seguro: AQI 0-50 (Bueno)\n" +
+                                        "⚠️ Nivel alto: AQI 51-100 (Moderado)\n" +
+                                        "🚨 Nivel peligroso: AQI 101-150+ (Insalubre para grupos sensibles o superior)\n\n" +
+
+                                        "Efectos en la salud:\n" +
+                                        "Irritación de ojos y garganta, tos, dificultad para respirar, empeora el asma.\n\n" +
+
+                                        "Consejo: Evita ejercicio intenso entre 14:00-20:00 en días soleados.\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "MONÓXIDO DE CARBONO (CO)\n\n" +
+
+                                        "¿Qué es?\n" +
+                                        "Gas tóxico sin olor ni color producido por combustión incompleta en vehículos, " +
+                                        "estufas y calderas mal ventiladas.\n\n" +
+
+                                        "✅ Nivel seguro: AQI 0-50 (Bueno)\n" +
+                                        "⚠️ Nivel alto: AQI 51-100 (Moderado)\n" +
+                                        "🚨 Nivel peligroso: AQI 101+ (Insalubre para grupos sensibles o superior)\n\n" +
+
+                                        "Efectos en la salud:\n" +
+                                        "Impide que tu sangre transporte oxígeno. Causa dolor de cabeza, mareos, náuseas " +
+                                        "y en casos graves, pérdida de conciencia.\n\n" +
+
+                                        "Consejo: No hagas ejercicio cerca de carreteras con mucho tráfico.\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "DIÓXIDO DE NITRÓGENO (NO₂)\n\n" +
+
+                                        "¿Qué es?\n" +
+                                        "Proviene principalmente de vehículos diésel, calefacciones de gas y centrales térmicas.\n\n" +
+
+                                        "✅ Nivel seguro: AQI 0-50 (Bueno)\n" +
+                                        "⚠️ Nivel alto: AQI 51-100 (Moderado)\n" +
+                                        "🚨 Nivel peligroso: AQI 101+ (Insalubre para grupos sensibles o superior)\n\n" +
+
+                                        "Efectos en la salud:\n" +
+                                        "Irrita las vías respiratorias, empeora el asma, aumenta alergias y reduce la función pulmonar.\n\n" +
+
+                                        "Consejo: Evita avenidas con mucho tráfico y ventila tu casa en horas con menos coches.\n\n" +
+
+                                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                                        "💡 TIP: Usa esta app para conocer los niveles en tiempo real durante tus recorridos."
+                        )
                         .setPositiveButton("Entendido", null)
                         .show();
-                // TODO: Implementar InfoGasesActivity con información detallada
 
             } else {
                 Toast.makeText(this,
@@ -1338,6 +1441,8 @@ public class MainActivity extends BaseActivity  {
                     runOnUiThread(() -> {
                         actualizarEstadoVinculacionUI();
 
+                        configurarBotonEncontrarSensor();
+
                         // Start scan only if linked
                         if (yaVinculado) {
                             buscarEsteDispositivoBTLE(nombreNodoVinculado);
@@ -1378,9 +1483,12 @@ public class MainActivity extends BaseActivity  {
                     tiempoTotal.setText("---");
 
                     new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Dispositivo desvinculado")
-                            .setMessage("El sensor ha dejado de medir la calidad del aire.")
-                            .setPositiveButton("Aceptar", null)
+                            .setTitle("Sensor desvinculado")
+                            .setMessage(
+                                    "Tu sensor se ha desvinculado correctamente.\n\n" +
+                                            "Para volver a usarlo, toca el ícono de enlace en el menú superior."
+                            )
+                            .setPositiveButton("Entendido", null)
                             .show();
                 });
 
@@ -1441,13 +1549,101 @@ public class MainActivity extends BaseActivity  {
         actualizarUIVinculacion();
         estadoBotonRecorrido(yaVinculado);
 
-        Button btnFind = findViewById(R.id.btnFindSensor);
-        if (btnFind != null) {
-            btnFind.setVisibility(yaVinculado ? View.VISIBLE : View.GONE);
+        configurarBotonEncontrarSensor();
+    }
+
+    // NUEVO MÉTODO: Configurar el botón "Encontrar mi sensor"
+    private void configurarBotonEncontrarSensor() {
+        if (btnFindSensor == null) {
+            Log.e(ETIQUETA_LOG, "btnFindSensor no encontrado en el layout");
+            return;
+        }
+
+        if (yaVinculado && nombreNodoVinculado != null) {
+            // Mostrar botón y configurar listener
+            btnFindSensor.setVisibility(View.VISIBLE);
+
+            btnFindSensor.setOnClickListener(v -> {
+                Log.d(ETIQUETA_LOG, "Botón 'Encontrar sensor' presionado - Nodo: " + nombreNodoVinculado);
+
+                Intent i = new Intent(MainActivity.this, FindMyNodeActivity.class);
+                i.putExtra("NODE_NAME", nombreNodoVinculado);
+                startActivity(i);
+            });
+
+            Log.d(ETIQUETA_LOG, "Botón 'Encontrar sensor' configurado correctamente");
+        } else {
+            // Ocultar botón si no hay nodo vinculado
+            btnFindSensor.setVisibility(View.GONE);
+            Log.d(ETIQUETA_LOG, "Botón 'Encontrar sensor' ocultado (no hay nodo vinculado)");
         }
     }
 
+    private void finalizarYGuardarRecorrido() {
+        Log.d(ETIQUETA_LOG, " finalizarYGuardarRecorrido(): procesando datos del recorrido");
 
+        // Verificar que los trackers estén inicializados
+        if (stepTracker == null || timeTracker == null || gpsTracker == null) {
+            Log.e(ETIQUETA_LOG, " finalizarYGuardarRecorrido(): Error - trackers no inicializados");
+            return;
+        }
 
+        // Obtener valores finales ANTES de detener
+        int pasos = stepTracker.getSteps();
+        long tiempoSegundos = timeTracker.getElapsedTimeSeconds();
+        Location ubicacionFinal = gpsTracker.getCurrentLocation();
 
+        // Solo detener si tracking está activo
+        if (isTracking) {
+            isTracking = false;
+            trackButton.setText("Activar Recorrida");
+
+            stepTracker.stopTracking();
+            timeTracker.stopTracking();
+            gpsTracker.stopTracking();
+        }
+
+        // Calcular puntos de gamificación
+        Gamificacion game = new Gamificacion(idUsuario);
+        int puntos = game.calcularPuntosMedianteDistancia(pasos);
+        game.setUltimosPuntosObtenidos(puntos);
+
+        // Guardar estadísticas diarias
+        MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
+        medidas.guardarDailyStats();
+
+        // Enviar mediciones al servidor
+        if (ubicacionFinal != null && nombreNodoVinculado != null) {
+            Log.d(ETIQUETA_LOG, " ENVIANDO MEDICIONES FINALES DE RECORRIDA");
+            Log.d(ETIQUETA_LOG, "  Pasos: " + pasos);
+            Log.d(ETIQUETA_LOG, "  Tiempo: " + tiempoSegundos + " seg (" + (tiempoSegundos/60) + " min)");
+            Log.d(ETIQUETA_LOG, "  Ubicación: " + ubicacionFinal.getLatitude() + ", " + ubicacionFinal.getLongitude());
+
+            MeasurementsSender.enviarMedicionConDesconexion(
+                    nombreNodoVinculado,
+                    ultimaMedicionO3,
+                    ultimaMedicionCO,
+                    ultimaMedicionNO2,
+                    ubicacionFinal,
+                    pasos,
+                    tiempoSegundos,
+                    "manual", // Usuario detuvo manualmente
+                    new MeasurementsSender.MeasurementCallback() {
+                        @Override
+                        public void onSuccess(String respuesta) {
+                            Log.d(ETIQUETA_LOG, " Mediciones finales enviadas correctamente");
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            Log.e(ETIQUETA_LOG, " Error enviando mediciones finales: " + error);
+                        }
+                    }
+            );
+        } else {
+            Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - ubicación o nodo no disponible");
+        }
+
+        Log.d(ETIQUETA_LOG, " finalizarYGuardarRecorrido(): datos procesados y guardados");
+    }
 }

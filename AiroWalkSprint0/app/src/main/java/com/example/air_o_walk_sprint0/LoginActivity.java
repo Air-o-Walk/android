@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
@@ -127,7 +128,9 @@ public class LoginActivity extends AppCompatActivity {
 
         // Validación de campos vacíos
         if (usuario.isEmpty() || contrasena.isEmpty()) {
-            Toast.makeText(this, "Por favor, complete todos los campos", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Debes completar todos los campos.\n\nIngresa tu usuario y contraseña para continuar.",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -167,8 +170,8 @@ public class LoginActivity extends AppCompatActivity {
                     } catch (JSONException e) {
                         Log.e(TAG, "Error al procesar respuesta JSON", e);
                         Toast.makeText(LoginActivity.this,
-                                "Error al procesar respuesta del servidor",
-                                Toast.LENGTH_SHORT).show();
+                                "Hubo un problema al procesar la respuesta del servidor.\n\nIntenta nuevamente o contacta con soporte.",
+                                Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -177,10 +180,70 @@ public class LoginActivity extends AppCompatActivity {
             public void onLoginFallido(String mensajeError) {
                 runOnUiThread(() -> {
                     Log.e(TAG, "Login fallido: " + mensajeError);
-                    Toast.makeText(LoginActivity.this,
-                            "Error de autenticación: " + mensajeError,
-                            Toast.LENGTH_LONG).show();
+
+                    String mensajeAmigable = interpretarErrorLogin(mensajeError);
+
+                    new AlertDialog.Builder(LoginActivity.this)
+                            .setTitle("No pudimos iniciar sesión")
+                            .setMessage(mensajeAmigable)
+                            .setPositiveButton("Reintentar", null)
+                            .setNeutralButton("¿Olvidaste tu contraseña?", (d, w) -> {
+                                showForgotPasswordPopup();
+                            })
+                            .show();
                 });
+            }
+
+            private String interpretarErrorLogin(String errorBackend) {
+                if (errorBackend == null || errorBackend.isEmpty()) {
+                    return "Ocurrió un problema inesperado.\n\nVerifica tu conexión a internet e intenta nuevamente.";
+                }
+
+                // Credenciales incorrectas
+                if (errorBackend.contains("401") ||
+                        errorBackend.contains("unauthorized") ||
+                        errorBackend.contains("invalid") ||
+                        errorBackend.contains("incorrect")) {
+                    return "Usuario o contraseña incorrectos.\n\n" +
+                            "Verifica tus datos e intenta nuevamente.\n" +
+                            "¿Olvidaste tu contraseña? Usa la opción de recuperación.";
+                }
+
+                // Usuario no encontrado
+                if (errorBackend.contains("404") ||
+                        errorBackend.contains("not found") ||
+                        errorBackend.contains("no existe")) {
+                    return "Este usuario no está registrado.\n\n" +
+                            "Verifica tu nombre de usuario o regístrate si es tu primera vez.";
+                }
+
+                // Error de conexión
+                if (errorBackend.contains("timeout") ||
+                        errorBackend.contains("connection") ||
+                        errorBackend.contains("network")) {
+                    return "No pudimos conectar con el servidor.\n\n" +
+                            "Verifica tu conexión a internet e intenta nuevamente.";
+                }
+
+                // Servidor caído
+                if (errorBackend.contains("500") ||
+                        errorBackend.contains("server error")) {
+                    return "El servidor no está disponible en este momento.\n\n" +
+                            "Intenta nuevamente en unos minutos.";
+                }
+
+                // Cuenta bloqueada/suspendida
+                if (errorBackend.contains("blocked") ||
+                        errorBackend.contains("suspended") ||
+                        errorBackend.contains("bloqueado")) {
+                    return "Tu cuenta ha sido suspendida.\n\n" +
+                            "Contacta con soporte para más información.";
+                }
+
+                // Error genérico
+                return "No pudimos iniciar tu sesión.\n\n" +
+                        "Verifica tus datos de acceso e intenta nuevamente.\n" +
+                        "Si el problema persiste, contacta con soporte.";
             }
         });
     }
@@ -228,7 +291,9 @@ public class LoginActivity extends AppCompatActivity {
 
         if (userId == -1 || token.isEmpty()) {
             Log.e(TAG, "Error: Datos de sesión incompletos al navegar");
-            Toast.makeText(this, "Error de sesión. Intenta de nuevo.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Ocurrió un error al cargar tu sesión.\n\nVuelve a iniciar sesión.",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 

@@ -4,11 +4,15 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Description;
@@ -35,7 +39,7 @@ import java.util.List;
  *
  * Los datos se obtienen del backend de forma asíncrona.
  *
- * @author Meryame Ait Boumlik
+ * @author Meryame Ait Boumlik y Adenor Buret
  * @version 1.0
  */
 public class AirQualitySummaryActivity extends BaseActivity {
@@ -47,6 +51,7 @@ public class AirQualitySummaryActivity extends BaseActivity {
     private TextView textDistancia;
     private TextView textPuntos;
     private TextView textResumen;
+    private Button botonRecompensas;
     private int idUsuario;
     /**
      * onCreate()
@@ -80,7 +85,9 @@ public class AirQualitySummaryActivity extends BaseActivity {
         }
 
         if (userId == -1) {
-            Toast.makeText(this, "Error de sesión", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "No pudimos identificar tu cuenta.\n\nVuelve a iniciar sesión para ver tu resumen.",
+                    Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -103,6 +110,17 @@ public class AirQualitySummaryActivity extends BaseActivity {
         textDistancia = findViewById(R.id.textDistancia);
         textPuntos    = findViewById(R.id.textPuntos);
         textResumen = findViewById(R.id.textResumen);
+        botonRecompensas = findViewById(R.id.botonRecompensas);
+
+        // ---------------------------
+        // CONFIGURAR BOTÓN RECOMPENSAS
+        // ---------------------------
+        botonRecompensas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                abrirPantallaCanjeos(v);
+            }
+        });
 
         // ---------------------------
         // LLAMADA AL BACKEND
@@ -148,17 +166,79 @@ public class AirQualitySummaryActivity extends BaseActivity {
 
 
                     // ------ RESUMEN (opcional) ------
-                     if (textResumen != null) textResumen.setText(data.summaryText);
+                    if (textResumen != null) textResumen.setText(data.summaryText);
+
                 });
             }
 
             @Override
             public void onError(String error) {
                 Log.e("AirQuality", "Error: " + error);
+
+                runOnUiThread(() -> {
+                    String mensajeAmigable = interpretarErrorResumen(error);
+
+                    // Mostrar diálogo en vez de Toast para errores críticos
+                    new AlertDialog.Builder(AirQualitySummaryActivity.this)
+                            .setTitle("No pudimos cargar tu resumen")
+                            .setMessage(mensajeAmigable)
+                            .setPositiveButton("Reintentar", (d, w) -> {
+                                // Volver a cargar datos
+                                recreate();
+                            })
+                            .setNegativeButton("Volver", (d, w) -> {
+                                finish();
+                            })
+                            .show();
+                });
+            }
+
+            private String interpretarErrorResumen(String error) {
+                if (error == null || error.isEmpty()) {
+                    return "Ocurrió un problema al cargar tus datos.\n\n" +
+                            "Verifica tu conexión a internet e intenta nuevamente.";
+                }
+
+                if (error.contains("timeout") || error.contains("connection")) {
+                    return "No pudimos conectar con el servidor.\n\n" +
+                            "Verifica tu conexión a internet e intenta nuevamente.";
+                }
+
+                if (error.contains("404") || error.contains("not found")) {
+                    return "No encontramos datos de recorridos para tu cuenta.\n\n" +
+                            "Realiza tu primer recorrido para ver tu resumen.";
+                }
+
+                if (error.contains("401") || error.contains("unauthorized")) {
+                    return "Tu sesión ha expirado.\n\n" +
+                            "Cierra sesión y vuelve a iniciar sesión.";
+                }
+
+                if (error.contains("500") || error.contains("server")) {
+                    return "El servidor está teniendo problemas temporales.\n\n" +
+                            "Intenta nuevamente en unos minutos.";
+                }
+
+                return "No pudimos cargar tu resumen de calidad del aire.\n\n" +
+                        "Intenta nuevamente o contacta con soporte si el problema persiste.";
             }
         });
 
     }
+
+    /**
+     * abrirPantallaCanjeos()
+     *
+     * Descripción: Abre la pantalla de recompensas/canjeos
+     *
+     * @param view Vista del botón
+     */
+    public void abrirPantallaCanjeos(View view) {
+        Intent intent = new Intent(this, CanjeoActivity.class);
+        intent.putExtra("USER_ID", idUsuario);
+        startActivity(intent);
+    }
+
     /**
      * dibujarGrafica()
      *
@@ -248,6 +328,16 @@ public class AirQualitySummaryActivity extends BaseActivity {
 
         } catch (Exception e) {
             Log.e("AirQualitySummary", "Error dibujando gráfica", e);
+
+            // Mostrar mensaje al usuario
+            runOnUiThread(() -> {
+                chart.setVisibility(View.GONE);
+
+                Toast.makeText(this,
+                        "No pudimos generar la gráfica de calidad del aire.\n\n" +
+                                "Los datos numéricos siguen disponibles arriba.",
+                        Toast.LENGTH_LONG).show();
+            });
         }
     }
 
