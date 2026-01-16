@@ -191,18 +191,19 @@
 
 
         <!-- ========= BOTÓN RECOMPENSAS ========= -->
-        <Button
-            android:id="@+id/botonRecompensas"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:text="Ver Recompensas"
-            android:layout_gravity="center"
-            android:background="@drawable/rounded_bg_green"
-            android:textColor="@android:color/white"
-            android:padding="10dp"
-            app:backgroundTint="@null"
+                <Button
+                    android:id="@+id/botonRecompensas"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/rounded_bg_green"
+                    android:onClick="abrirPantallaCanjeos"
+                    android:padding="10dp"
+                    android:text="Ver Recompensas"
 
-            android:layout_marginTop="20dp"/>
+                    android:textColor="@android:color/white"
+                    app:backgroundTint="@null" />
 
             </LinearLayout>
         </ScrollView>

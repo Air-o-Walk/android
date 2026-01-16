@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -50,6 +51,7 @@ public class AirQualitySummaryActivity extends BaseActivity {
     private TextView textDistancia;
     private TextView textPuntos;
     private TextView textResumen;
+    private Button botonRecompensas;
     private int idUsuario;
     /**
      * onCreate()
@@ -108,6 +110,17 @@ public class AirQualitySummaryActivity extends BaseActivity {
         textDistancia = findViewById(R.id.textDistancia);
         textPuntos    = findViewById(R.id.textPuntos);
         textResumen = findViewById(R.id.textResumen);
+        botonRecompensas = findViewById(R.id.botonRecompensas);
+
+        // ---------------------------
+        // CONFIGURAR BOTÓN RECOMPENSAS
+        // ---------------------------
+        botonRecompensas.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                abrirPantallaCanjeos(v);
+            }
+        });
 
         // ---------------------------
         // LLAMADA AL BACKEND
@@ -153,7 +166,7 @@ public class AirQualitySummaryActivity extends BaseActivity {
 
 
                     // ------ RESUMEN (opcional) ------
-                     if (textResumen != null) textResumen.setText(data.summaryText);
+                    if (textResumen != null) textResumen.setText(data.summaryText);
 
                 });
             }
@@ -212,6 +225,20 @@ public class AirQualitySummaryActivity extends BaseActivity {
         });
 
     }
+
+    /**
+     * abrirPantallaCanjeos()
+     *
+     * Descripción: Abre la pantalla de recompensas/canjeos
+     *
+     * @param view Vista del botón
+     */
+    public void abrirPantallaCanjeos(View view) {
+        Intent intent = new Intent(this, CanjeoActivity.class);
+        intent.putExtra("USER_ID", idUsuario);
+        startActivity(intent);
+    }
+
     /**
      * dibujarGrafica()
      *
