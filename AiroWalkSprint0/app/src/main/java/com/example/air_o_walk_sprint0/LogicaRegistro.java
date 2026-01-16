@@ -124,7 +124,7 @@ public class LogicaRegistro {
             @Override
             public void callback(int codigo, String cuerpoRes) {
                 if (codigo == 200) {
-                    callback.onRegistroExitoso("Usuario registrado correctamente, comprueba tu correo");
+                    callback.onRegistroExitoso("Usuario registrado correctamente.");
                 } else {
                     callback.onRegistroFallido("Error al registrar el usuario"+codigo);
                 }

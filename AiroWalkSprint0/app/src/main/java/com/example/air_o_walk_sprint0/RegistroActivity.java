@@ -165,7 +165,12 @@ public class RegistroActivity extends AppCompatActivity {
                 new LogicaRegistro.RegistroCallback() {
                     @Override
                     public void onRegistroExitoso(String respuestaServidor) {
-                        Toast.makeText(RegistroActivity.this, "¡Registro completado con éxito! Te enviamos un correo de confirmación.", Toast.LENGTH_LONG).show();
+                        // Generar credenciales automáticas
+                        String usuario = generarUsuario(firstName, lastName);
+                        String contrasena = generarContrasena(dni);
+
+                        // Mostrar popup con credenciales
+                        mostrarPopupCredenciales(usuario, contrasena);
                     }
 
                     @Override
@@ -205,4 +210,61 @@ public class RegistroActivity extends AppCompatActivity {
                 })
                 .show();
     }
+
+
+    private String generarUsuario(String nombre, String apellido) {
+        String inicial = nombre.substring(0, 1).toLowerCase();
+        String apellidoRecortado = apellido.length() >= 4 ?
+                apellido.substring(0, 4).toLowerCase() : apellido.toLowerCase();
+        return inicial + "." + apellidoRecortado;
+    }
+
+    private String generarContrasena(String dni) {
+        // DNI sin la letra final
+        return dni.substring(0, dni.length() - 1);
+    }
+
+    private void mostrarPopupCredenciales(String usuario, String contrasena) {
+        // Preparar texto para guardar en notas
+        String textoNotas = "Mis credenciales Air_o_Walk:\n\n" +
+                "Usuario: " + usuario + "\n" +
+                "Contraseña: " + contrasena + "\n\n" +
+                "Nota: Cambia tu contraseña al iniciar sesión.";
+
+        new AlertDialog.Builder(this)
+                .setTitle("Registro completado")
+                .setMessage("Guarde sus credenciales:\n\n" +
+                        "Usuario: " + usuario + "\n" +
+                        "Contraseña: " + contrasena + "\n\n" +
+                        "Recomendamos cambiar la contraseña al iniciar sesión.")
+                .setPositiveButton("Guardar en Notas", (dialog, which) -> {
+                    // Abrir selector de apps priorizando Notas
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType("text/plain");
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, textoNotas);
+                    shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Mis credenciales Air_o_Walk");
+                    startActivity(Intent.createChooser(shareIntent, "Guardar en Notas, WhatsApp o Email"));
+                })
+                .setNegativeButton("Continuar", (dialog, which) -> {
+                    // Redirigir al login
+                    Intent intent = new Intent(RegistroActivity.this, LoginActivity.class);
+                    intent.putExtra("usuario", usuario);
+                    intent.putExtra("contrasena", contrasena);
+                    startActivity(intent);
+                    finish();
+                })
+                .setNeutralButton("Copiar al portapapeles", (dialog, which) -> {
+                    // Copiar al portapapeles
+                    android.content.ClipboardManager clipboard =
+                            (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText("Credenciales", textoNotas);
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(this, "Credenciales copiadas al portapapeles", Toast.LENGTH_SHORT).show();
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+
+
 }
