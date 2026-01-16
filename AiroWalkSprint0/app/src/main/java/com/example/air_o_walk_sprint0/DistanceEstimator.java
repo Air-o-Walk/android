@@ -1,4 +1,11 @@
 package com.example.air_o_walk_sprint0;
+
+import android.util.Log;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /**
  * @class DistanceEstimator
  * @brief Estima la distancia aproximada a un beacon BLE a partir del RSSI.
@@ -22,6 +29,22 @@ public class DistanceEstimator {
     private final float[] window = new float[WINDOW_SIZE];
     private int index = 0;
     private boolean filled = false;
+
+
+
+    private ScheduledExecutorService scheduler;
+    private boolean isMonitoring = false;
+
+
+    public interface OnSignalChangedListener {
+        void onSignalLevelChanged(int nivel);
+    }
+    private OnSignalChangedListener listener;
+
+    // 2. Método para asignar el listener desde el Activity
+    public void setOnSignalChangedListener(OnSignalChangedListener listener) {
+        this.listener = listener;
+    }
     /**
      * Añade una nueva lectura RSSI a la ventana deslizante.
      *
@@ -58,5 +81,47 @@ public class DistanceEstimator {
 
         return 0;                   // no signal
     }
+/*
+
+
+
+    // --- MÉTODOS PARA EL BACKGROUND TASK ---
+
+    /**
+     * Inicia el monitoreo automático.
+     * @param intervaloMs Tiempo entre cada ejecución (ej. 1000 para 1 segundo)
+     */
+    /*public void startAutoMonitoring(long intervaloMs) {
+        if (isMonitoring) return; // Evita duplicar tareas
+
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        isMonitoring = true;
+
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                // Aquí se ejecuta lo que quieres cada X tiempo
+                int nivel = getSignalLevel();
+
+                if (nivel == 0 && listener != null) {
+                    listener.onSignalLevelChanged(nivel);
+                }
+                ;
+                // NOTA: Si necesitas actualizar la UI desde aquí,
+                // deberás usar un runOnUiThread o un Callback.
+            }
+        }, 0, intervaloMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Detiene el hilo de ejecución para liberar memoria.
+     */
+    /*public void stopAutoMonitoring() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdown();
+            isMonitoring = false;
+            Log.d("DistanceEstimator", "Monitoreo detenido.");
+        }
+    }*/
 
 }

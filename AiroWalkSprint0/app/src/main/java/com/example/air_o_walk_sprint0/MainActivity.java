@@ -143,6 +143,8 @@ public class MainActivity extends BaseActivity  {
 
     private WebView mapa;
 
+    private DistanceEstimator estimator;
+
 
 
     // ------------------------------------------------------------------
@@ -459,7 +461,7 @@ public class MainActivity extends BaseActivity  {
         this.buscarEsteDispositivoBTLE(nombreNodoVinculado);
     } // ()
 
-    public void botonDetenerBusquedaDispositivosBTLEPulsado( View v ) {
+    /*public void botonDetenerBusquedaDispositivosBTLEPulsado( View v ) {
         Log.d(ETIQUETA_LOG, " boton detener busqueda dispositivos BTLE Pulsado" );
         this.detenerBusquedaDispositivosBTLE();
 
@@ -469,17 +471,11 @@ public class MainActivity extends BaseActivity  {
             enviarUltimaUbicacionNodo();
             Log.d(ETIQUETA_LOG, " Beacon DESCONECTADO - Funcionalidades pausadas");
         }
-    } // ()
+    } // ()*/
 
 
     public void abrirPantallaGamificacion(View v) {
         // MODIFICADO: Solo permitir si beacon está conectado
-        if (!beaconConectado) {
-            Toast.makeText(this,
-                    "No hay sensor conectado.\n\nEspera a que se detecte tu sensor o enciéndelo para continuar.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
 
         Intent intent = new Intent(MainActivity.this, GamificacionActivity.class);
         intent.putExtra("USER_ID", idUsuario);
@@ -488,12 +484,6 @@ public class MainActivity extends BaseActivity  {
 
     public void abrirPantallaCanjeos(View v) {
         // MODIFICADO: Solo permitir si beacon está conectado
-        if (!beaconConectado) {
-            Toast.makeText(this,
-                    "No hay sensor conectado.\n\nConecta tu sensor para acceder a los canjeos.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
 
         Intent intent = new Intent(MainActivity.this, CanjeoActivity.class);
         intent.putExtra("USER_ID", idUsuario);
@@ -616,67 +606,6 @@ public class MainActivity extends BaseActivity  {
         // Ejecutar toda la lógica de finalización
         finalizarYGuardarRecorrido();
 
-        isTracking = false;
-        trackButton.setText("Activar Recorrida");
-
-        // Obtener valores finales ANTES de detener
-        int pasos = stepTracker.getSteps();
-        long tiempoSegundos = timeTracker.getElapsedTimeSeconds();
-        Location ubicacionFinal = gpsTracker.getCurrentLocation();
-
-        // Detener trackers
-        stepTracker.stopTracking();
-        timeTracker.stopTracking();
-        gpsTracker.stopTracking();
-
-        // Calcular puntos de gamificación
-        Gamificacion game = new Gamificacion(idUsuario);
-        int puntos = game.calcularPuntosMedianteDistancia(pasos);
-        game.setUltimosPuntosObtenidos(puntos);
-
-        // Sumar los puntos obtenidos en la BBDD
-        game.sumarPuntosDelaUltimaSesionBBDD();
-
-        // Guardar estadísticas diarias
-        MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());
-        medidas.guardarDailyStats();
-
-        // ====================================================================
-        // NUEVO: Enviar TODAS las mediciones al servidor (pasos, tiempo, GPS)
-        // usando el endpoint /measurements del backend
-        // ====================================================================
-        if (ubicacionFinal != null && nombreNodoVinculado != null) {
-            Log.d(ETIQUETA_LOG, " ENVIANDO MEDICIONES FINALES DE RECORRIDA");
-            Log.d(ETIQUETA_LOG, "  Pasos: " + pasos);
-            Log.d(ETIQUETA_LOG, "  Tiempo: " + tiempoSegundos + " seg (" + (tiempoSegundos/60) + " min)");
-            Log.d(ETIQUETA_LOG, "  Ubicación: " + ubicacionFinal.getLatitude() + ", " + ubicacionFinal.getLongitude());
-            Log.d(ETIQUETA_LOG, "  Tipo: MANUAL (usuario detuvo recorrida)");
-
-
-            MeasurementsSender.enviarMedicionConDesconexion(
-                    nombreNodoVinculado,
-                    ultimaMedicionO3,
-                    ultimaMedicionCO,
-                    ultimaMedicionNO2,
-                    ubicacionFinal,
-                    pasos,
-                    tiempoSegundos,
-                    "manual", // El usuario detuvo manualmente
-                    new MeasurementsSender.MeasurementCallback() {
-                        @Override
-                        public void onSuccess(String respuesta) {
-                            Log.d(ETIQUETA_LOG, " Mediciones finales enviadas correctamente");
-                        }
-
-                        @Override
-                        public void onError(String error) {
-                            Log.e(ETIQUETA_LOG, " Error enviando mediciones finales: " + error);
-                        }
-                    }
-            );
-        } else {
-            Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - ubicación o nodo no disponible");
-        }
         // ====================================================================
 
         // Abrir resumen de calidad del aire
@@ -858,9 +787,6 @@ public class MainActivity extends BaseActivity  {
                         buscarEsteDispositivoBTLE(nombreNodo);
                         estadoBotonRecorrido(true);
 
-                        monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this, nombreNodo);
-                        monitorEstadoNodo.iniciarMonitor();
-
                         runOnUiThread(() -> {
                             new AlertDialog.Builder(MainActivity.this)
                                     .setTitle("¡Sensor vinculado correctamente!")
@@ -875,65 +801,6 @@ public class MainActivity extends BaseActivity  {
                                     .show();
                         });
 
-                        // NUEVO: Configurar listener para desconexión del nodo
-                        monitorEstadoNodo.setDesconexionListener(() -> {
-                            beaconConectado = false;
-
-                            // Si estaba haciendo tracking, enviar mediciones antes de detener
-                            if (isTracking) {
-                                Log.d(ETIQUETA_LOG, "DESCONEXIÓN ABRUPTA DETECTADA");
-
-                                runOnUiThread(() -> {
-                                    Toast.makeText(MainActivity.this,
-                                            "Sensor desconectado.\n\nGuardando tus datos de recorrido...",
-                                            Toast.LENGTH_LONG).show();
-                                });
-
-                                // Obtener valores actuales
-                                int pasosActuales = stepTracker != null ? stepTracker.getSteps() : 0;
-                                long tiempoActual = timeTracker != null ? timeTracker.getElapsedTimeSeconds() : 0;
-                                Location ubicacionActual = gpsTracker != null ? gpsTracker.getCurrentLocation() : null;
-
-                                // Enviar mediciones con tipo "abrupta"
-                                if (ubicacionActual != null && nombreNodoVinculado != null) {
-                                    Log.d(ETIQUETA_LOG, " Enviando mediciones por desconexión abrupta:");
-                                    Log.d(ETIQUETA_LOG, " - Pasos: " + pasosActuales);
-                                    Log.d(ETIQUETA_LOG, " - Tiempo: " + tiempoActual + " seg");
-
-                                    MeasurementsSender.enviarMedicionConDesconexion(
-                                            nombreNodoVinculado,
-                                            ultimaMedicionO3,
-                                            ultimaMedicionCO,
-                                            ultimaMedicionNO2,
-                                            ubicacionActual,
-                                            pasosActuales,
-                                            tiempoActual,
-                                            "abrupta", // Desconexión no planificada
-                                            new MeasurementsSender.MeasurementCallback() {
-                                                @Override
-                                                public void onSuccess(String respuesta) {
-                                                    Log.d(ETIQUETA_LOG, " Mediciones de desconexión abrupta enviadas");
-                                                    runOnUiThread(() -> {
-                                                        Toast.makeText(MainActivity.this,
-                                                                "Tus datos fueron guardados correctamente antes de la desconexión.",
-                                                                Toast.LENGTH_SHORT).show();
-                                                    });
-                                                }
-
-                                                @Override
-                                                public void onError(String error) {
-                                                    Log.e(ETIQUETA_LOG, " Error enviando mediciones: " + error);
-                                                }
-                                            }
-                                    );
-                                } else {
-                                    Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - datos incompletos");
-                                }
-
-                                // Opcional: detener tracking automáticamente
-                                // runOnUiThread(() -> stopTracking());
-                            }
-                        });
 
                         iconoVincular.setImageResource(R.drawable.ic_vincular_verde);
                         // Mostrar botón "Encontrar mi sensor"
@@ -1112,9 +979,9 @@ public class MainActivity extends BaseActivity  {
 
             } else if (itemId == R.id.nav_recorrido) {
                 // NUEVO: Aplicar la misma lógica que stopTracking() antes de navegar
-                if (!beaconConectado) {
+                if (!yaVinculado) {
                     Toast.makeText(this,
-                            "No hay sensor conectado.\n\nConecta tu sensor para ver tus recorridos.",
+                            "No tiene un sensor vinvulado a su cuenta.\n\nConecta tu sensor para ver tus recorridos.",
                             Toast.LENGTH_SHORT).show();
                     return true;
                 }
@@ -1324,7 +1191,97 @@ public class MainActivity extends BaseActivity  {
 
         // CARGA TU URL AQUÍ
         mapa.loadUrl("https://sagucre.upv.edu.es/mapa_full");
+
+
+        monitorEstadoNodo = new NotifEstadoNodo(MainActivity.this);
+        monitorEstadoNodo.iniciarMonitor();
+
+
+
+        // NUEVO: Configurar listener para desconexión del nodo
+        monitorEstadoNodo.setDesconexionListener(() -> {
+            beaconConectado = false;
+
+            // Si estaba haciendo tracking, enviar mediciones antes de detener
+            if (isTracking) {
+                Log.d(ETIQUETA_LOG, "DESCONEXIÓN ABRUPTA DETECTADA");
+
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this,
+                            "Sensor desconectado.\n\nGuardando tus datos de recorrido...",
+                            Toast.LENGTH_LONG).show();
+                });
+
+                // Obtener valores actuales
+                int pasosActuales = stepTracker != null ? stepTracker.getSteps() : 0;
+                long tiempoActual = timeTracker != null ? timeTracker.getElapsedTimeSeconds() : 0;
+                Location ubicacionActual = gpsTracker != null ? gpsTracker.getCurrentLocation() : null;
+
+                // Enviar mediciones con tipo "abrupta"
+                if (ubicacionActual != null && nombreNodoVinculado != null) {
+                    Log.d(ETIQUETA_LOG, " Enviando mediciones por desconexión abrupta:");
+                    Log.d(ETIQUETA_LOG, " - Pasos: " + pasosActuales);
+                    Log.d(ETIQUETA_LOG, " - Tiempo: " + tiempoActual + " seg");
+
+                    MeasurementsSender.enviarMedicionConDesconexion(
+                            nombreNodoVinculado,
+                            ultimaMedicionO3,
+                            ultimaMedicionCO,
+                            ultimaMedicionNO2,
+                            ubicacionActual,
+                            pasosActuales,
+                            tiempoActual,
+                            "abrupta", // Desconexión no planificada
+                            new MeasurementsSender.MeasurementCallback() {
+                                @Override
+                                public void onSuccess(String respuesta) {
+                                    Log.d(ETIQUETA_LOG, " Mediciones de desconexión abrupta enviadas");
+                                    runOnUiThread(() -> {
+                                        Toast.makeText(MainActivity.this,
+                                                "Tus datos fueron guardados correctamente antes de la desconexión.",
+                                                Toast.LENGTH_SHORT).show();
+                                    });
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Log.e(ETIQUETA_LOG, " Error enviando mediciones: " + error);
+                                }
+                            }
+                    );
+                } else {
+                    Log.w(ETIQUETA_LOG, " No se pueden enviar mediciones - datos incompletos");
+                }
+
+                // Opcional: detener tracking automáticamente
+                // runOnUiThread(() -> stopTracking());
+            }
+        });
+
+
+
+        /*estimator.setOnSignalChangedListener(new DistanceEstimator.OnSignalChangedListener() {
+            @Override
+            public void onSignalLevelChanged(int nivel) {
+                // IMPORTANTE: Volver al hilo principal para tocar la UI
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        Toast.makeText(MainActivity.this,
+                                "SE FUE A LA BERGA",
+                                Toast.LENGTH_SHORT).show();
+
+                        // AQUÍ haces los cambios en el MainActivity
+                        beaconConectado = false;
+                    }
+                });
+            }
+        });
+        estimator.startAutoMonitoring(2000);*/
+
     }
+
 
 
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -1526,7 +1483,11 @@ public class MainActivity extends BaseActivity  {
         if (beaconConectado && ultimaUbicacionNodo != null) {
             enviarUltimaUbicacionNodo();
         }
+
+        //estimator.stopAutoMonitoring();
     }
+
+
     private void actualizarUIVinculacion() {
         if (yaVinculado) {
             textVinculacion.setVisibility(View.GONE);
@@ -1607,6 +1568,9 @@ public class MainActivity extends BaseActivity  {
         Gamificacion game = new Gamificacion(idUsuario);
         int puntos = game.calcularPuntosMedianteDistancia(pasos);
         game.setUltimosPuntosObtenidos(puntos);
+
+        // Sumar los puntos obtenidos en la BBDD
+        game.sumarPuntosDelaUltimaSesionBBDD();
 
         // Guardar estadísticas diarias
         MeasurementsLogica medidas = new MeasurementsLogica(idUsuario, pasos, puntos, timeTracker.getElapsedTimeHours());

@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
+import android.util.Log;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -51,7 +53,6 @@ public class NotifEstadoNodo {
     // Estado interno
     // ------------------------------------------------------------
     private final Context context;
-    private final String nombreNodo;
 
     private long ultimoBeacon = 0;
     private boolean estabaConectado = false;
@@ -75,9 +76,8 @@ public class NotifEstadoNodo {
     // ------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------
-    public NotifEstadoNodo(Context ctx, String nombreNodo) {
+    public NotifEstadoNodo(Context ctx) {
         this.context = ctx;
-        this.nombreNodo = nombreNodo;
         crearCanal();
     }
 
@@ -119,6 +119,7 @@ public class NotifEstadoNodo {
                 checkConexion();
                 if (monitorCorriendo) {
                     handler.postDelayed(this, INTERVALO_CHECK_MS);
+                    Log.d("Moni", "si va");
                 }
             }
         }, INTERVALO_CHECK_MS);
@@ -139,8 +140,9 @@ public class NotifEstadoNodo {
     private void checkConexion() {
 
         long ahora = System.currentTimeMillis();
+        DistanceEstimator estimator = new DistanceEstimator();
 
-        if (estabaConectado && (ahora - ultimoBeacon) > TIMEOUT_BEACON_MS) {
+        if ((estabaConectado && (ahora - ultimoBeacon) > TIMEOUT_BEACON_MS) && estimator.getSignalLevel() == 0) {
             notificarNodoDesconectado();
             estabaConectado = false;
 
