@@ -92,12 +92,12 @@ public class CanjeoActivity extends AppCompatActivity {
         // Botón volver
         btnVolver.setOnClickListener(v -> finish());
 
-        if (puntosUsuario == 0) {
+        /*if (puntosUsuario == 0) {
             mostrarMensajeSinPuntos();
-        }
+        }*/
     }
 
-    private void mostrarMensajeSinPuntos() {
+    /*private void mostrarMensajeSinPuntos() {
         new AlertDialog.Builder(this)
                 .setTitle("Empieza a ganar puntos")
                 .setMessage(
@@ -113,7 +113,7 @@ public class CanjeoActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Ver premios de todos modos", null)
                 .show();
-    }
+    }*/
 
     private void inicializarVistas() {
         txtPuntosDisponibles = findViewById(R.id.txtPuntosDisponibles);

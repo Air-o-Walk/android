@@ -168,10 +168,10 @@ public class GamificacionActivity extends AppCompatActivity {
                                                 "Puntos actualizados correctamente",
                                                 Toast.LENGTH_SHORT).show();
 
-                                        // ✅ AGREGAR AQUÍ LA VERIFICACIÓN DE PUNTOS == 0:
-                                        if (puntosTotales == 0) {
+                                        //AGREGAR AQUÍ LA VERIFICACIÓN DE PUNTOS == 0:
+                                       /* if (puntosTotales == 0) {
                                             mostrarMensajeSinPuntos();
-                                        }
+                                        }*/
                                     }
                                 });
 
@@ -268,7 +268,7 @@ public class GamificacionActivity extends AppCompatActivity {
         // Error genérico pero con contexto
         return "Ocurrió un problema al procesar tu solicitud.\n\nIntenta nuevamente o contacta con soporte si persiste.";
     }
-
+/*
     private void mostrarMensajeSinPuntos() {
         new AlertDialog.Builder(this)
                 .setTitle("¡Empieza a ganar puntos!")
@@ -286,7 +286,7 @@ public class GamificacionActivity extends AppCompatActivity {
                 })
                 .show();
     }
-
+*/
     private boolean verificarSesionActiva() {
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         int savedUserId = prefs.getInt("user_id", -1);
