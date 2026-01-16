@@ -962,7 +962,7 @@ public class MainActivity extends BaseActivity  {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        setupHeaderAndDrawer(true);
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
         // ⭐ AGREGAR ESTA VERIFICACIÓN AL INICIO ⭐

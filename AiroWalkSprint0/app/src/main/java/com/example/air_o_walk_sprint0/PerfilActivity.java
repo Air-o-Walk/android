@@ -7,9 +7,11 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.InputType;
+import android.widget.ArrayAdapter;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -493,15 +495,40 @@ public class PerfilActivity extends BaseActivity {
     private void showQuejasPopup() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_quejas);
+        Spinner spinnerTipo = dialog.findViewById(R.id.spinnerTipo);
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.tipos_incidencia,
+                R.layout.spinner_item
+        );
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
+        spinnerTipo.setAdapter(adapter);
+
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
         dialog.findViewById(R.id.btnVolverQuejas).setOnClickListener(v -> dialog.dismiss());
 
         dialog.findViewById(R.id.btnEnviarQueja).setOnClickListener(v -> {
-            Toast.makeText(this, "Queja enviada", Toast.LENGTH_SHORT).show();
+
+            EditText editDescripcion = dialog.findViewById(R.id.editDescripcion);
+
+            String tipo = spinnerTipo.getSelectedItem().toString();
+            String descripcion = editDescripcion.getText().toString().trim();
+
+            if (descripcion.isEmpty()) {
+                Toast.makeText(this, "La descripción no puede estar vacía", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            LogicaIncidencias logicaIncidencias =
+                    new LogicaIncidencias(userId, tipo, descripcion);
+
+            logicaIncidencias.enviarIncidencia();
+
+            Toast.makeText(this, "Incidencia enviada correctamente", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
-
         dialog.show();
     }
 

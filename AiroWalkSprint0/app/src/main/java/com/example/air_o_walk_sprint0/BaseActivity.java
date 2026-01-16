@@ -40,6 +40,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected NavigationView navigationView;
     protected ImageView btnMenu;
     protected ImageView iconoVincular;
+    protected ImageView btnNotif;
 
     // Variables protegidas para que las actividades hijas puedan acceder
     protected int userId = -1;
@@ -111,6 +112,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         btnMenu = findViewById(R.id.btnMenu);
         iconoVincular = findViewById(R.id.iconoVincular);
+        btnNotif = findViewById(R.id.btnNotif);
 
         if (hasDrawer) {
             drawerLayout = findViewById(R.id.drawerLayout);
@@ -197,6 +199,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
 
         setupIconoVincular();
+        setupNotifications();
         setupBackBehavior();
     }
 
@@ -264,4 +267,14 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         finish();
     }
+    //
+    private void setupNotifications() {
+        if (btnNotif == null) return;
+
+        btnNotif.setOnClickListener(v -> {
+            Intent intent = new Intent(this, NotificationsActivity.class);
+            startActivity(intent);
+        });
+    }
+
 }
