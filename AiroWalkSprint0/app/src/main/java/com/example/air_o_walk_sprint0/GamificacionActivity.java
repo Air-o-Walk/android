@@ -1,5 +1,7 @@
 package com.example.air_o_walk_sprint0;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -25,7 +27,7 @@ import org.json.JSONObject;
  *
  * La comunicación con el backend se realiza de forma asíncrona.
  *
- * @author Santiago Aguirre
+ * @author Santiago Aguirre y Adenor Buret
  * @version 1.0
  */
 
@@ -46,13 +48,24 @@ public class GamificacionActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ⭐ VERIFICAR SESIÓN ACTIVA
+        if (!verificarSesionActiva()) {
+            return; // Si no hay sesión, redirige a Login y detiene ejecución
+        }
+
         setContentView(R.layout.activity_gamificacion);
 
-        // Obtener el user_id del Intent
+        // Obtener userId del Intent o SharedPreferences
         userId = getIntent().getIntExtra("USER_ID", -1);
 
         if (userId == -1) {
-            Toast.makeText(this, "Error: No se pudo obtener el ID de usuario", Toast.LENGTH_SHORT).show();
+            SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+            userId = prefs.getInt("user_id", -1);
+        }
+
+        if (userId == -1) {
+            Toast.makeText(this, "Error de sesión", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -213,5 +226,21 @@ public class GamificacionActivity extends AppCompatActivity {
                 Toast.makeText(GamificacionActivity.this, mensaje, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private boolean verificarSesionActiva() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        int savedUserId = prefs.getInt("user_id", -1);
+        String savedToken = prefs.getString("token", null);
+        boolean sesionActiva = prefs.getBoolean("sesion_activa", false);
+
+        if (savedUserId == -1 || savedToken == null || !sesionActiva) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return false;
+        }
+        return true;
     }
 }
