@@ -12,8 +12,11 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.biometric.BiometricManager;
+
 
 import androidx.appcompat.app.AlertDialog;
 
@@ -54,6 +57,36 @@ public class PerfilActivity extends BaseActivity {
         }
 
         setContentView(R.layout.activity_perfil);
+        Switch switchBiometric = findViewById(R.id.switchBiometric);
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+
+// Load saved state
+        boolean biometricEnabled = prefs.getBoolean("biometric_enabled", false);
+        switchBiometric.setChecked(biometricEnabled);
+        switchBiometric.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                BiometricManager biometricManager = BiometricManager.from(this);
+                int result = biometricManager.canAuthenticate(
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG
+                );
+
+                if (result == BiometricManager.BIOMETRIC_SUCCESS) {
+                    // ⭐ Instead of saving immediately, we ASK for the fingerprint
+                    solicitarConfirmacionBiometrica(switchBiometric);
+                } else {
+                    switchBiometric.setChecked(false);
+                    Toast.makeText(this,
+                            "Tu dispositivo no tiene huella configurada",
+                            Toast.LENGTH_LONG).show();
+                }
+            } else {
+                // Turning it off doesn't require a scan
+                prefs.edit().putBoolean("biometric_enabled", false).apply();
+                Toast.makeText(this, "Login con huella desactivado", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
         setupHeaderAndDrawer(true);
         setupBackBehavior();
 
@@ -63,7 +96,6 @@ public class PerfilActivity extends BaseActivity {
 
         // Si no vienen del Intent, cargar de SharedPreferences
         if (userId == 0 || token == null) {
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             userId = prefs.getInt("user_id", 0);
             token = prefs.getString("token", null);
         }
@@ -87,6 +119,46 @@ public class PerfilActivity extends BaseActivity {
         cargarDatosUsuario();
         setupBotonesEdicion();
         setupLogoutButton(); // ⭐ NUEVO: Configurar botón de logout
+    }
+    /**
+     * Muestra el prompt de biometría para confirmar que el usuario es el dueño
+     * antes de activar la opción en los ajustes.
+     */
+    private void solicitarConfirmacionBiometrica(Switch switchComponent) {
+        androidx.biometric.BiometricPrompt biometricPrompt = new androidx.biometric.BiometricPrompt(this,
+                androidx.core.content.ContextCompat.getMainExecutor(this),
+                new androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(androidx.biometric.BiometricPrompt.AuthenticationResult result) {
+                        super.onAuthenticationSucceeded(result);
+                        // SUCCESS: Fingerprint matched, now we save
+                        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                                .edit().putBoolean("biometric_enabled", true).apply();
+                        Toast.makeText(PerfilActivity.this, "¡Huella activada correctamente!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onAuthenticationError(int errorCode, CharSequence errString) {
+                        super.onAuthenticationError(errorCode, errString);
+                        // FAIL/CANCEL: Flip the switch back to off
+                        switchComponent.setChecked(false);
+                        Toast.makeText(PerfilActivity.this, "No se activó: " + errString, Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onAuthenticationFailed() {
+                        super.onAuthenticationFailed();
+                        Toast.makeText(PerfilActivity.this, "Huella no reconocida", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        androidx.biometric.BiometricPrompt.PromptInfo promptInfo = new androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Verificar Identidad")
+                .setSubtitle("Escanea tu huella para habilitar el acceso rápido")
+                .setNegativeButtonText("Cancelar")
+                .build();
+
+        biometricPrompt.authenticate(promptInfo);
     }
 
     /**
@@ -240,8 +312,16 @@ public class PerfilActivity extends BaseActivity {
 
         // 1. Limpiar SharedPreferences (sesión local)
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean biometricEnabled = prefs.getBoolean("biometric_enabled", false);
         SharedPreferences.Editor editor = prefs.edit();
+        if (biometricEnabled) {
+            // ⭐ THE TRICK: We mark the session as inactive,
+            // but KEEP the token and user_id so the fingerprint can use them later.
+            editor.putBoolean("sesion_activa", false);
+        } else {
+            // If no biometrics, wipe everything for security
         editor.clear(); // Elimina TODOS los datos guardados
+        }
         editor.apply();
 
         Log.d(TAG, "SharedPreferences limpiado - Sesión local eliminada");
